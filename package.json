@@ -1,0 +1,30 @@
+{
+  "name": "vegan-tools",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "workspaces": [
+    "apps/*",
+    "packages/*"
+  ],
+  "scripts": {
+    "dev": "npm run build -w @vegan-tools/domain && concurrently -n api,web -c blue,green \"npm run dev -w @vegan-tools/api\" \"npm run dev -w @vegan-tools/web\"",
+    "dev:api": "npm run dev -w @vegan-tools/api",
+    "dev:web": "npm run dev -w @vegan-tools/web",
+    "build": "npm run build -w @vegan-tools/domain && npm run build -w @vegan-tools/api && npm run build -w @vegan-tools/web",
+    "pretypecheck": "npm run build -w @vegan-tools/domain",
+    "typecheck": "npm run typecheck --workspaces --if-present",
+    "pretest": "npm run build -w @vegan-tools/domain",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "check:secrets": "node scripts/check-bundle-secrets.mjs",
+    "check": "npm run typecheck && npm test && npm run build && npm run check:secrets",
+    "clean": "node scripts/clean.mjs"
+  },
+  "devDependencies": {
+    "@types/node": "^22.15.0",
+    "concurrently": "^9.1.2",
+    "typescript": "~5.8.3",
+    "vitest": "^3.2.4"
+  }
+}

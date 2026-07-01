@@ -1,0 +1,7 @@
+{
+  "name": "Vegan Scanner",
+  "description": "Scan grocery items to check if they are vegan or vegetarian.",
+  "requestFramePermissions": [
+    "camera"
+  ]
+}
