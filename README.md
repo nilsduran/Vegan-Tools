@@ -146,5 +146,6 @@ licence review and physical-device testing.
 6. An OpenStreetMap-based vegan venue directory.
 7. Domain purchase and App Store / Google Play releases.
 
-No code licence has been selected yet. This decision is required before accepting external
-contributions or presenting the repository as open source.
+## Licence
+
+Vegan Tools is released under the [GNU General Public License v3.0](LICENSE).
