@@ -3,16 +3,26 @@ import {
   menuDraftSchema,
   productResultSchema,
   recipeAnalysisSchema,
+  restaurantCandidateSchema,
   type IngredientAnalysis,
   type MenuDraft,
   type MenuPatch,
   type ProductResult,
   type RecipeAnalysis,
+  type RestaurantCandidate,
   classifyIngredients as classifyIngredientsLocally,
   veganizeRecipe as veganizeRecipeLocally,
 } from "@vegan-tools/domain";
 
 const API_URL = import.meta.env.VITE_API_URL ?? "http://localhost:3001";
+
+export function resolveApiUrl(path: string) {
+  return /^https?:\/\//i.test(path) ? path : `${API_URL}${path}`;
+}
+
+export function sourcePdfPageUrl(path: string, page: number) {
+  return `${resolveApiUrl(path).split("#")[0]}#page=${page}&zoom=page-width`;
+}
 
 function normalizeMenuError(menu: MenuDraft): MenuDraft {
   if (menu.error && /503|unavailable|high demand|overload/i.test(menu.error)) {
@@ -25,7 +35,14 @@ function normalizeMenuError(menu: MenuDraft): MenuDraft {
 }
 
 async function checkedFetch(input: string, init?: RequestInit): Promise<Response> {
-  const response = await fetch(`${API_URL}${input}`, init);
+  let response: Response;
+  try {
+    response = await fetch(`${API_URL}${input}`, init);
+  } catch {
+    throw new Error(
+      `Could not reach the Vegan Tools API at ${API_URL}. Start or restart the local API and try again.`,
+    );
+  }
   if (!response.ok) {
     const body = (await response.json().catch(() => ({}))) as { message?: string };
     if (response.status === 404 && body.message?.startsWith("Route ")) {
@@ -40,19 +57,7 @@ async function checkedFetch(input: string, init?: RequestInit): Promise<Response
 
 export async function getProduct(gtin: string): Promise<ProductResult> {
   const response = await checkedFetch(`/v1/products/${encodeURIComponent(gtin)}`);
-  const product = productResultSchema.parse(await response.json());
-  const isLegacyOffVeganResult =
-    product.verdict === "unknown" &&
-    product.evidence.some((item) => item.sourceName === "Open Food Facts") &&
-    /(?:marks|label).{0,40}vegan|vegan.{0,20}(?:mark|label)/i.test(product.reason);
-  return isLegacyOffVeganResult
-    ? {
-        ...product,
-        verdict: "vegan",
-        reason:
-          "Open Food Facts marks this product as vegan and no conflicting ingredient was found.",
-      }
-    : product;
+  return productResultSchema.parse(await response.json());
 }
 
 export async function classifyIngredientList(
@@ -64,8 +69,11 @@ export async function classifyIngredientList(
   ));
 }
 
-export async function veganizeRecipe(recipeText: string): Promise<RecipeAnalysis> {
-  return recipeAnalysisSchema.parse(veganizeRecipeLocally(recipeText));
+export async function veganizeRecipe(
+  recipeText: string,
+  selections: Record<string, string> = {},
+): Promise<RecipeAnalysis> {
+  return recipeAnalysisSchema.parse(veganizeRecipeLocally(recipeText, selections));
 }
 
 export async function extractIngredientText(image: File): Promise<string> {
@@ -99,6 +107,92 @@ export async function createMenuAnalysis(files: File[]): Promise<MenuDraft> {
   files.forEach((file) => body.append("files", file));
   const response = await checkedFetch("/v1/menus/analyses", { method: "POST", body });
   return menuDraftSchema.parse(await response.json());
+}
+
+export async function searchRestaurants(
+  query: string,
+  options: {
+    autocomplete?: boolean;
+    sessionToken?: string;
+    near?: string;
+    location?: { latitude: number; longitude: number };
+    signal?: AbortSignal;
+  } = {},
+): Promise<RestaurantCandidate[]> {
+  const params = new URLSearchParams({ q: query });
+  if (options.autocomplete) params.set("autocomplete", "true");
+  if (options.sessionToken) params.set("sessionToken", options.sessionToken);
+  if (options.near?.trim()) params.set("near", options.near.trim());
+  if (options.location) {
+    params.set("latitude", String(options.location.latitude));
+    params.set("longitude", String(options.location.longitude));
+  }
+  const response = await checkedFetch(
+    `/v1/restaurants/search?${params}`,
+    { signal: options.signal },
+  );
+  return restaurantCandidateSchema.array().parse(await response.json());
+}
+
+export async function resolveRestaurant(
+  restaurant: RestaurantCandidate,
+): Promise<RestaurantCandidate> {
+  const response = await checkedFetch("/v1/restaurants/resolve", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(restaurant),
+  });
+  return restaurantCandidateSchema.parse(await response.json());
+}
+
+export async function createRestaurantMenuAnalysis(
+  files: File[],
+  restaurant?: RestaurantCandidate,
+): Promise<MenuDraft> {
+  const body = new FormData();
+  files.forEach((file) => body.append("files", file));
+  if (restaurant) {
+    body.append("restaurant", JSON.stringify(restaurant));
+    body.append("restaurantName", restaurant.name);
+    if (restaurant.websiteUrl) body.append("sourceUrl", restaurant.websiteUrl);
+  }
+  const response = await checkedFetch("/v1/menus/analyses", { method: "POST", body });
+  return menuDraftSchema.parse(await response.json());
+}
+
+export async function discoverRestaurantMenu(
+  restaurant: RestaurantCandidate,
+  websiteUrl: string,
+): Promise<MenuDraft> {
+  const response = await checkedFetch("/v1/menus/discover", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      restaurant,
+      restaurantName: restaurant.name,
+      websiteUrl,
+    }),
+  });
+  return menuDraftSchema.parse(await response.json());
+}
+
+export interface CachedRestaurantMenu {
+  restaurant: RestaurantCandidate;
+  menu: MenuDraft;
+  savedAt: string;
+}
+
+export async function getRecentRestaurantMenus(): Promise<CachedRestaurantMenu[]> {
+  const response = await checkedFetch("/v1/menus/recent");
+  const value = await response.json();
+  if (!Array.isArray(value)) return [];
+  return value.flatMap((item): CachedRestaurantMenu[] => {
+    const restaurant = restaurantCandidateSchema.safeParse(item?.restaurant);
+    const menu = menuDraftSchema.safeParse(item?.menu);
+    return restaurant.success && menu.success && typeof item?.savedAt === "string"
+      ? [{ restaurant: restaurant.data, menu: menu.data, savedAt: item.savedAt }]
+      : [];
+  });
 }
 
 export async function getMenuDraft(id: string, token: string): Promise<MenuDraft> {

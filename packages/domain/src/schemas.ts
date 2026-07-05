@@ -98,6 +98,7 @@ export const recipeSubstitutionSchema = z.object({
   ingredient: z.string(),
   detectedText: z.string().optional(),
   originalAmount: z.string().optional(),
+  selectedSuggestion: z.string(),
   reason: z.string(),
   guidance: z.string(),
   suggestions: z.array(z.string()).min(1),
@@ -125,6 +126,11 @@ export const menuItemSchema = z.object({
   reason: z.string().default(""),
   modificationNote: z.string().optional(),
   modifiableTo: z.enum(["vegan", "vegetarian"]).optional(),
+  modifications: z.array(z.object({
+    target: z.enum(["vegan", "vegetarian"]),
+    note: z.string(),
+  })).default([]),
+  sourcePage: z.number().int().positive().optional(),
 });
 export type MenuItem = z.infer<typeof menuItemSchema>;
 
@@ -135,12 +141,21 @@ export const menuSectionSchema = z.object({
 });
 export type MenuSection = z.infer<typeof menuSectionSchema>;
 
+export const menuSourceFileSchema = z.object({
+  name: z.string(),
+  mimeType: z.string(),
+  url: z.string(),
+});
+export type MenuSourceFile = z.infer<typeof menuSourceFileSchema>;
+
 export const menuDraftSchema = z.object({
   id: z.string(),
   editToken: z.string(),
   status: z.enum(["processing", "ready", "failed", "published"]),
   restaurantName: z.string().default(""),
   sourceLabel: z.string().default("Uploaded menu"),
+  sourceUrl: z.string().url().optional(),
+  sourceFiles: z.array(menuSourceFileSchema).default([]),
   sourceCapturedAt: z.string(),
   service: z.string().optional(),
   validOn: z.string().optional(),
@@ -157,6 +172,7 @@ export const menuPatchSchema = menuDraftSchema
   .pick({
     restaurantName: true,
     sourceLabel: true,
+    sourceUrl: true,
     service: true,
     validOn: true,
     originalLanguage: true,
@@ -164,3 +180,15 @@ export const menuPatchSchema = menuDraftSchema
   })
   .partial();
 export type MenuPatch = z.infer<typeof menuPatchSchema>;
+
+export const restaurantCandidateSchema = z.object({
+  id: z.string(),
+  name: z.string(),
+  address: z.string(),
+  latitude: z.number(),
+  longitude: z.number(),
+  websiteUrl: z.string().url().optional(),
+  mapUrl: z.string().url(),
+  provider: z.enum(["openstreetmap", "foursquare"]).default("openstreetmap"),
+});
+export type RestaurantCandidate = z.infer<typeof restaurantCandidateSchema>;

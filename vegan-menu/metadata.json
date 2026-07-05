@@ -1,5 +1,0 @@
-{
-  "name": "Herbivore Menu Reader",
-  "description": "Upload a restaurant menu to categorize items by diet (vegan, vegetarian, carnivore) and find easy modifications.",
-  "requestFramePermissions": []
-}

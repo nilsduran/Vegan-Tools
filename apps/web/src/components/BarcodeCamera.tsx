@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { BarcodeDetectorPolyfill } from "@undecaf/barcode-detector-polyfill";
 import { Camera, CameraOff } from "lucide-react";
+import { tx } from "../i18n";
 
 type Detector = {
   detect(source: CanvasImageSource): Promise<Array<{ rawValue: string }>>;
@@ -61,7 +62,7 @@ export function BarcodeCamera({ onDetected }: { onDetected: (value: string) => v
         };
         frame = requestAnimationFrame(detect);
       } catch {
-        setError("Camera access is unavailable. Enter the barcode below.");
+        setError(tx("Camera access is unavailable. Enter the barcode below."));
       }
     };
     void start();
@@ -77,9 +78,9 @@ export function BarcodeCamera({ onDetected }: { onDetected: (value: string) => v
     return (
       <div className="camera-start">
         <Camera aria-hidden="true" />
-        <p>Use your camera to scan an EAN or UPC barcode.</p>
+        <p>{tx("Use your camera to scan an EAN or UPC barcode.")}</p>
         <button className="primary-button" onClick={() => setStarted(true)}>
-          Start camera
+          {tx("Start camera")}
         </button>
       </div>
     );
@@ -91,7 +92,7 @@ export function BarcodeCamera({ onDetected }: { onDetected: (value: string) => v
 
   return (
     <div className="camera-frame">
-      <video ref={videoRef} muted playsInline aria-label="Barcode camera" />
+      <video ref={videoRef} muted playsInline aria-label={tx("Barcode")} />
       <div className="scan-window" aria-hidden="true" />
     </div>
   );

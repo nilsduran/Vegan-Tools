@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { Camera, CameraOff, LoaderCircle } from "lucide-react";
+import { tx } from "../i18n";
 
 export function IngredientCamera({
   onCapture,
@@ -31,7 +32,7 @@ export function IngredientCamera({
         await videoRef.current.play();
         setReady(true);
       } catch {
-        setError("Camera access is unavailable. Upload an image below instead.");
+        setError(tx("Camera access is unavailable. Upload an image below instead."));
       }
     };
 
@@ -63,10 +64,10 @@ export function IngredientCamera({
     return (
       <div className="ingredient-camera-start">
         <Camera aria-hidden="true" />
-        <strong>Photograph the ingredient label</strong>
-        <span>Keep the full list in focus and avoid glare.</span>
+        <strong>{tx("Photograph the ingredient label")}</strong>
+        <span>{tx("Keep the full list in focus and avoid glare.")}</span>
         <button className="primary-button" onClick={() => setStarted(true)}>
-          Open camera
+          {tx("Open camera")}
         </button>
       </div>
     );
@@ -78,7 +79,7 @@ export function IngredientCamera({
 
   return (
     <div className="ingredient-camera-frame">
-      <video ref={videoRef} muted playsInline aria-label="Ingredient label camera" />
+      <video ref={videoRef} muted playsInline aria-label={tx("Photograph the ingredient label")} />
       <div className="document-guide" aria-hidden="true" />
       <button
         className="capture-button"
@@ -86,7 +87,7 @@ export function IngredientCamera({
         disabled={!ready || capturing}
       >
         {capturing ? <LoaderCircle className="spin" /> : <Camera />}
-        Capture label
+        {tx("Capture label")}
       </button>
     </div>
   );

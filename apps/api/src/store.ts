@@ -32,6 +32,7 @@ export class MemoryRepository implements Repository {
       status: "processing",
       restaurantName: "",
       sourceLabel: "Uploaded menu",
+      sourceFiles: [],
       sourceCapturedAt: now.toISOString(),
       originalLanguage: "unknown",
       sections: [],

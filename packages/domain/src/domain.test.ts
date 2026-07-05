@@ -6,12 +6,38 @@ import {
   splitTraces,
   veganizeRecipe,
   productResultSchema,
+  menuItemSchema,
 } from "./index.js";
 
 describe("GTIN validation", () => {
   it("accepts valid EAN-13 and rejects a wrong check digit", () => {
     expect(isValidGtin("3017620422003")).toBe(true);
     expect(isValidGtin("3017620422004")).toBe(false);
+  });
+});
+
+describe("menu adaptations", () => {
+  it("keeps separate vegan and vegetarian adaptations for one dish", () => {
+    const item = menuItemSchema.parse({
+      id: "lasagna",
+      originalName: "Lasanya de carn",
+      name: "Meat lasagna",
+      verdict: "non_vegetarian",
+      reason: "Contains meat, dairy and egg.",
+      modifications: [
+        {
+          target: "vegetarian",
+          note: "Ask whether it can be prepared without meat.",
+        },
+        {
+          target: "vegan",
+          note: "Ask whether it can be prepared without meat, dairy or egg.",
+        },
+      ],
+    });
+
+    expect(item.modifications.map((entry) => entry.target))
+      .toEqual(["vegetarian", "vegan"]);
   });
 });
 
@@ -40,9 +66,9 @@ describe("deterministic ingredient classification", () => {
       .toBe("probably_vegetarian");
   });
 
-  it("returns probably vegan for an ordinary ingredient list without red flags", () => {
+  it("returns vegan for a complete ingredient list without red flags", () => {
     expect(classifyIngredients("Water, tomatoes, salt", { assurance: "external" }).verdict)
-      .toBe("probably_vegan");
+      .toBe("vegan");
   });
 
   it("keeps unknown for a missing ingredient list", () => {
@@ -54,6 +80,15 @@ describe("deterministic ingredient classification", () => {
       .toContain("milk");
     expect(lookupIngredients("azúcar, gelatina").map((item) => item.id))
       .toContain("gelatin");
+  });
+
+  it("matches French dairy ingredients used by Open Food Facts", () => {
+    const result = classifyIngredients(
+      "Sucre, LAIT écrémé en poudre, LACTOSERUM en poudre",
+      { assurance: "external" },
+    );
+    expect(result.verdict).toBe("vegetarian");
+    expect(result.matchedIngredients).toEqual(expect.arrayContaining(["Milk", "Whey"]));
   });
 
   it("explains E-numbers using dictionary metadata", () => {
@@ -70,7 +105,7 @@ describe("deterministic ingredient classification", () => {
       "Cocoa mass, cocoa butter, oat milk, vegan cheese",
       { assurance: "label_based" },
     );
-    expect(result.verdict).toBe("probably_vegan");
+    expect(result.verdict).toBe("vegan");
   });
 
   it("suggests replacements for a recipe", () => {
@@ -100,6 +135,52 @@ describe("deterministic ingredient classification", () => {
     expect(recipe.veganizedText).toContain("300 ml unsweetened soy milk");
     expect(recipe.veganizedText).toContain("rest for 10 minutes");
     expect(recipe.veganizedText).toContain("Beat the flax eggs");
+  });
+
+  it("recalculates the recipe when the user chooses aquafaba", () => {
+    const recipe = veganizeRecipe(
+      "Cake\n2 eggs\n\nInstructions:\nWhip the eggs.",
+      { egg: "aquafaba for whipping" },
+    );
+    expect(recipe.veganizedText).toContain("6 tbsp aquafaba");
+    expect(recipe.veganizedText).toContain("Whip the aquafaba");
+    expect(recipe.substitutions[0]?.selectedSuggestion).toBe("aquafaba for whipping");
+  });
+
+  it("chooses an egg substitute from the recipe context", () => {
+    const meringue = veganizeRecipe(
+      "Meringue\n3 egg whites\nInstructions:\nWhip the egg whites to stiff peaks.",
+    );
+    const pancakes = veganizeRecipe("Pancakes\n2 eggs\n200 g flour");
+
+    expect(meringue.substitutions.find((item) => item.ingredientId === "egg")
+      ?.selectedSuggestion).toBe("aquafaba for whipping");
+    expect(meringue.veganizedText).toContain("9 tbsp aquafaba");
+    expect(meringue.veganizedText).not.toContain("aquafaba whites");
+    expect(pancakes.substitutions.find((item) => item.ingredientId === "egg")
+      ?.selectedSuggestion).toBe("flax egg for binding");
+  });
+
+  it("chooses fats and cheese according to how the recipe uses them", () => {
+    const risotto = veganizeRecipe("Risotto\n30 g butter\n20 g parmesan");
+    const muffins = veganizeRecipe("Muffins\n100 g butter\nBake for 20 minutes");
+
+    expect(risotto.substitutions.find((item) => item.ingredientId === "butter")
+      ?.selectedSuggestion).toBe("olive oil");
+    expect(risotto.substitutions.find((item) => item.ingredientId === "cheese")
+      ?.selectedSuggestion).toBe("nutritional yeast");
+    expect(muffins.substitutions.find((item) => item.ingredientId === "butter")
+      ?.selectedSuggestion).toBe("neutral vegetable oil");
+    expect(muffins.veganizedText).toContain("80 g neutral vegetable oil");
+  });
+
+  it("reduces the starting quantity when replacing solid butter with oil", () => {
+    const recipe = veganizeRecipe(
+      "100 g butter",
+      { butter: "neutral vegetable oil" },
+    );
+    expect(recipe.veganizedText).toContain("80 g neutral vegetable oil");
+    expect(recipe.substitutions[0]?.guidance).toContain("80 g");
   });
 });
 

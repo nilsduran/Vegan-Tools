@@ -22,6 +22,46 @@ interface OffResponse {
   product?: OffProduct;
 }
 
+function inferFromProductIdentity(product: OffProduct): {
+  verdict: ProductResult["verdict"];
+  reason: string;
+} | undefined {
+  const name = (product.product_name ?? "")
+    .normalize("NFD")
+    .replace(/\p{Diacritic}/gu, "")
+    .toLowerCase()
+    .trim();
+  const categories = (product.categories_tags ?? [])
+    .map((category) => category.replace(/^[a-z]{2}:/i, "").toLowerCase());
+
+  const wholeProduceNames =
+    /^(?:an?\s+)?(?:apple|pomme|poma|manzana|banana|orange|taronja|naranja|pear|poire|pera|peach|peche|pressec|tomato|tomate|tomaquet|carrot|carotte|pastanaga)$/;
+  const wholeProduceCategories = categories.some((category) =>
+    /^(?:apples|bananas|oranges|pears|peaches|fresh-fruits|fresh-vegetables)$/.test(category),
+  );
+  if (wholeProduceNames.test(name) || wholeProduceCategories) {
+    return {
+      verdict: "vegan",
+      reason: "This is an unprocessed fruit or vegetable.",
+    };
+  }
+
+  if (/\b(?:apple|pomme|poma|manzana)\b.*\b(?:pie|tart|cake|pastry|pastis|tarta|tourte)\b/.test(name)) {
+    return {
+      verdict: "probably_vegetarian",
+      reason: "Apple pastries commonly contain dairy or egg and may occasionally use other animal fats.",
+    };
+  }
+
+  if (/\b(?:dark chocolate|chocolat noir|xocolata negra|chocolate negro)\b/.test(name)) {
+    return {
+      verdict: "probably_vegan",
+      reason: "Dark chocolate is often vegan, but some recipes contain milk or other animal-derived ingredients.",
+    };
+  }
+  return undefined;
+}
+
 export async function lookupOpenFoodFacts(gtin: string): Promise<ProductResult | undefined> {
   const fields = [
     "product_name",
@@ -79,18 +119,37 @@ export async function lookupOpenFoodFacts(gtin: string): Promise<ProductResult |
 
   let verdict = analysis.verdict;
   let reason = analysis.reason;
+  const tagValues = tags.map((tag) => tag.replace(/^[a-z]{2}:/i, ""));
+  const labelValues = labels.map((tag) => tag.replace(/^[a-z]{2}:/i, ""));
+  const markedNonVegetarian = tagValues.includes("non-vegetarian");
+  const markedNonVegan = tagValues.includes("non-vegan");
   const markedVegan =
-    tags.some((tag) => tag.endsWith(":vegan")) ||
-    labels.some((tag) => tag.includes("vegan"));
+    tagValues.includes("vegan") ||
+    labelValues.includes("vegan");
+  const identityInference =
+    analysis.verdict === "unknown" ? inferFromProductIdentity(product) : undefined;
   const hasConflictingIngredient = analysis.findings.some(
     (finding) =>
       finding.status === "non_vegetarian" || finding.status === "vegetarian",
   );
 
-  if (markedVegan && !hasConflictingIngredient) {
+  if (markedNonVegetarian && analysis.verdict !== "non_vegetarian") {
+    verdict = "non_vegetarian";
+    reason = "Open Food Facts marks this product as non-vegetarian.";
+  } else if (
+    markedNonVegan &&
+    (analysis.verdict === "unknown" || analysis.verdict === "probably_vegan")
+  ) {
+    verdict = "probably_vegetarian";
+    reason =
+      "Open Food Facts marks this product as non-vegan, but the available data does not establish whether it is vegetarian.";
+  } else if (markedVegan && !markedNonVegan && !hasConflictingIngredient) {
     verdict = "vegan";
     reason =
       "Open Food Facts marks this product as vegan and no conflicting ingredient was found.";
+  } else if (identityInference) {
+    verdict = identityInference.verdict;
+    reason = identityInference.reason;
   } else if (
     categories.some((category) => category.includes("plant-based")) &&
     !hasConflictingIngredient &&

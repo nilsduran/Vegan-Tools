@@ -21,7 +21,7 @@ export const INGREDIENT_DICTIONARY: IngredientDefinition[] = [
   {
     id: "gelatin",
     name: "Gelatine",
-    aliases: ["gelatin", "gelatine", "gelatina", "e441"],
+    aliases: ["gelatin", "gelatine", "gelatina", "gélatine", "gelatine animale", "e441"],
     status: "non_vegetarian",
     reason: "Gelatine is made from animal collagen.",
     category: "animal",
@@ -64,6 +64,7 @@ export const INGREDIENT_DICTIONARY: IngredientDefinition[] = [
       "beef", "pork", "chicken", "turkey", "lamb", "mutton", "veal", "duck", "bacon", "ham",
       "vedella", "porc", "pollastre", "gall dindi", "xai", "ànec", "anec", "pernil",
       "ternera", "cerdo", "pollo", "pavo", "cordero", "pato", "jamón", "jamon",
+      "viande", "boeuf", "bœuf", "porc", "poulet", "dinde", "agneau", "canard", "jambon",
     ],
     status: "non_vegetarian",
     reason: "This ingredient is animal meat.",
@@ -77,11 +78,12 @@ export const INGREDIENT_DICTIONARY: IngredientDefinition[] = [
       "fish", "anchovy", "anchovies", "tuna", "salmon", "sardine", "shellfish", "prawn", "shrimp",
       "peix", "anxova", "anxoves", "tonyina", "salmó", "salmo", "sardina", "marisc", "gamba",
       "pescado", "anchoa", "atún", "atun", "salmón", "marisco", "camarón", "camaron",
+      "poisson", "anchois", "thon", "saumon", "fruits de mer", "crevette",
     ],
     status: "non_vegetarian",
     reason: "This ingredient comes from fish or another aquatic animal.",
     category: "animal",
-    substitutions: ["nori", "smoked tofu", "hearts of palm", "seaweed seasoning"],
+    substitutions: ["hearts of palm", "smoked tofu", "nori", "seaweed seasoning"],
   },
   {
     id: "animal-fat",
@@ -90,7 +92,7 @@ export const INGREDIENT_DICTIONARY: IngredientDefinition[] = [
     status: "non_vegetarian",
     reason: "This is fat obtained from slaughtered animals.",
     category: "animal",
-    substitutions: ["olive oil", "neutral vegetable oil", "vegan butter"],
+    substitutions: ["vegan butter", "olive oil", "neutral vegetable oil"],
   },
   {
     id: "animal-rennet",
@@ -104,10 +106,15 @@ export const INGREDIENT_DICTIONARY: IngredientDefinition[] = [
   {
     id: "milk",
     name: "Milk",
-    aliases: ["milk", "milk powder", "skimmed milk", "llet", "llet en pols", "leche", "leche en polvo"],
+    aliases: [
+      "milk", "milk powder", "skimmed milk", "llet", "llet en pols", "leche", "leche en polvo",
+      "lait", "lait en poudre", "poudre de lait", "lait écrémé", "lait ecreme",
+      "lait écrémé en poudre", "lait ecreme en poudre",
+    ],
     exclusions: [
       "oat milk", "soy milk", "soya milk", "almond milk", "coconut milk", "plant milk", "vegan milk",
       "llet de civada", "llet de soja", "llet d'ametlla", "leche de avena", "leche de soja", "leche de almendra",
+      "lait d'avoine", "lait de soja", "lait d'amande", "lait de coco", "lait végétal", "lait vegetal",
     ],
     status: "vegetarian",
     reason: "Milk is animal-derived, so the recipe is not vegan.",
@@ -117,11 +124,14 @@ export const INGREDIENT_DICTIONARY: IngredientDefinition[] = [
   {
     id: "whey",
     name: "Whey",
-    aliases: ["whey", "whey powder", "sèrum de llet", "serum de llet", "suero de leche", "lactosuero"],
+    aliases: [
+      "whey", "whey powder", "sèrum de llet", "serum de llet", "suero de leche", "lactosuero",
+      "lactosérum", "lactoserum", "petit-lait", "poudre de lactosérum", "poudre de lactoserum",
+    ],
     status: "vegetarian",
     reason: "Whey is a dairy by-product.",
     category: "dairy",
-    substitutions: ["soy protein", "pea protein", "plant milk powder"],
+    substitutions: ["pea protein", "soy protein", "plant milk powder"],
   },
   {
     id: "casein",
@@ -135,10 +145,11 @@ export const INGREDIENT_DICTIONARY: IngredientDefinition[] = [
   {
     id: "butter",
     name: "Butter",
-    aliases: ["butter", "butterfat", "mantega", "mantequilla", "grasa láctea", "grasa lactea"],
+    aliases: ["butter", "butterfat", "mantega", "mantequilla", "grasa láctea", "grasa lactea", "beurre", "matière grasse laitière", "matiere grasse laitiere"],
     exclusions: [
       "cocoa butter", "cacao butter", "shea butter", "peanut butter", "almond butter", "vegan butter", "plant-based butter",
       "mantega de cacau", "mantega de cacahuet", "mantequilla de cacao", "mantequilla de cacahuete",
+      "beurre de cacao", "beurre de cacahuète", "beurre de cacahuete", "beurre végétal", "beurre vegetal",
     ],
     status: "vegetarian",
     reason: "Butter is made from dairy cream.",
@@ -148,8 +159,8 @@ export const INGREDIENT_DICTIONARY: IngredientDefinition[] = [
   {
     id: "cheese",
     name: "Cheese",
-    aliases: ["cheese", "formatge", "queso", "parmesan", "parmesà", "parmesa"],
-    exclusions: ["vegan cheese", "plant-based cheese", "formatge vegà", "formatge vega", "queso vegano"],
+    aliases: ["cheese", "formatge", "queso", "fromage", "parmesan", "parmesà", "parmesa"],
+    exclusions: ["vegan cheese", "plant-based cheese", "formatge vegà", "formatge vega", "queso vegano", "fromage végétal", "fromage vegetal", "fromage végan", "fromage vegan"],
     status: "vegetarian",
     reason: "Cheese contains dairy; some cheeses may also use animal rennet.",
     category: "dairy",
@@ -158,10 +169,11 @@ export const INGREDIENT_DICTIONARY: IngredientDefinition[] = [
   {
     id: "cream",
     name: "Dairy cream",
-    aliases: ["dairy cream", "double cream", "single cream", "nata", "crema de llet", "crème fraîche", "creme fraiche"],
+    aliases: ["dairy cream", "double cream", "single cream", "nata", "crema de llet", "crème", "creme", "crème fraîche", "creme fraiche"],
     exclusions: [
       "oat cream", "soy cream", "soya cream", "coconut cream", "cashew cream", "vegan cream", "plant-based cream",
       "crema de civada", "crema de soja", "crema de coco", "nata vegetal",
+      "crème d'avoine", "creme d'avoine", "crème de soja", "creme de soja", "crème de coco", "creme de coco", "crème de cajou", "creme de cajou", "crème végétale", "creme vegetale",
     ],
     status: "vegetarian",
     reason: "Dairy cream is made from milk.",
@@ -180,11 +192,11 @@ export const INGREDIENT_DICTIONARY: IngredientDefinition[] = [
   {
     id: "egg",
     name: "Egg",
-    aliases: ["egg", "eggs", "egg white", "egg yolk", "albumen", "ou", "ous", "clara d'ou", "rovell", "huevo", "huevos", "clara de huevo", "yema"],
+    aliases: ["egg", "eggs", "egg white", "egg yolk", "albumen", "ou", "ous", "clara d'ou", "rovell", "huevo", "huevos", "clara de huevo", "yema", "oeuf", "oeufs", "œuf", "œufs", "blanc d'oeuf", "jaune d'oeuf"],
     status: "vegetarian",
     reason: "Egg is animal-derived, so the recipe is not vegan.",
     category: "egg",
-    substitutions: ["aquafaba for whipping", "flax egg for binding", "silken tofu for moisture", "commercial egg replacer"],
+    substitutions: ["flax egg for binding", "aquafaba for whipping", "silken tofu for moisture", "commercial egg replacer"],
   },
   {
     id: "honey",

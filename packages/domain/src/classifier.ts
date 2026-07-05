@@ -5,7 +5,7 @@ import type {
   IngredientFinding,
 } from "./schemas.js";
 
-export const CLASSIFIER_VERSION = "2026.07.1";
+export const CLASSIFIER_VERSION = "2026.07.3";
 
 function normalizeText(value: string): string {
   return value
@@ -188,12 +188,20 @@ export function classifyIngredients(
     );
   }
 
+  const completeIngredientEvidence = [
+    "external",
+    "label_based",
+    "manufacturer",
+    "certified",
+  ].includes(assurance);
   return result(
-    "probably_vegan",
-    "No animal-derived or origin-ambiguous ingredient was detected in the provided list. This is not a certification.",
+    completeIngredientEvidence ? "vegan" : "probably_vegan",
+    completeIngredientEvidence
+      ? "The provided ingredient list contains no animal-derived or origin-ambiguous ingredient."
+      : "No animal-derived or origin-ambiguous ingredient was detected, but the ingredient evidence is incomplete.",
     findings.filter((finding) => finding.status === "vegan"),
     traces,
     assurance,
-    false,
+    trusted,
   );
 }

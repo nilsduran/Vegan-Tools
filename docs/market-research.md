@@ -26,6 +26,21 @@ _Snapshot: July 2026. This is a product-landscape review, not an endorsement._
 - [Organic Maps](https://github.com/organicmaps/organicmaps) and OpenStreetMap: useful future
   references for an open, community-maintained vegan venue directory.
 
+## Restaurant discovery providers
+
+| Provider | Coverage and menu usefulness | Cost/constraints | Decision |
+| --- | --- | --- | --- |
+| OpenStreetMap + Nominatim | Free and correctable, but independent venues may be missing or stale; website fields are inconsistent | Public Nominatim has a strict usage policy and is not a high-volume production search service | Keep as the no-key fallback |
+| [Foursquare Places](https://docs.foursquare.com/fsq-developers-places/reference/place-search) | Broader commercial POI coverage and may return the official website | 500 free Pro calls under the June 2026 pricing, then metered usage | Recommended optional primary provider for this personal project |
+| [Google Places](https://developers.google.com/maps/documentation/places/web-service/text-search) | Usually the strongest local-business coverage; can return website data | Billing account, field-sensitive pricing, caching restrictions, Google Maps attribution, public terms and privacy-policy requirements | Do not make it the default while the project has a near-zero budget |
+| Gemini grounding with Google Maps/Search | Can locate current places and official/menu pages using the existing Gemini key | Variable grounded output; citations must be shown, and paid usage starts beyond the free grounding allowance | Promising later fallback, but URLs must be fetched and validated before analysis |
+
+The current implementation uses Foursquare when `FOURSQUARE_API_KEY` is configured and
+falls back to OpenStreetMap. It then crawls only the selected official website, follows a
+small number of likely `menu`/`carta` links, prefers PDFs and validates every fetched URL
+against server-side request-forgery rules. Manual website entry and file upload remain
+necessary fallbacks.
+
 ## Product position
 
 The market already has many “AI scanner” products. Vegan Tools should not compete on a

@@ -5,6 +5,8 @@ dist/
 coverage/
 playwright-report/
 test-results/
+data/menu-sources/
 apps/web/android/
 apps/web/ios/
 *.log
+*.tsbuildinfo
