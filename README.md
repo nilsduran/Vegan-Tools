@@ -43,10 +43,11 @@ Menu extraction:
 - keeps the uploaded PDF/images as a visible original source for comparison.
 
 Finished restaurant menus are cached so subsequent visitors can reuse them. “Update menu” is
-a secondary action. With Supabase configured, the analyzed menu JSON is common to all users;
-without it, the cache lasts only until the API restarts. Original files are stored under
-`MENU_SOURCE_DIR`, so a production host must mount that directory on persistent storage.
-Binary PDFs/images belong in object/file storage rather than a PostgreSQL row.
+a secondary action. With Supabase configured, drafts, published menus, product results and
+the shared restaurant cache survive API restarts. Original PDFs/images are kept in the
+private Supabase Storage bucket `menu-sources` and streamed through the API. Without
+Supabase, application data remains in memory and originals fall back to `MENU_SOURCE_DIR`,
+which is suitable for local development only unless the host mounts a persistent volume.
 
 ## Restaurant diet metadata
 
@@ -72,8 +73,8 @@ The sensible long-term combination is:
 apps/web        React, Vite, PWA and Capacitor-ready UI
 apps/api        Fastify API, place search, menu discovery and Gemini extraction
 packages/domain Shared Zod contracts, ingredient classifier and recipe rules
-supabase        PostgreSQL migrations for evidence and shared restaurant-menu cache
-data/           Runtime menu originals (ignored by Git; persistent volume in production)
+supabase        PostgreSQL migrations and private menu-source bucket configuration
+data/           Local fallback for runtime menu originals (ignored by Git)
 ```
 
 Credentials remain server-side. `VITE_API_URL` is public configuration; never expose Gemini,
@@ -123,11 +124,13 @@ Copy `.env.example` and configure:
 | `GEMINI_WEBSITE_MODEL` | Grounded official-website lookup model |
 | `FOURSQUARE_API_KEY` | Primary restaurant search and autocomplete |
 | `DEFAULT_RESTAURANT_NEAR` | Bias for name-only searches |
-| `*_USER_AGENT` | Honest identifiers with a real contact for external services |
-| `SUPABASE_URL`, `SUPABASE_SECRET_KEY` | Shared menu cache and server persistence |
-| `MENU_SOURCE_DIR` | Persistent directory for original PDFs/images |
+| `*_USER_AGENT` | Stable application identifier; a public project URL is sufficient |
+| `SUPABASE_URL`, `SUPABASE_SECRET_KEY` | Server persistence and private original-menu storage |
+| `MENU_SOURCE_DIR` | Local fallback directory when Supabase is not configured |
 
-Apply every migration in `supabase/migrations` before enabling Supabase.
+Apply every migration in `supabase/migrations` in filename order before enabling Supabase.
+The secret key belongs only on the API host; this application does not currently need a
+Supabase publishable key in the browser.
 
 ## API surface
 
@@ -159,17 +162,18 @@ Node version: 22
 ```
 
 Deploy `apps/api` to a Node host separately, set `VITE_API_URL` to its public HTTPS URL, and
-set `WEB_ORIGIN` to the Pages/custom-domain origin. Mount `MENU_SOURCE_DIR` on a persistent
-volume and configure Supabase for the cross-user menu cache.
+set `WEB_ORIGIN` to the Pages/custom-domain origin. Configure Supabase for durable database
+and private object storage. A host disk is not required when Supabase is enabled.
 
 ## Public v1 checklist
 
 Before announcing the first public version:
 
-1. **Infrastructure:** deploy web/API over HTTPS, apply Supabase migrations, mount and back up
-   menu-source storage, set production origins, and verify secrets are absent from the bundle.
-2. **Service identity:** replace every `contact@example.com` user agent, confirm Foursquare
-   limits/billing, and add required OpenStreetMap, Foursquare, and Open Food Facts attribution.
+1. **Infrastructure:** deploy web/API over HTTPS, apply Supabase migrations, verify database
+   and Storage backups, set production origins, and verify secrets are absent from the bundle.
+2. **Service identity:** replace `your-project.example` with the public project URL in each
+   user agent, confirm Foursquare limits/billing, and add required OpenStreetMap, Foursquare,
+   and Open Food Facts attribution. A personal email or postal address is not required.
 3. **Content and privacy:** publish a short privacy notice covering optional coarse location,
    uploaded menu/label images, retention, Gemini processing, and public source visibility.
    Only upload menus you are allowed to republish.
@@ -197,8 +201,8 @@ Because you will initially be the only active user, the first deployment can sta
 small:
 
 1. Create a Supabase project and apply every SQL file in `supabase/migrations`.
-2. Deploy `apps/api` to a Node host with a persistent disk (Railway, Render, Fly.io or a small
-   VPS). Mount `MENU_SOURCE_DIR` on that disk.
+2. Deploy `apps/api` to a Node host (Railway, Render, Fly.io or a small VPS). Supabase stores
+   the durable records and original files, so a persistent host disk is not required.
 3. Configure the API environment variables from `.env.example`: Gemini, Foursquare, Supabase,
    honest service user agents, `WEB_ORIGIN`, and the production port.
 4. Deploy `apps/web` to Cloudflare Pages using the settings in the Deploy section. Set

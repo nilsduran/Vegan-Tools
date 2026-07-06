@@ -2,6 +2,7 @@ import { config } from "dotenv";
 import { dirname, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import { buildApp } from "./app.js";
+import { createRepositoryFromEnvironment } from "./store.js";
 import { createRestaurantMenuCacheFromEnvironment } from "./restaurant-menu-cache.js";
 import { createMenuSourceStoreFromEnvironment } from "./menu-source-store.js";
 
@@ -10,7 +11,7 @@ config({
 });
 
 const app = await buildApp(
-  undefined,
+  createRepositoryFromEnvironment(),
   undefined,
   undefined,
   undefined,

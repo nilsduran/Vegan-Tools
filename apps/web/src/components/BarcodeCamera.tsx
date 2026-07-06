@@ -78,7 +78,7 @@ export function BarcodeCamera({ onDetected }: { onDetected: (value: string) => v
     return (
       <div className="camera-start">
         <Camera aria-hidden="true" />
-        <p>{tx("Use your camera to scan an EAN or UPC barcode.")}</p>
+        <p>{tx("Use your camera to scan a barcode.")}</p>
         <button className="primary-button" onClick={() => setStarted(true)}>
           {tx("Start camera")}
         </button>

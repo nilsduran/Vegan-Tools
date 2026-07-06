@@ -1100,8 +1100,11 @@ export async function buildApp(
   app.get<{ Params: { id: string }; Querystring: { token?: string } }>(
     "/v1/menus/analyses/:id",
     async (request, reply) => {
-      const menu = await repo.getMenu(request.params.id);
-      if (!menu || menu.editToken !== request.query.token) {
+      const menu = await repo.getMenu(
+        request.params.id,
+        request.query.token ?? "",
+      );
+      if (!menu) {
         return reply.code(404).send({ code: "NOT_FOUND", message: "Menu draft not found." });
       }
       return menu;

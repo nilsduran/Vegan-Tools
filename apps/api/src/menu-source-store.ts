@@ -82,6 +82,68 @@ export class MemoryMenuSourceStore implements MenuSourceStore {
   }
 }
 
+export class SupabaseMenuSourceStore implements MenuSourceStore {
+  constructor(
+    private readonly url: string,
+    private readonly secretKey: string,
+    private readonly bucket = "menu-sources",
+  ) {}
+
+  private objectUrl(menuId: string, storedName: string) {
+    return new URL(
+      `/storage/v1/object/${this.bucket}/${menuId}/${storedName}`,
+      this.url,
+    );
+  }
+
+  private headers(extra: Record<string, string> = {}) {
+    return {
+      apikey: this.secretKey,
+      Authorization: `Bearer ${this.secretKey}`,
+      ...extra,
+    };
+  }
+
+  async save(menuId: string, uploads: Upload[]) {
+    if (!safeSegment(menuId)) throw new Error("Invalid menu source identifier.");
+    return Promise.all(uploads.map(async (upload) => {
+      const extension = extname(upload.filename).toLowerCase().replace(/[^.a-z0-9]/g, "");
+      const storedName = `${randomUUID()}${extension}`;
+      const response = await fetch(this.objectUrl(menuId, storedName), {
+        method: "POST",
+        headers: this.headers({
+          "Content-Type": upload.mimetype,
+          "x-upsert": "false",
+        }),
+        body: upload.buffer,
+      });
+      if (!response.ok) {
+        throw new Error(`Supabase menu source upload failed (${response.status}).`);
+      }
+      return {
+        name: upload.filename,
+        mimeType: upload.mimetype,
+        url: `/v1/menu-sources/${menuId}/${storedName}`,
+      };
+    }));
+  }
+
+  async read(menuId: string, storedName: string) {
+    if (!safeSegment(menuId) || !safeSegment(storedName)) return undefined;
+    const response = await fetch(this.objectUrl(menuId, storedName), {
+      headers: this.headers(),
+    });
+    if (response.status === 404) return undefined;
+    if (!response.ok) {
+      throw new Error(`Supabase menu source download failed (${response.status}).`);
+    }
+    return {
+      buffer: Buffer.from(await response.arrayBuffer()),
+      mimeType: response.headers.get("content-type") ?? mimeTypeFor(storedName),
+    };
+  }
+}
+
 function mimeTypeFor(filename: string) {
   const extension = extname(filename).toLowerCase();
   if (extension === ".pdf") return "application/pdf";
@@ -93,6 +155,11 @@ function mimeTypeFor(filename: string) {
 }
 
 export function createMenuSourceStoreFromEnvironment() {
+  const url = process.env.SUPABASE_URL?.trim();
+  const secretKey = process.env.SUPABASE_SECRET_KEY?.trim();
+  if (url && secretKey) {
+    return new SupabaseMenuSourceStore(url, secretKey);
+  }
   return new LocalMenuSourceStore(
     resolve(process.env.MENU_SOURCE_DIR?.trim() || "data/menu-sources"),
   );

@@ -277,26 +277,24 @@ export function MenuReaderPage() {
           }}
           className="restaurant-search-form"
         >
-          <label>
-            {tx("Restaurant name")}
-            <input
-              value={restaurantQuery}
-              onChange={(event) => {
-                setRestaurantQuery(event.target.value);
-                setSelectedRestaurant(undefined);
-                setSearchSubmitted(false);
-              }}
-              onKeyDown={(event) => {
-                if (event.key !== "Enter") return;
-                event.preventDefault();
-                event.currentTarget.form?.requestSubmit();
-              }}
-              placeholder={tx("Restaurant name or name + city")}
-              autoComplete="off"
-              required
-              minLength={3}
-            />
-          </label>
+          <input
+            value={restaurantQuery}
+            onChange={(event) => {
+              setRestaurantQuery(event.target.value);
+              setSelectedRestaurant(undefined);
+              setSearchSubmitted(false);
+            }}
+            onKeyDown={(event) => {
+              if (event.key !== "Enter") return;
+              event.preventDefault();
+              event.currentTarget.form?.requestSubmit();
+            }}
+            aria-label={tx("Search for a restaurant")}
+            placeholder={tx("Search for a restaurant")}
+            autoComplete="off"
+            required
+            minLength={3}
+          />
           <button
             className="secondary-button"
             disabled={restaurantQuery.trim().length < 3}
