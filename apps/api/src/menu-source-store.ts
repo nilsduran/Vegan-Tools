@@ -2,6 +2,7 @@ import { randomUUID } from "node:crypto";
 import { mkdir, readFile, writeFile } from "node:fs/promises";
 import { extname, resolve, sep } from "node:path";
 import type { MenuSourceFile } from "@vegan-tools/domain";
+import { supabaseCredentialsFromEnvironment } from "./environment.js";
 
 interface Upload {
   filename: string;
@@ -155,10 +156,12 @@ function mimeTypeFor(filename: string) {
 }
 
 export function createMenuSourceStoreFromEnvironment() {
-  const url = process.env.SUPABASE_URL?.trim();
-  const secretKey = process.env.SUPABASE_SECRET_KEY?.trim();
-  if (url && secretKey) {
-    return new SupabaseMenuSourceStore(url, secretKey);
+  const credentials = supabaseCredentialsFromEnvironment();
+  if (credentials) {
+    return new SupabaseMenuSourceStore(
+      credentials.url,
+      credentials.secretKey,
+    );
   }
   return new LocalMenuSourceStore(
     resolve(process.env.MENU_SOURCE_DIR?.trim() || "data/menu-sources"),

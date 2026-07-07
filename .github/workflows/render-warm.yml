@@ -1,0 +1,37 @@
+name: Keep Render API warm
+
+on:
+  schedule:
+    # Render free web services sleep after 15 minutes of inactivity.
+    # This runs roughly every 14 minutes, then the step below skips the
+    # overnight quiet window in Europe/Madrid time.
+    - cron: "*/14 * * * *"
+  workflow_dispatch:
+
+jobs:
+  ping:
+    runs-on: ubuntu-latest
+    timeout-minutes: 2
+    steps:
+      - name: Decide whether to ping
+        id: window
+        run: |
+          hour="$(TZ=Europe/Madrid date +%H)"
+          if [ "$hour" -ge 1 ] && [ "$hour" -lt 7 ]; then
+            echo "should_ping=false" >> "$GITHUB_OUTPUT"
+            echo "Quiet window in Europe/Madrid: skipping API warm-up."
+          else
+            echo "should_ping=true" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Ping API health check
+        if: steps.window.outputs.should_ping == 'true'
+        env:
+          API_URL: ${{ secrets.RENDER_API_URL }}
+        run: |
+          if [ -z "$API_URL" ]; then
+            echo "Missing RENDER_API_URL secret. Add your Render API base URL in GitHub repository secrets."
+            exit 1
+          fi
+
+          curl --fail --silent --show-error --max-time 30 "$API_URL/health"

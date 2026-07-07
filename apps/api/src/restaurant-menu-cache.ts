@@ -1,4 +1,5 @@
 import type { MenuDraft, RestaurantCandidate } from "@vegan-tools/domain";
+import { supabaseCredentialsFromEnvironment } from "./environment.js";
 
 export interface CachedRestaurantMenu {
   restaurant: RestaurantCandidate;
@@ -100,9 +101,8 @@ export class SupabaseRestaurantMenuCache implements RestaurantMenuCache {
 }
 
 export function createRestaurantMenuCacheFromEnvironment(): RestaurantMenuCache {
-  const url = process.env.SUPABASE_URL?.trim();
-  const secretKey = process.env.SUPABASE_SECRET_KEY?.trim();
-  return url && secretKey
-    ? new SupabaseRestaurantMenuCache(url, secretKey)
+  const credentials = supabaseCredentialsFromEnvironment();
+  return credentials
+    ? new SupabaseRestaurantMenuCache(credentials.url, credentials.secretKey)
     : new MemoryRestaurantMenuCache();
 }

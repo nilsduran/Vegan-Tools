@@ -6,6 +6,7 @@ import {
   type MenuPatch,
   type ProductResult,
 } from "@vegan-tools/domain";
+import { supabaseCredentialsFromEnvironment } from "./environment.js";
 
 export interface Repository {
   getProduct(gtin: string): Promise<ProductResult | undefined>;
@@ -285,10 +286,9 @@ export class SupabaseRepository implements Repository {
 }
 
 export function createRepositoryFromEnvironment(): Repository {
-  const url = process.env.SUPABASE_URL?.trim();
-  const secretKey = process.env.SUPABASE_SECRET_KEY?.trim();
-  return url && secretKey
-    ? new SupabaseRepository(url, secretKey)
+  const credentials = supabaseCredentialsFromEnvironment();
+  return credentials
+    ? new SupabaseRepository(credentials.url, credentials.secretKey)
     : new MemoryRepository();
 }
 
