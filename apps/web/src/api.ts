@@ -40,7 +40,7 @@ async function checkedFetch(input: string, init?: RequestInit): Promise<Response
     response = await fetch(`${API_URL}${input}`, init);
   } catch {
     throw new Error(
-      `Could not reach the Vegan Tools API at ${API_URL}. Start or restart the local API and try again.`,
+      `Could not reach the Vegan Tools API at ${API_URL}. Check that the API is deployed, awake, and allows this website origin.`,
     );
   }
   if (!response.ok) {

@@ -118,6 +118,12 @@ export async function buildApp(
   });
   await app.register(swaggerUi, { routePrefix: "/docs" });
 
+  app.get("/", async () => ({
+    name: "Vegan Tools API",
+    status: "ok",
+    health: "/health",
+  }));
+
   app.get("/health", async () => ({ status: "ok" }));
 
   app.get<{ Params: { menuId: string; storedName: string } }>(

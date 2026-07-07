@@ -168,17 +168,16 @@ and private object storage. A host disk is not required when Supabase is enabled
 ### Render free API warm-up
 
 If the API is deployed as a free Render Web Service, it can spin down after 15 minutes without
-inbound traffic. The repository includes `.github/workflows/render-warm.yml`, which pings
-`/health` roughly every 14 minutes except between 01:00 and 07:00 Europe/Madrid time.
-
-To enable it, add this GitHub repository secret:
+inbound traffic. Use an external uptime or cron monitor such as cron-job.org, UptimeRobot or
+Better Stack to request the public health check:
 
 ```text
-RENDER_API_URL=https://your-api.onrender.com
+https://your-api.onrender.com/health
 ```
 
-Keep the value as the API origin only, without a trailing slash. The workflow can also be run
-manually from GitHub Actions after deployment.
+For a personal MVP, a 10-14 minute interval is enough to keep the API warm during active
+hours. If the monitor supports active windows, pause checks between 01:00 and 07:00
+Europe/Madrid time so the service can sleep overnight.
 
 ## Public v1 checklist
 
@@ -229,9 +228,9 @@ small:
 7. Add OpenStreetMap, Foursquare and Open Food Facts attribution where their data is shown.
 8. Run `npm run check`, then smoke-test restaurant search, one PDF, several menu photos, the
    ingredient checker and recipe veganizer from a clean browser and a real phone.
-9. If using Render Free for the API, add the `RENDER_API_URL` GitHub secret so the included
-   warm-up workflow can keep it awake outside the overnight quiet window. Add error logging
-   and provider spending/quota alerts before sharing the URL.
+9. If using Render Free for the API, configure an external uptime or cron monitor to request
+   `/health` every 10-14 minutes during active hours. Add error logging and provider
+   spending/quota alerts before sharing the URL.
 
 A custom domain, app-store packaging, donations, analytics and public upload moderation can
 wait. For this first personal MVP, HTTPS, persistent storage, backups, privacy disclosure and
