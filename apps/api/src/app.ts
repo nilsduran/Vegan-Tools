@@ -98,19 +98,23 @@ export async function buildApp(
     }
     lastNominatimRequestAt = Date.now();
   };
+  const normalizeCorsOrigin = (origin: string) =>
+    origin.trim().replace(/^['"]|['"]$/g, "").replace(/\/+$/, "");
   const configuredOrigins = process.env.WEB_ORIGIN
     ?.split(",")
-    .map((origin) => origin.trim())
-    .map((origin) => origin.replace(/\/+$/, ""))
+    .map(normalizeCorsOrigin)
     .filter(Boolean) ?? [];
+  const productionWebOrigins = ["https://vegan-tools.onrender.com"];
+  const allowedOrigins = new Set([...configuredOrigins, ...productionWebOrigins]);
   const loopbackOrigin = /^https?:\/\/(?:localhost|127\.0\.0\.1|\[::1\])(?::\d+)?$/;
   await app.register(cors, {
     origin: (origin, callback) => {
-      if (!origin || configuredOrigins.length === 0) {
+      if (!origin) {
         callback(null, true);
         return;
       }
-      callback(null, configuredOrigins.includes(origin) || loopbackOrigin.test(origin));
+      const normalizedOrigin = normalizeCorsOrigin(origin);
+      callback(null, allowedOrigins.has(normalizedOrigin) || loopbackOrigin.test(normalizedOrigin));
     },
   });
   await app.register(multipart, {

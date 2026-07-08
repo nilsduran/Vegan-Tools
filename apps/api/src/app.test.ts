@@ -34,6 +34,21 @@ describe("API", () => {
     await app.close();
   });
 
+  it("adds CORS headers for the production web origin on actual API responses", async () => {
+    vi.stubEnv("WEB_ORIGIN", "\"https://vegan-tools.onrender.com/\"");
+    const app = await buildApp(new MemoryRepository());
+    const response = await app.inject({
+      method: "GET",
+      url: "/v1/menus/recent",
+      headers: { origin: "https://vegan-tools.onrender.com" },
+    });
+    expect(response.statusCode).toBe(200);
+    expect(response.headers["access-control-allow-origin"]).toBe(
+      "https://vegan-tools.onrender.com",
+    );
+    await app.close();
+  });
+
   it("rejects an invalid GTIN before external lookup", async () => {
     const app = await buildApp(new MemoryRepository());
     const response = await app.inject({ method: "GET", url: "/v1/products/3017620422004" });
