@@ -35,10 +35,14 @@ export class GeminiMenuAnalyzer implements MenuAnalyzer {
       {
         text: `Extract every food item from these menu files. Ignore drinks.
 Translate display text to English while retaining each original dish name.
+Also translate section names, dish names and dish descriptions to Catalan.
 The "name" must be the full translated dish name as printed, including meaningful qualifiers such as "with pappa al pomodoro and arugula".
+The "nameCa" must be the full Catalan dish name. If the original dish name is a proper noun or already customary in Catalan, keep it natural rather than over-translating it.
 Put separately printed ingredients, flavours, preparation details and descriptive text in "description".
 Translate descriptions fully into English; never leave description in the source language when the display name has been translated.
+Translate descriptions fully into Catalan in "descriptionCa"; never leave descriptionCa in English or the source language.
 If the only descriptive text repeats the dish title, use an empty description instead.
+If the only descriptive text repeats the dish title, use an empty descriptionCa as well.
 Keep "reason" only for a short explanation of the dietary verdict; do not move the menu description there.
 The reason must name the ingredient or uncertainty that supports the verdict. For example, explain that ice cream normally contains dairy instead of writing only "Vegetarian dessert".
 Never return a reason that merely repeats a verdict label such as "Vegan dish", "Vegetarian option" or "Non-vegetarian item".
@@ -68,6 +72,7 @@ Return JSON matching the supplied schema.`,
                 type: Type.OBJECT,
                 properties: {
                   name: { type: Type.STRING },
+                  nameCa: { type: Type.STRING },
                   items: {
                     type: Type.ARRAY,
                     items: {
@@ -75,7 +80,9 @@ Return JSON matching the supplied schema.`,
                       properties: {
                         originalName: { type: Type.STRING },
                         name: { type: Type.STRING },
+                        nameCa: { type: Type.STRING },
                         description: { type: Type.STRING },
+                        descriptionCa: { type: Type.STRING },
                         price: { type: Type.STRING },
                         verdict: {
                           type: Type.STRING,
@@ -84,11 +91,11 @@ Return JSON matching the supplied schema.`,
                         reason: { type: Type.STRING },
                         sourcePage: { type: Type.INTEGER },
                       },
-                      required: ["originalName", "name", "description", "price", "verdict", "reason"],
+                      required: ["originalName", "name", "nameCa", "description", "descriptionCa", "price", "verdict", "reason"],
                     },
                   },
                 },
-                required: ["name", "items"],
+                required: ["name", "nameCa", "items"],
               },
             },
           },
@@ -154,6 +161,11 @@ Return JSON matching the supplied schema.`,
             ...item,
             name: displayText.name,
             description: displayText.description,
+            descriptionCa: visibleMenuDescription({
+              ...item,
+              name: item.nameCa?.trim() || item.name,
+              description: item.descriptionCa ?? "",
+            }),
             reason: informativeMenuReason(item),
           };
         }),

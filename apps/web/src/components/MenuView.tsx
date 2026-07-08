@@ -9,6 +9,7 @@ import {
 } from "@vegan-tools/domain";
 import { BookOpen, Egg, ExternalLink, Info, Leaf, Utensils, Wrench } from "lucide-react";
 import { t, tx, useLanguage } from "../i18n";
+import type { Language } from "../i18n";
 import { localizeGeneratedText } from "../generated-i18n";
 import { resolveApiUrl, sourcePdfPageUrl } from "../api";
 import { isPresentableMenuSource } from "../menu-source";
@@ -54,6 +55,28 @@ function descriptionFromReason(reason: string) {
     !/\b(classif|verdict|vegan|vegetarian|non[- ]vegetarian|animal|unclear|incomplete|unknown)\b/i
       .test(trimmed);
   return looksLikeIngredientText ? trimmed : "";
+}
+
+function localizedMenuText(value: string, language: Language) {
+  return localizeGeneratedText(tx(value), language);
+}
+
+function displaySectionName(section: { name: string; nameCa?: string }, language: Language) {
+  return language === "ca" && section.nameCa?.trim()
+    ? section.nameCa.trim()
+    : localizedMenuText(section.name, language);
+}
+
+function displayItemName(item: MenuItem, fallbackName: string, language: Language) {
+  return language === "ca" && item.nameCa?.trim()
+    ? item.nameCa.trim()
+    : localizedMenuText(fallbackName, language);
+}
+
+function displayItemDescription(item: MenuItem, fallbackDescription: string, language: Language) {
+  return language === "ca" && item.descriptionCa?.trim()
+    ? item.descriptionCa.trim()
+    : localizedMenuText(fallbackDescription, language);
 }
 
 function matchesSelection(
@@ -238,7 +261,7 @@ export function MenuView({
       <div className="menu-paper">
         {sections.map((section) => (
           <section key={section.id} className="menu-section">
-            <h2>{section.name}</h2>
+            <h2>{displaySectionName(section, language)}</h2>
             <div className="menu-dish-list">
               {section.items.map((item) => {
                 const group = verdictGroup(item.verdict);
@@ -266,16 +289,15 @@ export function MenuView({
                   <article key={item.id} className={`menu-dish menu-dish-${group}`}>
                     <div className="menu-dish-heading">
                       <div>
-                        <h3>{displayText.name}</h3>
-                        {item.originalName.trim() && item.originalName !== item.name && (
-                          <p className="original-name">{item.originalName}</p>
-                        )}
+                        <h3>{displayItemName(item, displayText.name, language)}</h3>
                       </div>
                       {item.price.trim() && <strong>{item.price}</strong>}
                     </div>
 
                     {displayText.description && (
-                      <p className="menu-dish-description">{displayText.description}</p>
+                      <p className="menu-dish-description">
+                        {displayItemDescription(item, displayText.description, language)}
+                      </p>
                     )}
 
                     <div className="menu-dish-meta">

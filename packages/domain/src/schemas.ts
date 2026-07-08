@@ -120,7 +120,9 @@ export const menuItemSchema = z.object({
   id: z.string(),
   originalName: z.string(),
   name: z.string(),
+  nameCa: z.string().optional(),
   description: z.string().default(""),
+  descriptionCa: z.string().optional(),
   price: z.string().default(""),
   verdict: dietVerdictSchema,
   reason: z.string().default(""),
@@ -137,6 +139,7 @@ export type MenuItem = z.infer<typeof menuItemSchema>;
 export const menuSectionSchema = z.object({
   id: z.string(),
   name: z.string(),
+  nameCa: z.string().optional(),
   items: z.array(menuItemSchema),
 });
 export type MenuSection = z.infer<typeof menuSectionSchema>;
