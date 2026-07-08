@@ -36,11 +36,15 @@ function normalizeMenuError(menu: MenuDraft): MenuDraft {
 
 async function checkedFetch(input: string, init?: RequestInit): Promise<Response> {
   let response: Response;
+  const url = `${API_URL}${input}`;
   try {
-    response = await fetch(`${API_URL}${input}`, init);
-  } catch {
+    response = await fetch(url, init);
+  } catch (error) {
+    const details = error instanceof Error
+      ? `${error.name}: ${error.message}`
+      : String(error);
     throw new Error(
-      `Could not reach the Vegan Tools API at ${API_URL}. Check that the API is deployed, awake, and allows this website origin.`,
+      `Could not reach the Vegan Tools API at ${API_URL}. Failed request: ${url}. Browser error: ${details}.`,
     );
   }
   if (!response.ok) {

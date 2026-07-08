@@ -101,12 +101,17 @@ export async function buildApp(
   const configuredOrigins = process.env.WEB_ORIGIN
     ?.split(",")
     .map((origin) => origin.trim())
+    .map((origin) => origin.replace(/\/+$/, ""))
     .filter(Boolean) ?? [];
   const loopbackOrigin = /^https?:\/\/(?:localhost|127\.0\.0\.1|\[::1\])(?::\d+)?$/;
   await app.register(cors, {
-    origin: configuredOrigins.length > 0
-      ? [...configuredOrigins, loopbackOrigin]
-      : true,
+    origin: (origin, callback) => {
+      if (!origin || configuredOrigins.length === 0) {
+        callback(null, true);
+        return;
+      }
+      callback(null, configuredOrigins.includes(origin) || loopbackOrigin.test(origin));
+    },
   });
   await app.register(multipart, {
     limits: { files: 8, fileSize: 10 * 1024 * 1024 },
