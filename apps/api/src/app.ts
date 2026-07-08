@@ -124,7 +124,12 @@ export async function buildApp(
     health: "/health",
   }));
 
-  app.get("/health", async () => ({ status: "ok" }));
+  app.get("/health", async (_request, reply) => {
+    return reply
+      .type("text/plain; charset=utf-8")
+      .header("Cache-Control", "no-store")
+      .send("ok");
+  });
 
   app.get<{ Params: { menuId: string; storedName: string } }>(
     "/v1/menu-sources/:menuId/:storedName",
