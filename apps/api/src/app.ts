@@ -104,7 +104,11 @@ export async function buildApp(
     ?.split(",")
     .map(normalizeCorsOrigin)
     .filter(Boolean) ?? [];
-  const productionWebOrigins = ["https://vegan-tools.onrender.com"];
+  const productionWebOrigins = [
+    "https://vegantools.org",
+    "https://www.vegantools.org",
+    "https://vegan-tools.onrender.com",
+  ];
   const allowedOrigins = new Set([...configuredOrigins, ...productionWebOrigins]);
   const loopbackOrigin = /^https?:\/\/(?:localhost|127\.0\.0\.1|\[::1\])(?::\d+)?$/;
   await app.register(cors, {
