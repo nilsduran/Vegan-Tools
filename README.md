@@ -1,293 +1,105 @@
 # Vegan Tools
 
-Vegan Tools is a small web app for answering three practical questions:
+**Vegan Tools** is an evidence-led web app designed to make everyday vegan living simple and reliable:
 
-- **Is this vegan?** Scan an Open Food Facts barcode or photograph an ingredient label,
-  correct the extracted text, and run the deterministic ingredient classifier.
-- **Menu Reader.** Find a restaurant, discover its official menu page/PDF, or upload up to
-  eight PDF/image pages. The analyzed menu can be filtered by vegan, vegetarian, meat, and
-  practical adaptations.
-- **Recipe Veganizer.** Convert pasted recipes with deterministic substitutions, quantity
-  adjustments, and editable alternatives.
+- 🍽️ **Menu Reader**: Find restaurants, discover their official menus, or upload PDF/photo menus to filter dishes by dietary options (*Vegan*, *Vegetarian*, *Adaptations*).
+- 🔍 **Is this vegan?**: Scan barcodes (Open Food Facts) or photograph ingredient labels to run deterministic ingredient evaluations.
+- 🍲 **Recipe Veganizer**: Convert pasted recipes with practical plant-based substitutions and adjusted quantities.
+- 🌐 **Bilingual (Catalan & English)**: Full interface and menu translations available in both Catalan and English.
 
-The interface is available in English and Catalan; the selected language is kept in the
-browser. Extracted menu content currently uses English display translations while retaining
-the original dish names.
+Live website: [vegan-tools.onrender.com](https://vegan-tools.onrender.com)
 
-This repository is the canonical application. The earlier standalone prototypes have been
-removed.
+---
 
 ## Features & Capabilities
 
-### 🍽️ 1. Menu Reader (`apps/web` & `apps/api`)
-- **Multi-source restaurant search**: Fast restaurant lookup using Foursquare Places with OpenStreetMap/Nominatim fallback and optional nearby geolocation.
-- **Automated website & menu discovery**: Resolves official websites, crawls menu pages and downloads embedded PDF/image links automatically.
-- **Flexible menu uploads**: Upload single or multi-page PDFs, multiple PNG/JPEG images, or photograph physical menus with the camera (up to 8 files).
-- **Intelligent dish classification**: AI-powered extraction (Gemini 3) that identifies dishes as *Vegan*, *Probably vegan*, *Vegetarian*, *Probably vegetarian*, *Non-vegetarian*, or *Unknown*.
-- **Practical adaptations**: Proposes realistic dish modifications without deleting essential core ingredients.
-- **Auditable sources**: Retains the original PDF or photographed page for side-by-side comparison with page numbers.
-- **Shared community cache**: Analyzed menus and verified sources are stored in Supabase so subsequent visitors reuse results instantly.
+### 🍽️ 1. Menu Reader
+- **Search & discovery**: Search food venues via Foursquare with OpenStreetMap fallback and automated official website/menu link discovery.
+- **Upload any format**: Supports PDFs, multiple photo pages (PNG/JPEG/WebP), or live camera captures (up to 8 files).
+- **Intelligent dish classification**: AI-powered extraction (Gemini 3) classifies dishes (*Vegan*, *Probably vegan*, *Vegetarian*, *Non-vegetarian*) and proposes realistic adaptations.
+- **Original source view**: Retains original PDFs or photos alongside the dish list for verification.
+- **Shared community cache**: Discovered menus are cached in Supabase for instant reuse by other users.
 
-### 🔍 2. Is this vegan? / Product Scanner (`apps/web` & `packages/domain`)
-- **Barcode & QR code scanner**: Camera-based scanning or manual GTIN/EAN-13 code entry.
-- **Open Food Facts integration**: Live product metadata, brand, packaging images, and ingredient list retrieval.
-- **Deterministic ingredient classifier**: Evidence-led evaluation of ingredients and allergen trace warnings.
-- **Ingredient label OCR**: Photo capture and extraction of physical ingredient labels with editable text correction.
+### 🔍 2. Is this vegan? (Product Scanner)
+- **Barcode & QR scanner**: Scan packaged food products via camera or manual GTIN/EAN-13 code entry.
+- **Open Food Facts data**: Fetches brand, product name, packaging photos, and ingredient lists.
+- **Deterministic classifier**: Identifies non-vegan ingredients and allergen traces with clear explanations.
+- **Label photo OCR**: Photograph ingredient labels to extract text with editable correction before checking.
 
-### 🍲 3. Recipe Veganizer (`apps/web` & `packages/domain`)
-- **Automated recipe analysis**: Detects animal-derived ingredients in pasted recipes or ingredient lists.
-- **Deterministic substitutions**: Suggests practical plant-based alternatives with adjusted quantities and cooking guidance (e.g. flax eggs, aquafaba, soy milk).
-- **Interactive alternative selector**: Choose between alternative substitutions and edit the final veganized recipe.
+### 🍲 3. Recipe Veganizer
+- **Automated analysis**: Identifies animal-derived ingredients in recipes.
+- **Smart substitutions**: Recommends proven culinary replacements (e.g. flax eggs, aquafaba, soy milk, vegan butter) with scaled quantities.
+- **Interactive selection**: Choose between alternative suggestions and edit the final recipe draft.
 
-### 🌐 4. Bilingual Support
-- **Interface localization**: Full UI available in Catalan (`ca`) and English (`en`), persisting user preference in localStorage.
-- **Bilingual dish & section names**: Menu analysis outputs original names alongside English and Catalan translations (`nameCa`, `descriptionCa`, `section.nameCa`).
+---
 
-## Restaurant diet metadata
+## Quickstart (Run Locally)
 
-HappyCow does not publish an open developer API. Its terms prohibit automated scraping and
-database construction, so do not import its listings without a direct HappyCow licence or
-partnership.
+### Prerequisites
+- Node.js 22+ and npm
 
-OpenStreetMap is the best open enrichment source. Food venues can carry
-`diet:vegan=only|yes|limited|no` and `diet:vegetarian=only|yes|limited|no`; coverage is
-community-dependent. Query those tags with Overpass and retain OSM attribution/ODbL
-requirements. Foursquare is useful for place identity, category, address, search, and official
-website discovery, but it should not be treated as an authoritative vegan-status field.
-
-The sensible long-term combination is:
-
-1. Foursquare for fast place search and identity.
-2. OpenStreetMap `diet:*` tags as optional venue-level hints.
-3. The saved source menu plus this app's dish-level analysis as the auditable ground truth.
-
-## Architecture
-
-```text
-apps/web        React, Vite, PWA and Capacitor-ready UI
-apps/api        Fastify API, place search, menu discovery and Gemini extraction
-packages/domain Shared Zod contracts, ingredient classifier and recipe rules
-supabase        PostgreSQL migrations and private menu-source bucket configuration
-data/           Local fallback for runtime menu originals (ignored by Git)
+### 1. Clone & Install
+```bash
+git clone https://github.com/nilsduran/Vegan-Tools.git
+cd VeganTools
+npm install
 ```
 
-Credentials remain server-side. `VITE_API_URL` is public configuration; never expose Gemini,
-Foursquare, Supabase secret, or other service keys through a `VITE_` variable.
-
-## Run locally
-
-Requirements: Node.js 22+ and npm.
-
+### 2. Configure Environment (Optional for local testing)
 ```bash
 cp .env.example .env
-npm install
+```
+*(Without API keys, barcode lookup, ingredient text classification and recipe veganization work completely offline and locally. Gemini and Foursquare keys are only needed for live place search and photo/PDF menu extraction).*
+
+### 3. Start Development Server
+```bash
 npm run dev
 ```
+- **Web App**: `http://localhost:5173`
+- **Backend API**: `http://localhost:3001`
+- **API Docs (Swagger)**: `http://localhost:3001/docs`
 
-- Web: `http://localhost:5173`
-- API: `http://localhost:3001`
-- OpenAPI: `http://localhost:3001/docs`
-- Health check: `http://localhost:3001/health`
+---
 
-The default restaurant bias is Barcelona and can be changed with
-`DEFAULT_RESTAURANT_NEAR`. Location permission is not needed for typed-city searches.
+## Everyday Commands
 
-Without `GEMINI_API_KEY`, upload flow returns a clearly marked review placeholder. Gemini is
-required for menu/PDF extraction, ingredient-photo transcription, and grounded website
-recovery. Barcode lookup, text classification, and recipe veganization still work locally.
-
-Useful checks:
-
-```bash
-npm run typecheck
-npm test
-npm run build
-npm run check
-```
-
-## Environment
-
-Copy `.env.example` and configure:
-
-| Variable | Purpose |
+| Command | Purpose |
 | --- | --- |
-| `WEB_ORIGIN` | Allowed web origin(s), comma-separated |
-| `VITE_API_URL` | Public HTTPS API base used by the web bundle |
-| `GEMINI_API_KEY` | Server-side menu/photo extraction and website verification |
-| `GEMINI_MODEL` | Menu model; defaults to `gemini-3.1-flash-lite` |
-| `GEMINI_WEBSITE_MODEL` | Grounded official-website lookup model; defaults to `gemini-3.1-flash-lite` |
-| `FOURSQUARE_API_KEY` | Primary restaurant search and autocomplete |
-| `DEFAULT_RESTAURANT_NEAR` | Bias for name-only searches |
-| `*_USER_AGENT` | Stable application identifier; a public project URL is sufficient |
-| `SUPABASE_URL`, `SUPABASE_SECRET_KEY` | Server persistence and private original-menu storage |
-| `MENU_SOURCE_DIR` | Local fallback directory when Supabase is not configured |
+| `npm run dev` | Start both frontend (`localhost:5173`) and API (`localhost:3001`) simultaneously |
+| `npm run check` | Run full verification: Typecheck + Tests + Production Build + Secret Scan |
+| `npm test` | Run all 83 Vitest automated tests (Unit, DB persistence, and Form UI) |
+| `npm run typecheck` | Verify TypeScript compilation across all packages |
 
-Apply every migration in `supabase/migrations` in filename order before enabling Supabase.
-The secret key belongs only on the API host; this application does not currently need a
-Supabase publishable key in the browser.
+---
 
-## API surface
+## Technical Documentation & Architecture
 
-- `GET /health`
-- `GET /v1/restaurants/search`
-- `POST /v1/restaurants/resolve`
-- `POST /v1/menus/discover`
-- `POST /v1/menus/analyses`
-- `GET/PATCH /v1/menus/analyses/:id`
-- `GET /v1/menu-sources/:menuId/:storedName`
-- `GET /v1/menus/recent`
-- `POST /v1/menus/:id/publish`
-- `GET /v1/public/menus/:slug`
-- `GET /v1/products/:gtin`
-- `POST /v1/products/:gtin/evidence`
-- `POST /v1/ingredients/classify`
-- `POST /v1/ingredients/extract`
-- `POST /v1/recipes/veganize`
+For in-depth developer documentation, database schemas, and deployment instructions, see:
+- 📖 [Developer & Architecture Guide](docs/developer-guide.md) — API endpoints, Supabase configuration, deployment steps, and environment variables.
+- 🔬 [Reliability & Classification Methodology](docs/reliability-methodology.md) — Testing benchmarks and ingredient evaluation principles.
 
-## Deploy
+---
 
-Cloudflare Pages can host the static web app:
+## Roadmap & Future Work
 
-```text
-Root directory: /
-Build command: npm run build -w @vegan-tools/domain && npm run build -w @vegan-tools/web
-Build output: apps/web/dist
-Node version: 22
-```
-
-Deploy `apps/api` to a Node host separately, set `VITE_API_URL` to its public HTTPS URL, and
-set `WEB_ORIGIN` to the Pages/custom-domain origin. Configure Supabase for durable database
-and private object storage. A host disk is not required when Supabase is enabled.
-
-### Render free API warm-up
-
-If the API is deployed as a free Render Web Service, it can spin down after 15 minutes without
-inbound traffic. Use an external uptime or cron monitor such as cron-job.org, UptimeRobot or
-Better Stack to request the public health check:
-
-```text
-https://your-api.onrender.com/health
-```
-
-For a personal MVP, a 10-14 minute interval is enough to keep the API warm during active
-hours. If the monitor supports active windows, pause checks between 01:00 and 07:00
-Europe/Madrid time so the service can sleep overnight.
-
-## Public v1 checklist
-
-Before announcing the first public version:
-
-1. **Infrastructure:** deploy web/API over HTTPS, apply Supabase migrations, verify database
-   and Storage backups, set production origins, and verify secrets are absent from the bundle.
-2. **Service identity:** replace `your-project.example` with the public project URL in each
-   user agent, confirm Foursquare limits/billing, and add required OpenStreetMap, Foursquare,
-   and Open Food Facts attribution. A personal email or postal address is not required.
-3. **Content and privacy:** publish a short privacy notice covering optional coarse location,
-   uploaded menu/label images, retention, Gemini processing, and public source visibility.
-   Only upload menus you are allowed to republish.
-4. **Accuracy:** manually review a representative 50-menu set, including multi-page PDFs,
-   photos, Catalan/Spanish/English menus, incomplete descriptions, and difficult adaptations.
-   Complete the separate 500-product benchmark described in
-   `docs/reliability-methodology.md`.
-5. **Device smoke test:** test camera capture, multi-photo upload, barcode scanning, PDF
-   preview, restaurant search with/without location, cached-menu refresh, and all three tools
-   on a real iPhone and Android device.
-6. **Operations:** add error monitoring and uptime checks, database/file backups, upload and
-   request rate limits, a private way to remove or refresh a bad cached menu, and a rollback
-   procedure.
-7. **Launch pass:** run `npm run check`, test the production URLs from a clean browser, verify
-   the fallback/error copy, and seed only the handful of restaurants you personally expect to
-   revisit.
-
-No large moderation system is necessary for a personal first version, but deletion/refresh
-controls and a contact route are still worth having before strangers can upload public source
-files.
-
-### Smallest path to a publicly accessible personal MVP
-
-Because you will initially be the only active user, the first deployment can stay deliberately
-small:
-
-1. Create a Supabase project and apply every SQL file in `supabase/migrations`.
-2. Deploy `apps/api` to a Node host (Railway, Render, Fly.io or a small VPS). Supabase stores
-   the durable records and original files, so a persistent host disk is not required.
-3. Configure the API environment variables from `.env.example`: Gemini, Foursquare, Supabase,
-   honest service user agents, `WEB_ORIGIN`, and the production port.
-4. Deploy `apps/web` to Cloudflare Pages using the settings in the Deploy section. Set
-   `VITE_API_URL` to the public HTTPS API URL.
-5. Set `WEB_ORIGIN` on the API to the exact Cloudflare Pages/custom-domain origin and confirm
-   `/health` responds publicly.
-6. Add a short privacy page explaining coarse location, uploaded files, Gemini processing,
-   retention and the fact that saved source menus may be publicly viewable.
-7. Add OpenStreetMap, Foursquare and Open Food Facts attribution where their data is shown.
-8. Run `npm run check`, then smoke-test restaurant search, one PDF, several menu photos, the
-   ingredient checker and recipe veganizer from a clean browser and a real phone.
-9. If using Render Free for the API, configure an external uptime or cron monitor to request
-   `/health` every 10-14 minutes during active hours. Add error logging and provider
-   spending/quota alerts before sharing the URL.
-
-A custom domain, app-store packaging, donations, analytics and public upload moderation can
-wait. For this first personal MVP, HTTPS, persistent storage, backups, privacy disclosure and
-working production smoke tests are the essentials.
-
-## Roadmap
-
-### Content and personal resources
-
-- A personal page explaining why the creator went vegan.
-- A practical vegan guide covering shopping, eating out, travel, nutrition signposting and
-  common ingredient pitfalls.
-- Accessible introductions to vegan ethics and philosophy, with clearly attributed further
-  reading.
-- A community-maintained wiki/directory of vegan activism organisations, networks, campaigns
-  and local groups.
-- Curated activism resources with region, language, campaign type and ways-to-help filters.
-
-### Food and household tools
-
-- Personal recipe collection with favourites, tags, meal plans, shopping lists and imports.
-- Save veganized recipes and keep the original recipe alongside each adaptation.
-- Pantry tracking, recipe suggestions and optional nutritional information.
-- Menu linking: associate and link existing menus (whether default platform menus or uploaded PNG/PDF files) directly to restaurant profiles.
+### 🍽️ Dining & Discovery
+- Smart restaurant discovery and exploration: discover and recommend restaurants based on location, proximity, star ratings, and vegan leaf scores (🍃 1-5).
 - Dual restaurant review system:
-  - 5-star rating for general food quality and dining experience.
-  - 5-leaf rating (🍃 1 to 5) for vegan friendliness (1 = poor / no options, 5 = 100% vegan-friendly).
-- Smart restaurant discovery and exploration: discover and recommend restaurants based on location, proximity, general star ratings, vegan leaf friendliness (🍃 1-5), verified menu dishes and dietary tags, allowing users to explore dining options nearby without needing an exact restaurant name upfront.
-- Cosmetics checker covering both vegan ingredients and cruelty-free company/testing status,
-  with separate evidence and confidence for each claim.
-- Household and clothing product checks using the same evidence-led approach.
-- Better restaurant dietary metadata from OpenStreetMap and user-verified menus.
+  - ⭐ 5-star rating for overall food quality and experience.
+  - 🍃 5-leaf rating (1 to 5) for vegan friendliness (1 = poor / no options, 5 = 100% vegan-friendly).
+- Menu linking: associate and link existing menus (whether default platform menus or uploaded PNG/PDF files) directly to restaurant profiles.
 
-### Product, testing and platform
+### 🧪 Testing & Quality
+- Full-stack visual E2E test suite (Playwright) to simulate real user journeys with browser screenshots and recordings for visual verification.
 
-- Full-stack visual E2E test suite (e.g. Playwright) to simulate real user journeys with browser screenshots and recordings, allowing manual testers to visually inspect real page flows instead of only asserting unit inputs/outputs.
-- Catalan menu-output translation in addition to the Catalan/English interface.
-- Accounts, optional cross-device sync, favourites and personal history.
-- iOS and Android applications after the PWA and Capacitor flows are stable.
-- A limited public beta, feedback collection and an invite-based rollout before open uploads.
-- Accessibility audit, additional languages, offline support and faster low-bandwidth modes.
-- Private administrative tools for correcting, refreshing and removing cached menus.
+### 🥘 Food & Household
+- Personal recipe collection with favourites, tags, meal plans, shopping lists and imports.
+- Cosmetics and household product checker with cruelty-free testing and vegan certification tracking.
 
-### Sustainability and launch
+---
 
-- Per-user cost analysis for Gemini, Foursquare, storage, bandwidth and support.
-- Usage and cohort analysis that respects privacy and avoids unnecessary tracking.
-- Revenue scenarios comparing donations, sponsorship, grants, subscriptions and a free public
-  service.
-- Donation setup with transparent goals and an explanation of hosting/API costs.
-- A go/no-go review for a broader public launch based on accuracy, operating cost and actual
-  demand.
-- Marketing plan: positioning, landing page, search visibility, vegan-community outreach,
-  partnerships, launch content and a measured public-beta campaign.
-- Operational dashboards, budgets, quota alerts, backups, incident response and a public
-  status page.
+## License
 
-## Trust and licence
-
-AI extracts and translates text; product ingredient classification is deterministic and
-versioned. Probable/unknown verdicts preserve uncertainty, and allergen “may contain” traces
-do not change vegan status. Restaurant-menu results are assistance, not a guarantee: users
-should compare the visible original and ask staff about preparation and cross-contact.
-
-Open Food Facts is ODbL-licensed (with separate image terms), and OpenStreetMap data requires
-ODbL attribution. Vegan Tools is released under the [GNU GPL v3.0](LICENSE).
+Vegan Tools is free and open-source software released under the [GNU GPL v3.0](LICENSE).
+Product data is powered by [Open Food Facts](https://world.openfoodfacts.org/) under the ODbL license.
+Restaurant map data is provided by [OpenStreetMap](https://www.openstreetmap.org/) and [Foursquare](https://foursquare.com/).

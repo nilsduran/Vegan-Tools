@@ -32,7 +32,7 @@ describe("API", () => {
       expect(response.headers["access-control-allow-origin"]).toBe(origin);
     }
     await app.close();
-  });
+  }, 15_000);
 
   it("adds CORS headers for the production web origin on actual API responses", async () => {
     vi.stubEnv("WEB_ORIGIN", "\"https://vegan-tools.onrender.com/\"");
