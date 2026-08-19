@@ -258,6 +258,7 @@ working production smoke tests are the essentials.
 - Dual restaurant review system:
   - 5-star rating for general food quality and dining experience.
   - 5-leaf rating (🍃 1 to 5) for vegan friendliness (1 = poor / no options, 5 = 100% vegan-friendly).
+- Smart restaurant discovery and exploration: discover and recommend restaurants based on location, proximity, general star ratings, vegan leaf friendliness (🍃 1-5), verified menu dishes and dietary tags, allowing users to explore dining options nearby without needing an exact restaurant name upfront.
 - Cosmetics checker covering both vegan ingredients and cruelty-free company/testing status,
   with separate evidence and confidence for each claim.
 - Household and clothing product checks using the same evidence-led approach.
