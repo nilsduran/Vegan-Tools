@@ -18,6 +18,12 @@ const NON_OFFICIAL_HOSTS = [
   "tripadvisor.com",
   "ubereats.com",
   "yelp.com",
+  "glovoapp.com",
+  "just-eat.es",
+  "deliveroo.es",
+  "tiktok.com",
+  "twitter.com",
+  "x.com",
 ];
 
 function isPlausibleOfficialWebsite(value: string) {
@@ -54,50 +60,75 @@ export class GoogleSearchRestaurantWebsiteFinder
     if (cached && cached.expiresAt > Date.now()) return cached.websiteUrl;
 
     const ai = new GoogleGenAI({ apiKey });
-    const response = await ai.models.generateContent({
-      model: process.env.GEMINI_WEBSITE_MODEL ?? "gemini-2.5-flash",
-      contents: [
-        `Find the official website for this restaurant:
+    const modelsToTry = [
+      process.env.GEMINI_WEBSITE_MODEL,
+      "gemini-2.5-flash",
+      "gemini-2.0-flash",
+      "gemini-1.5-flash",
+    ].filter(Boolean) as string[];
+
+    const prompt = `Find the official website for this restaurant:
 Name: ${restaurant.name}
 Address: ${restaurant.address}
 Coordinates: ${restaurant.latitude}, ${restaurant.longitude}
 ${excludedWebsiteUrl ? `Known incorrect or unreachable URL: ${excludedWebsiteUrl}` : ""}
 
 Use web search to distinguish this exact location from similarly named businesses.
-Search as a person would, using a query like "${restaurant.name} restaurant ${
-          restaurant.address || "official website"
-        }". Prefer the restaurant's own domain and check that the name and location match.
+Search as a person would, using queries like "${restaurant.name} restaurant ${
+      restaurant.address || "official website"
+    }" or "${restaurant.name} carta menu web oficial". Prefer the restaurant's own domain or direct menu page, checking that the name and location match.
 Return only the absolute official website URL. Do not return a social network,
 directory, map, delivery platform, booking platform, or review site. Return NONE
-if an official website cannot be verified.`,
-      ],
-      config: {
-        tools: [{ googleSearch: {} }],
-        temperature: 0,
-      },
-    });
+if an official website cannot be verified.`;
 
-    const match = response.text?.match(/https?:\/\/[^\s<>"')\]]+/i)?.[0]
+    let responseText: string | undefined;
+    let groundedUris: string[] = [];
+
+    for (const model of [...new Set(modelsToTry)]) {
+      try {
+        const response = await ai.models.generateContent({
+          model,
+          contents: [prompt],
+          config: {
+            tools: [{ googleSearch: {} }],
+            temperature: 0,
+          },
+        });
+        responseText = response.text;
+        groundedUris = response.candidates?.flatMap((candidate) =>
+          candidate.groundingMetadata?.groundingChunks?.flatMap(
+            (chunk) => chunk.web?.uri ? [chunk.web.uri] : [],
+          ) ?? []
+        ) ?? [];
+        if (responseText || groundedUris.length > 0) break;
+      } catch {
+        // Try next model fallback
+      }
+    }
+
+    let websiteUrl: string | undefined;
+
+    const match = responseText?.match(/https?:\/\/[^\s<>"')\]]+/i)?.[0]
       ?.replace(/[.,;:]+$/, "");
-    const groundedUris = response.candidates?.flatMap((candidate) =>
-      candidate.groundingMetadata?.groundingChunks?.flatMap(
-        (chunk) => chunk.web?.uri ? [chunk.web.uri] : [],
-      ) ?? []
-    ) ?? [];
-    let websiteUrl = groundedUris.length > 0 &&
-        match &&
-        isPlausibleOfficialWebsite(match)
-      ? new URL(match).toString()
-      : undefined;
-    if (!websiteUrl) {
-      for (const groundedUri of groundedUris.slice(0, 5)) {
+
+    if (match && isPlausibleOfficialWebsite(match)) {
+      try {
+        websiteUrl = new URL(match).toString();
+      } catch {
+        websiteUrl = undefined;
+      }
+    }
+
+    if (!websiteUrl && groundedUris.length > 0) {
+      for (const groundedUri of groundedUris.slice(0, 8)) {
         const resolved = await resolveGroundedWebsite(groundedUri);
-        if (resolved) {
+        if (resolved && isPlausibleOfficialWebsite(resolved)) {
           websiteUrl = resolved;
           break;
         }
       }
     }
+
     this.cache.set(cacheKey, {
       expiresAt: Date.now() + (websiteUrl ? 7 * 24 * 60 * 60_000 : 10 * 60_000),
       websiteUrl,

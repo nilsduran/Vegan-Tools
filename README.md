@@ -254,13 +254,18 @@ working production smoke tests are the essentials.
 - Personal recipe collection with favourites, tags, meal plans, shopping lists and imports.
 - Save veganized recipes and keep the original recipe alongside each adaptation.
 - Pantry tracking, recipe suggestions and optional nutritional information.
+- Menu linking: associate and link existing menus (whether default platform menus or uploaded PNG/PDF files) directly to restaurant profiles.
+- Dual restaurant review system:
+  - 5-star rating for general food quality and dining experience.
+  - 5-leaf rating (🍃 1 to 5) for vegan friendliness (1 = poor / no options, 5 = 100% vegan-friendly).
 - Cosmetics checker covering both vegan ingredients and cruelty-free company/testing status,
   with separate evidence and confidence for each claim.
 - Household and clothing product checks using the same evidence-led approach.
 - Better restaurant dietary metadata from OpenStreetMap and user-verified menus.
 
-### Product and platform
+### Product, testing and platform
 
+- Full-stack visual E2E test suite (e.g. Playwright) to simulate real user journeys with browser screenshots and recordings, allowing manual testers to visually inspect real page flows instead of only asserting unit inputs/outputs.
 - Catalan menu-output translation in addition to the Catalan/English interface.
 - Accounts, optional cross-device sync, favourites and personal history.
 - iOS and Android applications after the PWA and Capacitor flows are stable.

@@ -366,7 +366,7 @@ export function MenuReaderPage() {
             >
               {tx("Change")}
             </button>
-            <details className="website-discovery">
+            <details className="website-discovery" open={!selectedRestaurant.websiteUrl}>
               <summary>{tx("Use a website or menu link")}</summary>
               <form
                 className="website-discovery-form"
@@ -396,18 +396,16 @@ export function MenuReaderPage() {
                   {draft?.status === "processing" ? tx("Finding menu…") : tx("Find menu")}
                 </button>
               </form>
-              {!selectedRestaurant.websiteUrl && (
-                <a
-                  className="google-search-link"
-                  href={`https://www.google.com/search?q=${encodeURIComponent(
-                    `${selectedRestaurant.name} ${selectedRestaurant.address} official website`,
-                  )}`}
-                  target="_blank"
-                  rel="noreferrer"
-                >
-                  {tx("Check Google results")} <ExternalLink />
-                </a>
-              )}
+              <a
+                className="google-search-link"
+                href={`https://www.google.com/search?q=${encodeURIComponent(
+                  `${selectedRestaurant.name} ${selectedRestaurant.address || ""} carta menu web oficial`,
+                )}`}
+                target="_blank"
+                rel="noreferrer"
+              >
+                {tx("Check Google results")} <ExternalLink />
+              </a>
             </details>
           </div>
         )}
