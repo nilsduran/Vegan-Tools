@@ -17,37 +17,31 @@ the original dish names.
 This repository is the canonical application. The earlier standalone prototypes have been
 removed.
 
-## Current menu behavior
+## Features & Capabilities
 
-Restaurant search uses Foursquare Places when `FOURSQUARE_API_KEY` is configured and otherwise
-uses OpenStreetMap/Nominatim. A typed city can be part of the same query (`Il Mulino Barcelona`);
-the optional approximate-location button requests browser permission only when clicked.
-Search is restricted to food venues. Foursquare suggestions are cached for two minutes and
-full searches for 15 minutes.
+### 🍽️ 1. Menu Reader (`apps/web` & `apps/api`)
+- **Multi-source restaurant search**: Fast restaurant lookup using Foursquare Places with OpenStreetMap/Nominatim fallback and optional nearby geolocation.
+- **Automated website & menu discovery**: Resolves official websites, crawls menu pages and downloads embedded PDF/image links automatically.
+- **Flexible menu uploads**: Upload single or multi-page PDFs, multiple PNG/JPEG images, or photograph physical menus with the camera (up to 8 files).
+- **Intelligent dish classification**: AI-powered extraction (Gemini 3) that identifies dishes as *Vegan*, *Probably vegan*, *Vegetarian*, *Probably vegetarian*, *Non-vegetarian*, or *Unknown*.
+- **Practical adaptations**: Proposes realistic dish modifications without deleting essential core ingredients.
+- **Auditable sources**: Retains the original PDF or photographed page for side-by-side comparison with page numbers.
+- **Shared community cache**: Analyzed menus and verified sources are stored in Supabase so subsequent visitors reuse results instantly.
 
-After a restaurant is selected, the API resolves its current website and crawls likely
-`menu`, `carta`, and PDF links. If the place provider has no valid website, Gemini Search
-grounding can verify the location-matched official site. A pasted official URL and direct
-PDF/image upload remain deliberate fallbacks because JavaScript-only and bot-protected sites
-cannot always be read.
+### 🔍 2. Is this vegan? / Product Scanner (`apps/web` & `packages/domain`)
+- **Barcode & QR code scanner**: Camera-based scanning or manual GTIN/EAN-13 code entry.
+- **Open Food Facts integration**: Live product metadata, brand, packaging images, and ingredient list retrieval.
+- **Deterministic ingredient classifier**: Evidence-led evaluation of ingredients and allergen trace warnings.
+- **Ingredient label OCR**: Photo capture and extraction of physical ingredient labels with editable text correction.
 
-Menu extraction:
+### 🍲 3. Recipe Veganizer (`apps/web` & `packages/domain`)
+- **Automated recipe analysis**: Detects animal-derived ingredients in pasted recipes or ingredient lists.
+- **Deterministic substitutions**: Suggests practical plant-based alternatives with adjusted quantities and cooking guidance (e.g. flax eggs, aquafaba, soy milk).
+- **Interactive alternative selector**: Choose between alternative substitutions and edit the final veganized recipe.
 
-- keeps original dish names and translates display names/descriptions to English;
-- records prices and source page numbers;
-- classifies dishes as vegan, probably vegan, vegetarian, probably vegetarian,
-  non-vegetarian, or unknown;
-- proposes only small, practical adaptations and rejects changes that remove the defining
-  ingredient or most of the dish;
-- shows counts as `native (native + adaptable)`, for example `3 (4)`;
-- keeps the uploaded PDF/images as a visible original source for comparison.
-
-Finished restaurant menus are cached so subsequent visitors can reuse them. “Update menu” is
-a secondary action. With Supabase configured, drafts, published menus, product results and
-the shared restaurant cache survive API restarts. Original PDFs/images are kept in the
-private Supabase Storage bucket `menu-sources` and streamed through the API. Without
-Supabase, application data remains in memory and originals fall back to `MENU_SOURCE_DIR`,
-which is suitable for local development only unless the host mounts a persistent volume.
+### 🌐 4. Bilingual Support
+- **Interface localization**: Full UI available in Catalan (`ca`) and English (`en`), persisting user preference in localStorage.
+- **Bilingual dish & section names**: Menu analysis outputs original names alongside English and Catalan translations (`nameCa`, `descriptionCa`, `section.nameCa`).
 
 ## Restaurant diet metadata
 
