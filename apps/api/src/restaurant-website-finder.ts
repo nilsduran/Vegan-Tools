@@ -62,9 +62,9 @@ export class GoogleSearchRestaurantWebsiteFinder
     const ai = new GoogleGenAI({ apiKey });
     const modelsToTry = [
       process.env.GEMINI_WEBSITE_MODEL,
+      "gemini-3.1-flash-lite",
+      "gemini-3.0-flash",
       "gemini-2.5-flash",
-      "gemini-2.0-flash",
-      "gemini-1.5-flash",
     ].filter(Boolean) as string[];
 
     const prompt = `Find the official website for this restaurant:

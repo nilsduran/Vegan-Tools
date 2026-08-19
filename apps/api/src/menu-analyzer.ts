@@ -105,7 +105,7 @@ Return JSON matching the supplied schema.`,
     });
 
     const configuredModel = process.env.GEMINI_MODEL ?? "gemini-3.1-flash-lite";
-    const models = [...new Set([configuredModel, "gemini-2.5-flash"])];
+    const models = [...new Set([configuredModel, "gemini-3.0-flash", "gemini-2.5-flash"])];
     let response: Awaited<ReturnType<typeof generate>> | undefined;
     let lastError: unknown;
     let selectedModel = configuredModel;

@@ -121,7 +121,7 @@ Copy `.env.example` and configure:
 | `VITE_API_URL` | Public HTTPS API base used by the web bundle |
 | `GEMINI_API_KEY` | Server-side menu/photo extraction and website verification |
 | `GEMINI_MODEL` | Menu model; defaults to `gemini-3.1-flash-lite` |
-| `GEMINI_WEBSITE_MODEL` | Grounded official-website lookup model |
+| `GEMINI_WEBSITE_MODEL` | Grounded official-website lookup model; defaults to `gemini-3.1-flash-lite` |
 | `FOURSQUARE_API_KEY` | Primary restaurant search and autocomplete |
 | `DEFAULT_RESTAURANT_NEAR` | Bias for name-only searches |
 | `*_USER_AGENT` | Stable application identifier; a public project URL is sufficient |

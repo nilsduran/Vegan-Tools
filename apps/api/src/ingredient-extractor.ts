@@ -20,6 +20,7 @@ export class GeminiIngredientExtractor implements IngredientExtractor {
     const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
     const models = [...new Set([
       process.env.GEMINI_MODEL ?? "gemini-3.1-flash-lite",
+      "gemini-3.0-flash",
       "gemini-2.5-flash",
     ])];
     let response: Awaited<ReturnType<typeof ai.models.generateContent>> | undefined;
