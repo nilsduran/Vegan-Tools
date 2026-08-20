@@ -10,14 +10,14 @@ import { RecipeVeganizerPage } from "./pages/RecipeVeganizerPage";
 
 function FlagUK() {
   return (
-    <svg viewBox="0 0 60 30" width="18" height="12" aria-hidden="true" className="flag-icon">
-      <clipPath id="uk-flag-clip"><rect width="60" height="30" rx="2" /></clipPath>
+    <svg viewBox="0 0 60 40" width="22" height="15" aria-hidden="true" className="flag-icon">
+      <rect width="60" height="40" fill="#012169" rx="2" />
+      <clipPath id="uk-flag-clip"><rect width="60" height="40" rx="2" /></clipPath>
       <g clipPath="url(#uk-flag-clip)">
-        <path d="M0 0v30h60V0z" fill="#012169" />
-        <path d="M0 0l60 30m0-30L0 30" stroke="#fff" strokeWidth="6" />
-        <path d="M0 0l60 30m0-30L0 30" stroke="#C8102E" strokeWidth="4" />
-        <path d="M30 0v30M0 15h60" stroke="#fff" strokeWidth="10" />
-        <path d="M30 0v30M0 15h60" stroke="#C8102E" strokeWidth="6" />
+        <path d="M0 0L60 40M60 0L0 40" stroke="#ffffff" strokeWidth="7" />
+        <path d="M0 0L60 40M60 0L0 40" stroke="#C8102E" strokeWidth="4" />
+        <path d="M30 0v40M0 20h60" stroke="#ffffff" strokeWidth="12" />
+        <path d="M30 0v40M0 20h60" stroke="#C8102E" strokeWidth="7" />
       </g>
     </svg>
   );
@@ -25,11 +25,14 @@ function FlagUK() {
 
 function FlagCatalonia() {
   return (
-    <svg viewBox="0 0 810 540" width="18" height="12" aria-hidden="true" className="flag-icon">
-      <clipPath id="ca-flag-clip"><rect width="810" height="540" rx="40" /></clipPath>
+    <svg viewBox="0 0 135 90" width="22" height="15" aria-hidden="true" className="flag-icon">
+      <rect width="135" height="90" fill="#FCD116" rx="4" />
+      <clipPath id="ca-flag-clip"><rect width="135" height="90" rx="4" /></clipPath>
       <g clipPath="url(#ca-flag-clip)">
-        <path fill="#FFD700" d="M0 0h810v540H0z" />
-        <path stroke="#D7141A" strokeWidth="60" d="M0 90h810M0 210h810M0 330h810M0 450h810" />
+        <rect y="10" width="135" height="10" fill="#D7141A" />
+        <rect y="30" width="135" height="10" fill="#D7141A" />
+        <rect y="50" width="135" height="10" fill="#D7141A" />
+        <rect y="70" width="135" height="10" fill="#D7141A" />
       </g>
     </svg>
   );
