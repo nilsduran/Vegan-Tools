@@ -265,11 +265,11 @@ export function MenuReaderPage() {
               });
               setRestaurantResults(results);
               if (results.length === 0) {
-                setRestaurantError("No matching restaurant was found. Try adding a city or area.");
+                setRestaurantError(tx("No matching restaurant was found. Try adding a city or area."));
               }
             } catch (searchError) {
               setRestaurantError(
-                searchError instanceof Error ? searchError.message : "Restaurant search failed.",
+                searchError instanceof Error ? tx(searchError.message) : tx("Restaurant search failed."),
               );
               setRestaurantResults([]);
             } finally {
@@ -585,7 +585,7 @@ export function MenuReaderPage() {
             setLoadedFromCache(false);
             setDraft(await createRestaurantMenuAnalysis(files, selectedRestaurant));
           } catch (analysisError) {
-            setError(analysisError instanceof Error ? analysisError.message : "Analysis failed.");
+            setError(analysisError instanceof Error ? tx(analysisError.message) : tx("Analysis failed."));
           }
         }}
       >

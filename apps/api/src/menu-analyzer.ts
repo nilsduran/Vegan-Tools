@@ -89,9 +89,10 @@ Return JSON matching the supplied schema.`,
                           enum: ["vegan", "probably_vegan", "vegetarian", "probably_vegetarian", "non_vegetarian", "unknown"],
                         },
                         reason: { type: Type.STRING },
+                        reasonCa: { type: Type.STRING },
                         sourcePage: { type: Type.INTEGER },
                       },
-                      required: ["originalName", "name", "nameCa", "description", "descriptionCa", "price", "verdict", "reason"],
+                      required: ["originalName", "name", "nameCa", "description", "descriptionCa", "price", "verdict", "reason", "reasonCa"],
                     },
                   },
                 },
@@ -167,6 +168,7 @@ Return JSON matching the supplied schema.`,
               description: item.descriptionCa ?? "",
             }),
             reason: informativeMenuReason(item),
+            reasonCa: item.reasonCa?.trim() || undefined,
           };
         }),
       })),
@@ -244,6 +246,7 @@ ${JSON.stringify(candidates)}`,
                             enum: ["vegan", "vegetarian"],
                           },
                           note: { type: Type.STRING },
+                          noteCa: { type: Type.STRING },
                         },
                         required: ["target", "note"],
                       },
@@ -268,7 +271,7 @@ ${JSON.stringify(candidates)}`,
     const payload = JSON.parse(response.text ?? "{}") as {
       dishes?: Array<{
         key?: unknown;
-        modifications?: Array<{ target?: unknown; note?: unknown }>;
+        modifications?: Array<{ target?: unknown; note?: unknown; noteCa?: unknown }>;
       }>;
     };
     const validKeys = new Set(candidates.map((candidate) => candidate.key));
@@ -284,7 +287,7 @@ ${JSON.stringify(candidates)}`,
       }`;
       const modifications = (dish.modifications ?? [])
         .filter(
-          (entry): entry is { target: "vegan" | "vegetarian"; note: string } =>
+          (entry): entry is { target: "vegan" | "vegetarian"; note: string; noteCa?: string } =>
             (entry.target === "vegan" || entry.target === "vegetarian") &&
             typeof entry.note === "string" &&
             isPracticalAdaptation(
@@ -299,6 +302,9 @@ ${JSON.stringify(candidates)}`,
           note: /^ask whether\b/i.test(entry.note.trim())
             ? entry.note.trim()
             : `Ask whether it can be prepared ${entry.note.trim()}`,
+          noteCa: typeof entry.noteCa === "string" && entry.noteCa.trim()
+            ? entry.noteCa.trim()
+            : undefined,
         }));
       if (modifications.length > 0) result.set(dish.key, modifications);
     }

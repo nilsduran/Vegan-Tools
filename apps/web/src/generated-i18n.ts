@@ -206,6 +206,24 @@ const exactGeneratedCa: Record<string, string> = {
     "Es pot haver fregit amb greix animal o contenir ingredients no vegans a la salsa.",
   "May be fried in animal fat or contain non-vegan sauce ingredients.":
     "Es pot haver fregit amb greix animal o contenir ingredients no vegans a la salsa.",
+  "Curry sauces may contain dairy or fish/shrimp paste":
+    "Les salses de curri poden contenir lactis o pasta de peix o marisc.",
+  "Curry sauces may contain dairy or fish/shrimp paste.":
+    "Les salses de curri poden contenir lactis o pasta de peix o marisc.",
+  "This selection mixes dairy ice creams with sorbets. The ice-cream flavours are vegetarian; the sorbets may be vegan, but their recipe should be checked for milk, egg, honey or gelatin.":
+    "Aquesta selecció barreja gelats lactis amb sorbets. Els sabors de gelat són vegetarians; els sorbets poden ser vegans, però cal comprovar si porten llet, ou, mel o gelatina.",
+  "Vegetarian rather than vegan because the ice cream normally contains dairy, and chocolate coulant commonly contains butter and egg.":
+    "Vegetarià abans que vegà perquè el gelat normalment conté lactis, i el coulant de xocolata sol portar mantega i ou.",
+  "Vegetarian rather than vegan because ice cream normally contains dairy.":
+    "Vegetarià abans que vegà perquè el gelat normalment conté lactis.",
+  "Vegetarian rather than vegan because the dish contains cheese.":
+    "Vegetarià abans que vegà perquè el plat conté formatge.",
+  "Vegetarian rather than vegan because the dish contains egg.":
+    "Vegetarià abans que vegà perquè el plat conté ou.",
+  "The menu does not provide enough ingredient detail for a reliable classification.":
+    "El menú no ofereix prou detalls dels ingredients per a una classificació fiable.",
+  "Not vegetarian because the menu indicates an animal-derived ingredient, but does not identify it clearly.":
+    "No és vegetarià perquè el menú indica un ingredient d'origen animal, però no l'identifica amb claredat.",
   "Vegan substitution notes:": "Notes de substitució vegana:",
 };
 
@@ -288,6 +306,8 @@ function translateGeneratedLine(line: string): string {
   if (match) return `${prefix}${bullet}Vegetarià però no vegà: conté ${translateIngredientList(match[1]!)}.`;
   match = value.match(/^Contains (.+)\.$/);
   if (match) return `${prefix}${bullet}Conté ${translateIngredientList(match[1]!)}.`;
+  match = value.match(/^Not vegetarian because the dish contains (.+)\.$/);
+  if (match) return `${prefix}${bullet}No és vegetarià perquè el plat conté ${translateIngredientList(match[1]!)}.`;
   match = value.match(/^No clearly non-vegetarian ingredient was found, but the origin of (.+) needs confirmation\.$/);
   if (match) {
     return `${prefix}${bullet}No s'ha trobat cap ingredient clarament no vegetarià, però cal confirmar l'origen de ${translateIngredientList(match[1]!)}.`;
