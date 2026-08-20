@@ -30,7 +30,6 @@ describe("MenuReaderPage Form UI", () => {
   });
 
   it("allows searching for a restaurant and selecting a candidate", async () => {
-    const user = userEvent.setup();
     const candidate: RestaurantCandidate = {
       id: "foursquare-123",
       name: "Teresa Carles",
@@ -63,9 +62,9 @@ describe("MenuReaderPage Form UI", () => {
     const searchInput = screen.getByRole("textbox", { name: /search for a restaurant/i });
     expect(searchInput).toBeDefined();
 
-    await user.type(searchInput, "Teresa Carles Barcelona");
+    fireEvent.change(searchInput, { target: { value: "Teresa Carles Barcelona" } });
     const searchButton = screen.getByRole("button", { name: /search restaurants/i });
-    await user.click(searchButton);
+    fireEvent.click(searchButton);
 
     await waitFor(() => {
       expect(api.searchRestaurants).toHaveBeenCalledWith(
@@ -77,8 +76,8 @@ describe("MenuReaderPage Form UI", () => {
     expect(await screen.findByText("Teresa Carles")).toBeDefined();
     expect(screen.getByText("Carrer de Jovellanos, 2, Barcelona")).toBeDefined();
 
-    const useButton = screen.getByRole("button", { name: /use this restaurant/i });
-    await user.click(useButton);
+    const useButton = screen.getByRole("button", { name: /^(?:menu|carta)$/i });
+    fireEvent.click(useButton);
 
     await waitFor(() => {
       expect(api.resolveRestaurant).toHaveBeenCalledWith(candidate);

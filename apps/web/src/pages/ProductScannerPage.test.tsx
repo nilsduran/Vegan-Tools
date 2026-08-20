@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
 import { describe, expect, it, vi, beforeEach, afterEach } from "vitest";
-import { cleanup, render, screen, waitFor } from "@testing-library/react";
+import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { MemoryRouter, Route, Routes } from "react-router-dom";
@@ -154,17 +154,17 @@ describe("ProductScannerPage Form UI", () => {
     renderScanner("/product");
 
     const ingredientsTab = screen.getByRole("tab", { name: /ingredients/i });
-    await user.click(ingredientsTab);
+    fireEvent.click(ingredientsTab);
 
     const textarea = screen.getByPlaceholderText(/Ingredients: cocoa mass/i);
     expect(textarea).toBeDefined();
 
-    await user.type(textarea, "Water, sugar, soy lecithin");
+    fireEvent.change(textarea, { target: { value: "Water, sugar, soy lecithin" } });
 
     const checkButton = screen.getByRole("button", { name: /check ingredients/i });
     expect(checkButton).toBeDefined();
 
-    await user.click(checkButton);
+    fireEvent.click(checkButton);
 
     expect(await screen.findByText("All identified ingredients appear plant-based.")).toBeDefined();
     expect(api.classifyIngredientList).toHaveBeenCalledWith(
