@@ -247,8 +247,8 @@ export function MenuReaderPage() {
   return (
     <div className="page narrow-page">
       <header className="page-heading">
-        <h1>{t("menus")}</h1>
-        <p>{t("menusSummary")}</p>
+        <h1>{t("map")}</h1>
+        <p>{t("mapSummary")}</p>
       </header>
 
       <section className="restaurant-search" aria-label={tx("Search restaurants")}>

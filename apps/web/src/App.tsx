@@ -1,5 +1,5 @@
 import { Capacitor } from "@capacitor/core";
-import { BookOpenText, CookingPot, Home, Leaf, ScanBarcode } from "lucide-react";
+import { CookingPot, Home, Leaf, MapPin, ScanBarcode } from "lucide-react";
 import { NavLink, Route, Routes } from "react-router-dom";
 import { setLanguage, t, tx, useLanguage } from "./i18n";
 import { HomePage } from "./pages/HomePage";
@@ -38,7 +38,7 @@ export function App() {
   const links = [
     { to: "/", label: t("home"), icon: Home },
     { to: "/scanner", label: t("scanner"), icon: ScanBarcode },
-    { to: "/menus", label: t("menus"), icon: BookOpenText },
+    { to: "/map", label: t("map"), icon: MapPin },
     { to: "/recipes", label: t("recipes"), icon: CookingPot },
   ];
   return (
@@ -84,6 +84,7 @@ export function App() {
       <main>
         <Routes>
           <Route path="/" element={<HomePage />} />
+          <Route path="/map" element={<MenuReaderPage />} />
           <Route path="/menus" element={<MenuReaderPage />} />
           <Route path="/scanner" element={<ProductScannerPage />} />
           <Route path="/product/:gtin" element={<ProductScannerPage />} />
