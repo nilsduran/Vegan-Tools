@@ -619,7 +619,28 @@
 
 .map-floating-sidebar.compact-sidebar {
   bottom: auto;
-  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.12);
+  background: transparent;
+  border: 0;
+  box-shadow: none;
+  border-radius: 999px;
+  overflow: visible;
+}
+
+.map-floating-sidebar.compact-sidebar .sidebar-search-header {
+  border-radius: 999px;
+  border: 1px solid var(--line);
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.14);
+  padding: 0.4rem 0.5rem;
+}
+
+.map-floating-sidebar.compact-sidebar .sidebar-search-header .restaurant-search-form input {
+  border: 0;
+  border-radius: 999px;
+  padding-left: 0.75rem;
+}
+
+.map-floating-sidebar.compact-sidebar .sidebar-search-header .restaurant-search-form button {
+  border-radius: 999px;
 }
 
 .community-rating-status {

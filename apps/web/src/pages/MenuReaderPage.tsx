@@ -388,11 +388,7 @@ export function MenuReaderPage() {
                       </li>
                     ))}
                   </ul>
-                ) : (
-                  <div className="restaurant-results-empty">
-                    <p>{searchingRestaurants ? tx("Finding menu…") : tx("Search for a restaurant or explore the map.")}</p>
-                  </div>
-                )}
+                ) : null}
               </div>
             )}
           </div>
