@@ -270,7 +270,7 @@ export function MenuReaderPage() {
   return (
     <div className="page fullscreen-map-page">
       <div className="map-view-hero">
-        <aside className="map-floating-sidebar" aria-label={tx("Search restaurants")}>
+        <aside className={`map-floating-sidebar ${!selectedRestaurant && restaurantResults.length === 0 ? "compact-sidebar" : ""}`} aria-label={tx("Search restaurants")}>
           <div className="sidebar-search-header">
             <form
               onSubmit={async (event) => {
@@ -324,24 +324,6 @@ export function MenuReaderPage() {
                 {searchingRestaurants ? <LoaderCircle className="spin" /> : <Search />}
               </button>
             </form>
-
-            <button
-              type="button"
-              className={`location-bias-button${approximateLocation ? " active" : ""}`}
-              onClick={() => {
-                if (approximateLocation) {
-                  setApproximateLocation(undefined);
-                  setLocationRequested(false);
-                  return;
-                }
-                setLocationRequested(false);
-                requestApproximateLocation(true);
-              }}
-              title={approximateLocation ? tx("Using approximate location") : tx("Prioritize places near me")}
-            >
-              <MapPin />
-              <span>{approximateLocation ? tx("Near me active") : tx("Near me")}</span>
-            </button>
           </div>
 
           {restaurantError && <p className="form-error sidebar-error">{restaurantError}</p>}

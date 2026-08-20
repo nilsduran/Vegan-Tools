@@ -614,6 +614,29 @@
   display: flex;
   flex-direction: column;
   overflow: hidden;
+  transition: all 0.2s ease;
+}
+
+.map-floating-sidebar.compact-sidebar {
+  bottom: auto;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.12);
+}
+
+.community-rating-status {
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+}
+
+.community-rating-status .reviews-label {
+  font-size: 0.88rem;
+  font-weight: 700;
+  color: var(--green-dark);
+}
+
+.community-rating-status .reviews-hint {
+  font-size: 0.74rem;
+  color: #6b7280;
 }
 
 .sidebar-search-header {

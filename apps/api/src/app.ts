@@ -291,7 +291,7 @@ export async function buildApp(
             ...(request.query.near?.trim()
               ? { near: request.query.near.trim() }
               : hasLocation
-              ? { ll: `${latitude},${longitude}`, radius: "30000" }
+              ? { ll: `${latitude},${longitude}`, radius: "3500", sort: "DISTANCE" }
               : defaultNear
               ? { near: defaultNear }
               : {}),
@@ -372,7 +372,7 @@ export async function buildApp(
           fsq_category_ids: FOURSQUARE_RESTAURANT_CATEGORY,
           ...(inferredNear ? { near: inferredNear } : {}),
           ...(!inferredNear && hasLocation
-            ? { ll: `${latitude},${longitude}`, radius: "30000" }
+            ? { ll: `${latitude},${longitude}`, radius: "3500", sort: "DISTANCE" }
             : {}),
           limit: "8",
           fields: "fsq_place_id,name,location,latitude,longitude,website",

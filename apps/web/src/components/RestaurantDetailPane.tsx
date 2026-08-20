@@ -130,26 +130,12 @@ export function RestaurantDetailPane({
       </header>
 
       <div className="detail-pane-body">
-        {/* Rating and Info */}
+        {/* Community Ratings section */}
         <div className="detail-rating-card">
           <div className="rating-leaves-wrapper">
-            <div className="leaves-score-display">
-              <span className="score-num">{leafScore.toFixed(1)}</span>
-              <div className="leaves-icons" aria-label={`Score: ${leafScore} out of 5 leaves`}>
-                {[1, 2, 3, 4, 5].map((i) => (
-                  <Leaf
-                    key={i}
-                    className={`leaf-icon ${
-                      i <= Math.floor(leafScore)
-                        ? "filled"
-                        : i - 0.5 <= leafScore
-                          ? "half"
-                          : "empty"
-                    }`}
-                    aria-hidden="true"
-                  />
-                ))}
-              </div>
+            <div className="community-rating-status">
+              <span className="reviews-label">{tx("Ressenyes de la comunitat")}</span>
+              <span className="reviews-hint">{tx("Properament · Sistema de valoracions verificat")}</span>
             </div>
             <button
               type="button"

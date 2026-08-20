@@ -234,6 +234,8 @@ const caPhrases = {
     "Comprova productes, descobreix llocs vegans i cartes, i adapta receptes.",
   "No matching restaurant was found in this area.":
     "No s'ha trobat cap restaurant en aquesta zona.",
+  "Ressenyes de la comunitat": "Ressenyes de la comunitat",
+  "Properament · Sistema de valoracions verificat": "Properament · Sistema de valoracions verificat",
   "Maps": "Com arribar",
 } as const;
 
