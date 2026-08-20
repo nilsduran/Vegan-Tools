@@ -51,11 +51,13 @@ This document defines persistent operational rules, constraints, and workflows f
 
 ## 4. Commands & Verification Protocol
 
-Always verify changes before marking any task as complete:
+- **Local iteration**: Work fast in local (`npm run dev`). No need to run the full test suite for every minor aesthetic tweak or CSS edit.
+- **Pre-Push Verification Gate (Mandatory)**: Before executing any `git push` requested by the user, you MUST run `npm test` and `npm run check`.
+  - **If any test or check fails**: Immediately abort the push, fix the issue, and re-verify until 100% green before pushing.
 
 | Command | Purpose |
 | :--- | :--- |
-| `npm test` | Runs the full Vitest suite across domain, api, and web |
+| `npm test` | Runs the full Vitest suite across domain, api, and web (required before push) |
 | `npm run check` | Strict check: Typecheck (`tsc`), Vitest tests, Vite production build & secret scan |
 | `npm run dev` | Starts local dev server (API + Web frontend) |
 
