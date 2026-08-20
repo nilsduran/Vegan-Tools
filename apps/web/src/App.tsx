@@ -10,30 +10,24 @@ import { RecipeVeganizerPage } from "./pages/RecipeVeganizerPage";
 
 function FlagUK() {
   return (
-    <svg viewBox="0 0 60 40" width="22" height="15" aria-hidden="true" className="flag-icon">
-      <rect width="60" height="40" fill="#012169" rx="2" />
-      <clipPath id="uk-flag-clip"><rect width="60" height="40" rx="2" /></clipPath>
-      <g clipPath="url(#uk-flag-clip)">
-        <path d="M0 0L60 40M60 0L0 40" stroke="#ffffff" strokeWidth="7" />
-        <path d="M0 0L60 40M60 0L0 40" stroke="#C8102E" strokeWidth="4" />
-        <path d="M30 0v40M0 20h60" stroke="#ffffff" strokeWidth="12" />
-        <path d="M30 0v40M0 20h60" stroke="#C8102E" strokeWidth="7" />
-      </g>
+    <svg viewBox="0 0 60 40" width="21" height="14" aria-hidden="true" className="flag-icon">
+      <rect width="60" height="40" fill="#012169" />
+      <path d="M0 0L60 40M60 0L0 40" stroke="#ffffff" strokeWidth="6.5" />
+      <path d="M0 0L60 40M60 0L0 40" stroke="#C8102E" strokeWidth="3.5" />
+      <path d="M30 0v40M0 20h60" stroke="#ffffff" strokeWidth="11" />
+      <path d="M30 0v40M0 20h60" stroke="#C8102E" strokeWidth="6.5" />
     </svg>
   );
 }
 
 function FlagCatalonia() {
   return (
-    <svg viewBox="0 0 135 90" width="22" height="15" aria-hidden="true" className="flag-icon">
-      <rect width="135" height="90" fill="#FCD116" rx="4" />
-      <clipPath id="ca-flag-clip"><rect width="135" height="90" rx="4" /></clipPath>
-      <g clipPath="url(#ca-flag-clip)">
-        <rect y="10" width="135" height="10" fill="#D7141A" />
-        <rect y="30" width="135" height="10" fill="#D7141A" />
-        <rect y="50" width="135" height="10" fill="#D7141A" />
-        <rect y="70" width="135" height="10" fill="#D7141A" />
-      </g>
+    <svg viewBox="0 0 90 60" width="21" height="14" aria-hidden="true" className="flag-icon">
+      <rect width="90" height="60" fill="#FCD116" />
+      <rect y="6.667" width="90" height="6.667" fill="#D7141A" />
+      <rect y="20" width="90" height="6.667" fill="#D7141A" />
+      <rect y="33.333" width="90" height="6.667" fill="#D7141A" />
+      <rect y="46.667" width="90" height="6.667" fill="#D7141A" />
     </svg>
   );
 }
