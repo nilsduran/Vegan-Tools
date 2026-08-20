@@ -1,4 +1,4 @@
-import { ArrowRight, BookOpenText, CookingPot, ScanBarcode } from "lucide-react";
+import { ArrowRight, CookingPot, MapPin, ScanBarcode } from "lucide-react";
 import { Link } from "react-router-dom";
 import { t, tx } from "../i18n";
 
@@ -8,7 +8,7 @@ export function HomePage() {
       <section className="hero">
         <h1>{t("tagline")}</h1>
         <p>
-          {tx("Check products, understand restaurant menus and adapt recipes.")}
+          {tx("Check products, find vegan places & menus and adapt recipes.")}
         </p>
       </section>
 
@@ -19,10 +19,10 @@ export function HomePage() {
           <p>{t("scannerSummary")}</p>
           <span>{tx("Open tool")} <ArrowRight aria-hidden="true" /></span>
         </Link>
-        <Link to="/menus" className="tool-card">
-          <BookOpenText aria-hidden="true" />
-          <h2>{t("openMenu")}</h2>
-          <p>{t("menusSummary")} Beta.</p>
+        <Link to="/map" className="tool-card">
+          <MapPin aria-hidden="true" />
+          <h2>{t("openMap")}</h2>
+          <p>{t("mapSummary")}</p>
           <span>{tx("Open tool")} <ArrowRight aria-hidden="true" /></span>
         </Link>
         <Link to="/recipes" className="tool-card">
