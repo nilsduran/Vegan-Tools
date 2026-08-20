@@ -74,7 +74,7 @@ const ca: Record<keyof typeof en, string> = {
   editHint: "Corregeix els noms, els preus i la classificació comparant-los amb el menú original.",
 };
 
-const caPhrases: Record<string, string> = {
+const caPhrases = {
   "Check products, understand restaurant menus and adapt recipes.":
     "Comprova productes, entén els menús dels restaurants i adapta receptes.",
   "Open tool": "Obre l'eina",
@@ -205,7 +205,7 @@ const caPhrases: Record<string, string> = {
     "El menú ho marca com a vegà, però no dona prou detalls dels ingredients per verificar-ho de manera independent.",
   "The menu marks this as vegetarian, but it does not list enough ingredients to identify the animal-derived component.":
     "El menú ho marca com a vegetarià, però no indica prou ingredients per identificar el component d'origen animal.",
-};
+} as const;
 
 let language: Language =
   typeof localStorage !== "undefined" && localStorage.getItem("vegan-tools-language") === "ca"
@@ -216,8 +216,12 @@ const listeners = new Set<() => void>();
 
 export function setLanguage(next: Language) {
   language = next;
-  localStorage.setItem("vegan-tools-language", next);
-  document.documentElement.lang = next;
+  if (typeof localStorage !== "undefined") {
+    localStorage.setItem("vegan-tools-language", next);
+  }
+  if (typeof document !== "undefined") {
+    document.documentElement.lang = next;
+  }
   listeners.forEach((listener) => listener());
 }
 
@@ -233,7 +237,19 @@ export function useLanguage(): Language {
 }
 
 export type TranslationKey = keyof typeof en;
+export type CatalanPhraseKey = keyof typeof caPhrases;
+
 export const t = (key: TranslationKey): string =>
   language === "ca" ? ca[key] : en[key];
-export const tx = (english: string): string =>
-  language === "ca" ? caPhrases[english] ?? english : english;
+
+export function tx(english: CatalanPhraseKey): string {
+  if (language === "ca") {
+    const translated = caPhrases[english];
+    if (!translated && typeof process !== "undefined" && process.env?.NODE_ENV !== "production") {
+      console.warn(`[i18n] Missing Catalan translation for: "${String(english)}"`);
+    }
+    return (translated as string) ?? english;
+  }
+  return english;
+}
+

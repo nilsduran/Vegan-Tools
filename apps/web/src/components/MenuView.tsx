@@ -72,7 +72,7 @@ function descriptionFromReason(reason: string) {
 }
 
 function localizedMenuText(value: string, language: Language) {
-  return localizeGeneratedText(tx(value), language);
+  return localizeGeneratedText(value, language);
 }
 
 function displaySectionName(section: { name: string; nameCa?: string }, language: Language) {
@@ -97,7 +97,7 @@ function displayItemReason(item: MenuItem, fallbackReason: string, language: Lan
   if (language === "ca" && item.reasonCa?.trim()) {
     return item.reasonCa.trim();
   }
-  return localizeGeneratedText(tx(fallbackReason), language);
+  return localizeGeneratedText(fallbackReason, language);
 }
 
 function displayModificationNote(mod: Modification, language: Language) {

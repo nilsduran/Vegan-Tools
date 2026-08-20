@@ -269,7 +269,7 @@ export function MenuReaderPage() {
               }
             } catch (searchError) {
               setRestaurantError(
-                searchError instanceof Error ? tx(searchError.message) : tx("Restaurant search failed."),
+                searchError instanceof Error ? searchError.message : tx("Restaurant search failed."),
               );
               setRestaurantResults([]);
             } finally {
@@ -585,7 +585,7 @@ export function MenuReaderPage() {
             setLoadedFromCache(false);
             setDraft(await createRestaurantMenuAnalysis(files, selectedRestaurant));
           } catch (analysisError) {
-            setError(analysisError instanceof Error ? tx(analysisError.message) : tx("Analysis failed."));
+            setError(analysisError instanceof Error ? analysisError.message : tx("Analysis failed."));
           }
         }}
       >
