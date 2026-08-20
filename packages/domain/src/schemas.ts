@@ -215,5 +215,7 @@ export const restaurantCandidateSchema = z.object({
   websiteUrl: z.string().url().optional(),
   mapUrl: z.string().url(),
   provider: z.enum(["openstreetmap", "foursquare"]).default("openstreetmap"),
+  openingHours: z.string().optional(),
+  cuisine: z.string().optional(),
 });
 export type RestaurantCandidate = z.infer<typeof restaurantCandidateSchema>;

@@ -446,22 +446,24 @@ export async function buildApp(
         }
       }
 
-      const searchText = [
-        query,
-        request.query.near?.trim() || inferredTextNear || defaultNear,
-      ].filter(Boolean).join(", ");
+      const searchText = hasLocation
+        ? query
+        : [
+            query,
+            request.query.near?.trim() || inferredTextNear || defaultNear,
+          ].filter(Boolean).join(", ");
       const url = new URL("https://nominatim.openstreetmap.org/search");
       url.search = new URLSearchParams({
         q: searchText,
         format: "jsonv2",
-        limit: "6",
+        limit: "25",
         addressdetails: "1",
         extratags: "1",
         layer: "poi",
         ...(hasLocation
           ? {
-              viewbox: `${longitude - 0.35},${latitude + 0.25},${longitude + 0.35},${latitude - 0.25}`,
-              bounded: "0",
+              viewbox: `${longitude - 0.08},${latitude + 0.06},${longitude + 0.08},${latitude - 0.06}`,
+              bounded: "1",
             }
           : {}),
       }).toString();
@@ -488,11 +490,17 @@ export async function buildApp(
           lon: string;
           type?: string;
           category?: string;
-          extratags?: { website?: string; "contact:website"?: string };
+          extratags?: {
+            website?: string;
+            "contact:website"?: string;
+            opening_hours?: string;
+            cuisine?: string;
+          };
         }>;
         const candidates: RestaurantCandidate[] = raw
           .filter((item) =>
-            ["restaurant", "cafe", "fast_food", "bar", "pub", "food_court"].includes(item.type ?? "")
+            ["restaurant", "cafe", "fast_food", "bar", "pub", "bistro", "ice_cream", "bakery", "food_court"].includes(item.type ?? "") ||
+            item.category === "amenity"
           )
           .map((item) => {
             const website = item.extratags?.website ?? item.extratags?.["contact:website"];
@@ -514,6 +522,8 @@ export async function buildApp(
               websiteUrl,
               mapUrl: `https://www.openstreetmap.org/${item.osm_type}/${item.osm_id}`,
               provider: "openstreetmap",
+              openingHours: item.extratags?.opening_hours,
+              cuisine: item.extratags?.cuisine,
             };
           });
         restaurantSearchCache.set(cacheKey, {

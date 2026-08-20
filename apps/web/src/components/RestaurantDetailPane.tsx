@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import type { RestaurantCandidate } from "@vegan-tools/domain";
 import {
+  Clock,
   ExternalLink,
   Globe,
   Info,
@@ -176,6 +177,14 @@ export function RestaurantDetailPane({
           <div className="detail-info-row">
             <MapPin aria-hidden="true" />
             <span>{restaurant.address}</span>
+          </div>
+        )}
+
+        {/* Opening Hours */}
+        {restaurant.openingHours && (
+          <div className="detail-info-row detail-hours-row">
+            <Clock aria-hidden="true" />
+            <span>{restaurant.openingHours}</span>
           </div>
         )}
 

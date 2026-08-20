@@ -298,27 +298,44 @@ export function MenuReaderPage() {
               }}
               className="restaurant-search-form"
             >
-              <input
-                value={restaurantQuery}
-                onChange={(event) => {
-                  setRestaurantQuery(event.target.value);
-                  setSelectedRestaurant(undefined);
-                  setSearchSubmitted(false);
-                }}
-                onKeyDown={(event) => {
-                  if (event.key !== "Enter") return;
-                  event.preventDefault();
-                  event.currentTarget.form?.requestSubmit();
-                }}
-                aria-label={tx("Search for a restaurant")}
-                placeholder={tx("Search for a restaurant")}
-                autoComplete="off"
-                required
-                minLength={3}
-              />
+              <div className="search-input-wrapper">
+                <input
+                  value={restaurantQuery}
+                  onChange={(event) => {
+                    setRestaurantQuery(event.target.value);
+                    setSelectedRestaurant(undefined);
+                    setSearchSubmitted(false);
+                  }}
+                  onKeyDown={(event) => {
+                    if (event.key !== "Enter") return;
+                    event.preventDefault();
+                    event.currentTarget.form?.requestSubmit();
+                  }}
+                  aria-label={tx("Search for a restaurant")}
+                  placeholder={tx("Search for a restaurant")}
+                  autoComplete="off"
+                  required
+                  minLength={2}
+                />
+                {restaurantQuery.length > 0 && (
+                  <button
+                    type="button"
+                    className="search-clear-btn"
+                    onClick={() => {
+                      setRestaurantQuery("");
+                      setSelectedRestaurant(undefined);
+                      setSearchSubmitted(false);
+                    }}
+                    title={t("remove")}
+                    aria-label={t("remove")}
+                  >
+                    <X />
+                  </button>
+                )}
+              </div>
               <button
                 className="secondary-button"
-                disabled={restaurantQuery.trim().length < 3}
+                disabled={restaurantQuery.trim().length < 2}
                 aria-label={tx("Search restaurants")}
               >
                 {searchingRestaurants ? <LoaderCircle className="spin" /> : <Search />}

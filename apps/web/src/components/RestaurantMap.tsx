@@ -7,19 +7,19 @@ import { tx, useLanguage } from "../i18n";
 
 // Custom modern SVG marker for Vegan Tools restaurants
 function createRestaurantIcon(isSelected: boolean) {
-  const pinColor = isSelected ? "#09382b" : "#0f5c45";
+  const pinColor = isSelected ? "#064e3b" : "#0f5c45";
   const scale = isSelected ? 1.25 : 1.0;
-  const size = 36 * scale;
+  const size = 46 * scale;
 
   const svgHtml = `
-    <div style="position: relative; width: ${size}px; height: ${size}px; transform: translate(-50%, -100%); cursor: pointer;">
-      <svg viewBox="0 0 24 24" width="${size}" height="${size}" fill="${pinColor}" stroke="#ffffff" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" style="filter: drop-shadow(0 3px 6px rgba(0,0,0,0.3));">
+    <div style="position: relative; width: ${size}px; height: ${size}px; transform: translate(-50%, -100%); cursor: pointer; transition: transform 0.15s ease;">
+      <svg viewBox="0 0 24 24" width="${size}" height="${size}" fill="${pinColor}" stroke="#ffffff" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" style="filter: drop-shadow(0 4px 8px rgba(0,0,0,0.35));">
         <path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7z"/>
-        <circle cx="12" cy="9" r="3" fill="#ffffff" stroke="none"/>
+        <circle cx="12" cy="9" r="3.2" fill="#d9f99d" stroke="none"/>
       </svg>
       ${
         isSelected
-          ? `<div style="position: absolute; bottom: -4px; left: 50%; width: 12px; height: 4px; background: rgba(0,0,0,0.3); border-radius: 50%; transform: translateX(-50%); filter: blur(1px);"></div>`
+          ? `<div style="position: absolute; bottom: -4px; left: 50%; width: 14px; height: 5px; background: rgba(0,0,0,0.35); border-radius: 50%; transform: translateX(-50%); filter: blur(1.5px);"></div>`
           : ""
       }
     </div>
