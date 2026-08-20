@@ -89,6 +89,9 @@ For in-depth developer documentation, database schemas, and deployment instructi
   - 🍃 5-leaf rating (1 to 5) for vegan friendliness (1 = poor / no options, 5 = 100% vegan-friendly).
 - Menu linking: associate and link existing menus (whether default platform menus or uploaded PNG/PDF files) directly to restaurant profiles.
 
+### 🎨 UI/UX & Design
+- **Mobile-first UI/UX overhaul**: Clean, dense, responsive interface designed specifically for one-handed mobile use; efficient screen real estate usage, professional typography, intuitive micro-interactions, and avoiding generic "vibe-coded" layouts.
+
 ### 🧪 Testing & Quality
 - Full-stack visual E2E test suite (Playwright) to simulate real user journeys with browser screenshots and recordings for visual verification.
 
