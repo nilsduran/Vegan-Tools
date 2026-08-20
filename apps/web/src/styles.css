@@ -43,10 +43,10 @@ svg { width: 1.2em; height: 1.2em; }
 .site-header nav a { padding: .65rem .9rem; border-radius: 999px; color: var(--muted); text-decoration: none; font-weight: 650; }
 .site-header nav a.active, .site-header nav a:hover { color: var(--green-dark); background: #e7eee8; }
 .language-switcher { display: inline-flex; align-items: center; gap: .35rem; margin-left: .55rem; padding: .15rem .25rem; border: 1px solid var(--line); border-radius: 999px; background: white; }
-.language-switcher button { display: inline-flex; align-items: center; justify-content: center; padding: 0; border: 2px solid transparent; border-radius: 4px; background: transparent; cursor: pointer; transition: all .15s ease; opacity: .45; filter: grayscale(20%); line-height: 0; overflow: hidden; }
+.language-switcher button { display: inline-flex; align-items: stretch; justify-content: stretch; width: 28px; height: 19px; padding: 0; border: 2px solid transparent; border-radius: 4px; background: transparent; cursor: pointer; transition: all .15s ease; opacity: .45; filter: grayscale(20%); overflow: hidden; box-sizing: border-box; }
 .language-switcher button:hover { opacity: .85; filter: none; }
 .language-switcher button.active { opacity: 1; filter: none; border-color: var(--green); box-shadow: 0 1px 4px rgba(15, 92, 69, 0.25); }
-.language-switcher .flag-icon { display: block; width: 24px; height: 16px; border-radius: 2px; flex-shrink: 0; }
+.language-switcher .flag-icon { display: block; width: 100%; height: 100%; flex: 1 1 auto; }
 .sr-only { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0, 0, 0, 0); white-space: nowrap; border: 0; }
 
 .page { width: min(1120px, 90vw); margin: 0 auto; padding: 4rem 0 5rem; }
