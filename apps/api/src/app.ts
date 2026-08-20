@@ -6,6 +6,8 @@ import swaggerUi from "@fastify/swagger-ui";
 import {
   classifyIngredients,
   CLASSIFIER_VERSION,
+  dishFeedbackRequestSchema,
+  restaurantNotesRequestSchema,
   isValidGtin,
   menuPatchSchema,
   normalizeGtin,
@@ -39,34 +41,38 @@ import {
   MemoryMenuSourceStore,
   type MenuSourceStore,
 } from "./menu-source-store.js";
+import {
+  GeminiDishFeedbackPolisher,
+  type DishFeedbackPolisher,
+} from "./dish-feedback-polisher.js";
 
 const FOURSQUARE_RESTAURANT_CATEGORY = "4d4b7105d754a06374d81259";
 
 async function withTimeout<T>(
-  operation: Promise<T>,
-  milliseconds: number,
-  message: string,
+  promise: Promise<T>,
+  timeoutMs: number,
+  timeoutMessage: string,
 ): Promise<T> {
-  let timeout: ReturnType<typeof setTimeout> | undefined;
-  const deadline = new Promise<never>((_, reject) => {
-    timeout = setTimeout(() => reject(new Error(message)), milliseconds);
+  let timer: NodeJS.Timeout | undefined;
+  const timeoutPromise = new Promise<never>((_, reject) => {
+    timer = setTimeout(() => reject(new Error(timeoutMessage)), timeoutMs);
   });
   try {
-    return await Promise.race([operation, deadline]);
+    return await Promise.race([promise, timeoutPromise]);
   } finally {
-    if (timeout) clearTimeout(timeout);
+    if (timer) clearTimeout(timer);
   }
 }
 
 function friendlyMenuError(error: unknown): string {
-  const message = error instanceof Error ? error.message : String(error);
-  if (/503|unavailable|high demand|overload/i.test(message)) {
-    return "The menu reader is temporarily busy. Please try again in a moment.";
+  const message = error instanceof Error ? error.message : "";
+  if (/quota|exhausted|429|resource/i.test(message)) {
+    return "The menu service is busy right now. Please try again in a moment.";
   }
-  if (/429|resource_exhausted|quota/i.test(message)) {
-    return "The menu analysis quota is temporarily exhausted. Please try again later.";
+  if (/not configured|api key/i.test(message)) {
+    return "Menu analysis is not configured on the API server.";
   }
-  if (/404|not found|not supported/i.test(message)) {
+  if (/model.*unavailable|not found/i.test(message)) {
     return "The configured Gemini model is unavailable. Check GEMINI_MODEL on the API server.";
   }
   if (/took too long|timeout/i.test(message)) {
@@ -84,6 +90,7 @@ export async function buildApp(
     new GoogleSearchRestaurantWebsiteFinder(),
   restaurantMenuCache: RestaurantMenuCache = new MemoryRestaurantMenuCache(),
   menuSourceStore: MenuSourceStore = new MemoryMenuSourceStore(),
+  dishFeedbackPolisher: DishFeedbackPolisher = new GeminiDishFeedbackPolisher(),
 ) {
   const app = Fastify({ logger: true, bodyLimit: 15 * 1024 * 1024 });
   const restaurantSearchCache = new Map<
@@ -1165,6 +1172,113 @@ export async function buildApp(
     if (!menu) return reply.code(404).send({ code: "NOT_FOUND", message: "Public menu not found." });
     const { editToken: _private, ...publicMenu } = menu;
     return publicMenu;
+  });
+
+  app.post<{
+    Params: { id: string; dishId: string };
+    Querystring: { token?: string };
+    Body: unknown;
+  }>("/v1/menus/:id/dishes/:dishId/feedback", async (request, reply) => {
+    const parsed = dishFeedbackRequestSchema.safeParse(request.body);
+    if (!parsed.success) {
+      return reply.code(400).send({ code: "INVALID_FEEDBACK", issues: parsed.error.issues });
+    }
+    const { verdict, rawNote, targetModification } = parsed.data;
+
+    let menu = await repo.getMenu(request.params.id, request.query.token ?? "");
+    if (!menu) {
+      menu = await repo.getPublicMenu(request.params.id);
+    }
+    if (!menu) {
+      return reply.code(404).send({ code: "NOT_FOUND", message: "Menu not found." });
+    }
+
+    let foundItem: any;
+    let foundSectionIndex = -1;
+    let foundItemIndex = -1;
+
+    for (let sIdx = 0; sIdx < menu.sections.length; sIdx++) {
+      const section = menu.sections[sIdx];
+      if (!section) continue;
+      const iIdx = section.items.findIndex((item) => item.id === request.params.dishId);
+      if (iIdx !== -1) {
+        foundItem = section.items[iIdx];
+        foundSectionIndex = sIdx;
+        foundItemIndex = iIdx;
+        break;
+      }
+    }
+
+    if (!foundItem || foundSectionIndex === -1 || foundItemIndex === -1) {
+      return reply.code(404).send({ code: "DISH_NOT_FOUND", message: "Dish not found in this menu." });
+    }
+
+    const polished = await dishFeedbackPolisher.polishDishFeedback({
+      dishName: foundItem.name || foundItem.originalName,
+      dishDescription: foundItem.description,
+      verdict,
+      rawNote,
+      targetModification,
+    });
+
+    const updatedDish = {
+      ...foundItem,
+      verdict,
+      reason: polished.reason,
+      reasonCa: polished.reasonCa,
+      modificationNote: polished.modificationNote,
+      modificationNoteCa: polished.modificationNoteCa,
+      modifiableTo: targetModification,
+      modifications: polished.modifications.length > 0 ? polished.modifications : foundItem.modifications,
+    };
+
+    const newSections = menu.sections.map((section, sIdx) => {
+      if (sIdx !== foundSectionIndex) return section;
+      return {
+        ...section,
+        items: section.items.map((item, iIdx) => (iIdx === foundItemIndex ? updatedDish : item)),
+      };
+    });
+
+    const updatedMenu = {
+      ...menu,
+      sections: newSections,
+    };
+
+    await repo.setMenu(updatedMenu);
+
+    return { menu: updatedMenu, updatedDish };
+  });
+
+  app.post<{
+    Params: { id: string };
+    Querystring: { token?: string };
+    Body: unknown;
+  }>("/v1/menus/:id/notes", async (request, reply) => {
+    const parsed = restaurantNotesRequestSchema.safeParse(request.body);
+    if (!parsed.success) {
+      return reply.code(400).send({ code: "INVALID_NOTES", issues: parsed.error.issues });
+    }
+
+    let menu = await repo.getMenu(request.params.id, request.query.token ?? "");
+    if (!menu) {
+      menu = await repo.getPublicMenu(request.params.id);
+    }
+    if (!menu) {
+      return reply.code(404).send({ code: "NOT_FOUND", message: "Menu not found." });
+    }
+
+    const polished = await dishFeedbackPolisher.polishRestaurantNotes(parsed.data.rawNotes);
+
+    const updatedMenu = {
+      ...menu,
+      communityNotes: polished.communityNotes,
+      communityNotesCa: polished.communityNotesCa,
+    };
+
+    await repo.setMenu(updatedMenu);
+
+    return updatedMenu;
   });
 
   return app;

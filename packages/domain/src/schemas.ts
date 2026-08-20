@@ -116,6 +116,13 @@ export const recipeAnalysisSchema = z.object({
 });
 export type RecipeAnalysis = z.infer<typeof recipeAnalysisSchema>;
 
+export const menuItemModificationSchema = z.object({
+  target: z.enum(["vegan", "vegetarian"]),
+  note: z.string(),
+  noteCa: z.string().optional(),
+});
+export type MenuItemModification = z.infer<typeof menuItemModificationSchema>;
+
 export const menuItemSchema = z.object({
   id: z.string(),
   originalName: z.string(),
@@ -126,12 +133,11 @@ export const menuItemSchema = z.object({
   price: z.string().default(""),
   verdict: dietVerdictSchema,
   reason: z.string().default(""),
+  reasonCa: z.string().optional(),
   modificationNote: z.string().optional(),
+  modificationNoteCa: z.string().optional(),
   modifiableTo: z.enum(["vegan", "vegetarian"]).optional(),
-  modifications: z.array(z.object({
-    target: z.enum(["vegan", "vegetarian"]),
-    note: z.string(),
-  })).default([]),
+  modifications: z.array(menuItemModificationSchema).default([]),
   sourcePage: z.number().int().positive().optional(),
 });
 export type MenuItem = z.infer<typeof menuItemSchema>;
@@ -164,6 +170,8 @@ export const menuDraftSchema = z.object({
   validOn: z.string().optional(),
   originalLanguage: z.string().default("unknown"),
   sections: z.array(menuSectionSchema).default([]),
+  communityNotes: z.string().optional(),
+  communityNotesCa: z.string().optional(),
   error: z.string().optional(),
   publicSlug: z.string().optional(),
   createdAt: z.string(),
@@ -180,9 +188,23 @@ export const menuPatchSchema = menuDraftSchema
     validOn: true,
     originalLanguage: true,
     sections: true,
+    communityNotes: true,
+    communityNotesCa: true,
   })
   .partial();
 export type MenuPatch = z.infer<typeof menuPatchSchema>;
+
+export const dishFeedbackRequestSchema = z.object({
+  verdict: dietVerdictSchema,
+  rawNote: z.string().default(""),
+  targetModification: z.enum(["vegan", "vegetarian"]).optional(),
+});
+export type DishFeedbackRequest = z.infer<typeof dishFeedbackRequestSchema>;
+
+export const restaurantNotesRequestSchema = z.object({
+  rawNotes: z.string().default(""),
+});
+export type RestaurantNotesRequest = z.infer<typeof restaurantNotesRequestSchema>;
 
 export const restaurantCandidateSchema = z.object({
   id: z.string(),

@@ -611,4 +611,110 @@ describe("API", () => {
     });
     await app.close();
   });
+
+  it("submits dish feedback, polishes text and updates the menu", async () => {
+    const memoryRepo = new MemoryRepository();
+    const draft = await memoryRepo.createMenu();
+    const dishId = "dish-123";
+    const initialMenu = {
+      ...draft,
+      status: "ready" as const,
+      restaurantName: "Test Restaurant",
+      sections: [
+        {
+          id: "sec-1",
+          name: "Main Courses",
+          items: [
+            {
+              id: dishId,
+              originalName: "Pasta Fresca al Pesto",
+              name: "Fresh Pasta with Pesto",
+              description: "Handmade pasta with basil pesto",
+              price: "12,50 €",
+              verdict: "vegan" as const,
+              reason: "Plant-based ingredients",
+              modifications: [],
+            },
+          ],
+        },
+      ],
+    };
+    await memoryRepo.setMenu(initialMenu);
+
+    const mockPolisher = {
+      polishDishFeedback: vi.fn().mockResolvedValue({
+        reason: "Contains egg (fresh pasta is prepared with eggs)",
+        reasonCa: "Conté ou (la pasta fresca s'elabora amb ou)",
+        modificationNote: "Ask for dried durum wheat pasta instead",
+        modificationNoteCa: "Demanar pasta seca de blat dur",
+        modifications: [
+          {
+            target: "vegan" as const,
+            note: "Ask for dried durum wheat pasta instead",
+            noteCa: "Demanar pasta seca de blat dur",
+          },
+        ],
+      }),
+      polishRestaurantNotes: vi.fn().mockResolvedValue({
+        communityNotes: "Shared fryer used for all fried items",
+        communityNotesCa: "Fregidora compartida per a tots els fregits",
+      }),
+    };
+
+    const app = await buildApp(
+      memoryRepo,
+      undefined,
+      undefined,
+      undefined,
+      undefined,
+      undefined,
+      undefined,
+      mockPolisher,
+    );
+
+    const feedbackRes = await app.inject({
+      method: "POST",
+      url: `/v1/menus/${draft.id}/dishes/${dishId}/feedback?token=${draft.editToken}`,
+      payload: {
+        verdict: "non_vegetarian",
+        rawNote: "pasta port ous",
+        targetModification: "vegan",
+      },
+    });
+
+    expect(feedbackRes.statusCode).toBe(200);
+    const feedbackPayload = feedbackRes.json();
+    expect(feedbackPayload.updatedDish).toMatchObject({
+      id: dishId,
+      verdict: "non_vegetarian",
+      reason: "Contains egg (fresh pasta is prepared with eggs)",
+      reasonCa: "Conté ou (la pasta fresca s'elabora amb ou)",
+      modifiableTo: "vegan",
+      modifications: [
+        {
+          target: "vegan",
+          note: "Ask for dried durum wheat pasta instead",
+          noteCa: "Demanar pasta seca de blat dur",
+        },
+      ],
+    });
+
+    // Test restaurant notes endpoint
+    const notesRes = await app.inject({
+      method: "POST",
+      url: `/v1/menus/${draft.id}/notes?token=${draft.editToken}`,
+      payload: {
+        rawNotes: "fregidora compartida",
+      },
+    });
+
+    expect(notesRes.statusCode).toBe(200);
+    const notesPayload = notesRes.json();
+    expect(notesPayload).toMatchObject({
+      communityNotes: "Shared fryer used for all fried items",
+      communityNotesCa: "Fregidora compartida per a tots els fregits",
+    });
+
+    await app.close();
+  });
 });

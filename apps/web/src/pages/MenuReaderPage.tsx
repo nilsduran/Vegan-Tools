@@ -230,6 +230,7 @@ export function MenuReaderPage() {
         initialMenu={draft}
         sourceFiles={files}
         cached={loadedFromCache}
+        onUpdateMenu={setDraft}
         onRefresh={() => {
           setDraft(undefined);
           setLoadedFromCache(false);

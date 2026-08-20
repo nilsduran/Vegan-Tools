@@ -6,16 +6,29 @@ import {
   type DietVerdict,
   type MenuDraft,
   type MenuItem,
+  type MenuItemModification,
 } from "@vegan-tools/domain";
-import { BookOpen, Egg, ExternalLink, Info, Leaf, Utensils, Wrench } from "lucide-react";
+import {
+  BookOpen,
+  Egg,
+  ExternalLink,
+  Info,
+  Leaf,
+  MessageSquareWarning,
+  Pencil,
+  Utensils,
+  Wrench,
+} from "lucide-react";
 import { t, tx, useLanguage } from "../i18n";
 import type { Language } from "../i18n";
 import { localizeGeneratedText } from "../generated-i18n";
 import { resolveApiUrl, sourcePdfPageUrl } from "../api";
 import { isPresentableMenuSource } from "../menu-source";
+import { DishCorrectionDialog } from "./DishCorrectionDialog";
+import { RestaurantNotesDialog } from "./RestaurantNotesDialog";
 
 type DietFilter = "vegan" | "vegetarian" | "meat";
-type Modification = { target: "vegan" | "vegetarian"; note: string };
+type Modification = { target: "vegan" | "vegetarian"; note: string; noteCa?: string };
 
 function verdictGroup(verdict: DietVerdict): DietFilter | "unknown" {
   if (verdict === "vegan" || verdict === "probably_vegan") return "vegan";
@@ -34,7 +47,7 @@ function verdictLabel(verdict: DietVerdict) {
 }
 
 function itemModifications(item: MenuItem): Modification[] {
-  const modifications = item.modifications.filter((entry) => entry.note.trim());
+  const modifications = (item.modifications || []).filter((entry) => entry.note.trim());
   if (
     item.modificationNote?.trim() &&
     item.modifiableTo &&
@@ -43,6 +56,7 @@ function itemModifications(item: MenuItem): Modification[] {
     modifications.push({
       target: item.modifiableTo,
       note: item.modificationNote.trim(),
+      noteCa: item.modificationNoteCa?.trim(),
     });
   }
   return modifications;
@@ -79,6 +93,20 @@ function displayItemDescription(item: MenuItem, fallbackDescription: string, lan
     : localizedMenuText(fallbackDescription, language);
 }
 
+function displayItemReason(item: MenuItem, fallbackReason: string, language: Language) {
+  if (language === "ca" && item.reasonCa?.trim()) {
+    return item.reasonCa.trim();
+  }
+  return localizeGeneratedText(tx(fallbackReason), language);
+}
+
+function displayModificationNote(mod: Modification, language: Language) {
+  if (language === "ca" && mod.noteCa?.trim()) {
+    return mod.noteCa.trim();
+  }
+  return localizeGeneratedText(mod.note, language);
+}
+
 function matchesSelection(
   item: MenuItem,
   selectedDiets: Set<DietFilter>,
@@ -94,9 +122,11 @@ function matchesSelection(
 export function MenuView({
   menu,
   onSourceReference,
+  onUpdateMenu,
 }: {
   menu: MenuDraft;
   onSourceReference?: (item: MenuItem) => void;
+  onUpdateMenu?: (updated: MenuDraft) => void;
 }) {
   const language = useLanguage();
   const [selectedDiets, setSelectedDiets] = useState<Set<DietFilter>>(
@@ -105,6 +135,8 @@ export function MenuView({
   const [allSelected, setAllSelected] = useState(false);
   const [showAdaptable, setShowAdaptable] = useState(true);
   const [openReasons, setOpenReasons] = useState<Set<string>>(new Set());
+  const [editingItem, setEditingItem] = useState<MenuItem | null>(null);
+  const [isEditingNotes, setIsEditingNotes] = useState(false);
 
   const allItems = useMemo(
     () => menu.sections.flatMap((section) => section.items),
@@ -173,32 +205,79 @@ export function MenuView({
     { value: "meat", label: tx("Carnist"), Icon: Utensils },
   ];
 
+  const communityNotes = language === "ca" && menu.communityNotesCa?.trim()
+    ? menu.communityNotesCa.trim()
+    : menu.communityNotes?.trim();
+
+  const handleDishSuccess = (updatedItem: MenuItem) => {
+    const updatedSections = menu.sections.map((section) => ({
+      ...section,
+      items: section.items.map((item) => (item.id === updatedItem.id ? updatedItem : item)),
+    }));
+    const updatedMenu = { ...menu, sections: updatedSections };
+    onUpdateMenu?.(updatedMenu);
+  };
+
+  const handleNotesSuccess = (updatedMenu: MenuDraft) => {
+    onUpdateMenu?.(updatedMenu);
+  };
+
   return (
     <div className="menu-view">
       <header className="public-menu-heading">
         <p className="menu-eyebrow">Menu</p>
         <h1>{menu.restaurantName || tx("Restaurant menu")}</h1>
-        {menu.sourceUrl && (
-          <a
-            className="menu-website-link"
-            href={menu.sourceUrl}
-            target="_blank"
-            rel="noreferrer"
+        <div className="menu-header-actions">
+          {menu.sourceUrl && (
+            <a
+              className="menu-website-link"
+              href={menu.sourceUrl}
+              target="_blank"
+              rel="noreferrer"
+            >
+              <ExternalLink />{tx("Open original website")}
+            </a>
+          )}
+          {presentableSources.map((source, index) => (
+            <a
+              key={source.url}
+              className="menu-website-link"
+              href={resolveApiUrl(source.url)}
+              target="_blank"
+              rel="noreferrer"
+            >
+              <BookOpen />{tx("Open saved original")}{presentableSources.length > 1 ? ` ${tx("Page").toLocaleLowerCase()} ${index + 1}` : ""}
+            </a>
+          ))}
+          <button
+            type="button"
+            className="text-button edit-notes-button"
+            onClick={() => setIsEditingNotes(true)}
           >
-            <ExternalLink />{tx("Open original website")}
-          </a>
+            <MessageSquareWarning />
+            {communityNotes ? tx("Edit venue notes") : tx("Add venue notes")}
+          </button>
+        </div>
+
+        {communityNotes && (
+          <div className="community-notes-banner">
+            <div className="community-notes-content">
+              <MessageSquareWarning className="notes-icon" />
+              <div>
+                <strong>{tx("Community note")}:</strong>
+                <p>{communityNotes}</p>
+              </div>
+            </div>
+            <button
+              type="button"
+              className="icon-button"
+              onClick={() => setIsEditingNotes(true)}
+              aria-label={tx("Edit notes")}
+            >
+              <Pencil />
+            </button>
+          </div>
         )}
-        {presentableSources.map((source, index) => (
-          <a
-            key={source.url}
-            className="menu-website-link"
-            href={resolveApiUrl(source.url)}
-            target="_blank"
-            rel="noreferrer"
-          >
-            <BookOpen />{tx("Open saved original")}{presentableSources.length > 1 ? ` ${tx("Page").toLocaleLowerCase()} ${index + 1}` : ""}
-          </a>
-        ))}
       </header>
 
       <nav className="menu-filter-bar" aria-label={tx("Diet filter")}>
@@ -291,7 +370,18 @@ export function MenuView({
                       <div>
                         <h3>{displayItemName(item, displayText.name, language)}</h3>
                       </div>
-                      {item.price.trim() && <strong>{item.price}</strong>}
+                      <div className="menu-dish-heading-right">
+                        {item.price.trim() && <strong>{item.price}</strong>}
+                        <button
+                          type="button"
+                          className="icon-button edit-dish-button"
+                          onClick={() => setEditingItem(item)}
+                          aria-label={tx("Correct dish")}
+                          title={tx("Correct dish or add note")}
+                        >
+                          <Pencil />
+                        </button>
+                      </div>
                     </div>
 
                     {displayText.description && (
@@ -363,11 +453,13 @@ export function MenuView({
                         key={entry.target}
                         className={`modification-note modification-note-${entry.target}`}
                       >
-                        {localizeGeneratedText(entry.note, language)}
+                        {displayModificationNote(entry, language)}
                       </p>
                     ))}
                     {reasonOpen && classificationReason && (
-                      <p className="menu-reason" role="status">{localizeGeneratedText(tx(classificationReason), language)}</p>
+                      <p className="menu-reason" role="status">
+                        {displayItemReason(item, classificationReason, language)}
+                      </p>
                     )}
                   </article>
                 );
@@ -376,6 +468,32 @@ export function MenuView({
           </section>
         ))}
       </div>
+
+      {editingItem && (
+        <DishCorrectionDialog
+          item={editingItem}
+          menuId={menu.id}
+          token={menu.editToken === "public" ? undefined : menu.editToken}
+          isOpen={Boolean(editingItem)}
+          onClose={() => setEditingItem(null)}
+          onSuccess={handleDishSuccess}
+        />
+      )}
+
+      {isEditingNotes && (
+        <RestaurantNotesDialog
+          menuId={menu.id}
+          token={menu.editToken === "public" ? undefined : menu.editToken}
+          currentNotes={
+            language === "ca"
+              ? (menu.communityNotesCa || menu.communityNotes)
+              : menu.communityNotes
+          }
+          isOpen={isEditingNotes}
+          onClose={() => setIsEditingNotes(false)}
+          onSuccess={handleNotesSuccess}
+        />
+      )}
     </div>
   );
 }

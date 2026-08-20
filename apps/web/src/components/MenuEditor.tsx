@@ -11,11 +11,13 @@ export function MenuEditor({
   sourceFiles = [],
   cached = false,
   onRefresh,
+  onUpdateMenu,
 }: {
   initialMenu: MenuDraft;
   sourceFiles?: File[];
   cached?: boolean;
   onRefresh?: () => void;
+  onUpdateMenu?: (updated: MenuDraft) => void;
 }) {
   const [sourceTarget, setSourceTarget] = useState<{
     page: number;
@@ -87,6 +89,7 @@ export function MenuEditor({
         <div className="review-menu-preview">
           <MenuView
             menu={initialMenu}
+            onUpdateMenu={onUpdateMenu}
             onSourceReference={firstSourceType === "application/pdf"
               ? (item) => {
                   if (!item.sourcePage) return;

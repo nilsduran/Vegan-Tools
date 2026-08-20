@@ -237,3 +237,47 @@ export async function getPublicMenu(slug: string): Promise<MenuDraft> {
     editToken: "public",
   });
 }
+
+export async function submitDishFeedback(
+  menuId: string,
+  dishId: string,
+  feedback: {
+    verdict: string;
+    rawNote: string;
+    targetModification?: "vegan" | "vegetarian";
+  },
+  token?: string,
+): Promise<{ menu: MenuDraft; updatedDish: any }> {
+  const query = token ? `?token=${encodeURIComponent(token)}` : "";
+  const response = await checkedFetch(
+    `/v1/menus/${encodeURIComponent(menuId)}/dishes/${encodeURIComponent(dishId)}/feedback${query}`,
+    {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(feedback),
+    },
+  );
+  const data = await response.json();
+  return {
+    menu: menuDraftSchema.parse(data.menu),
+    updatedDish: data.updatedDish,
+  };
+}
+
+export async function updateRestaurantNotes(
+  menuId: string,
+  rawNotes: string,
+  token?: string,
+): Promise<MenuDraft> {
+  const query = token ? `?token=${encodeURIComponent(token)}` : "";
+  const response = await checkedFetch(
+    `/v1/menus/${encodeURIComponent(menuId)}/notes${query}`,
+    {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ rawNotes }),
+    },
+  );
+  return menuDraftSchema.parse(await response.json());
+}
+

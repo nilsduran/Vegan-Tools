@@ -59,6 +59,8 @@ Original menu PDFs and photographed images are stored in the private Supabase St
 - `POST /v1/menus/analyses` — Start AI extraction of uploaded PDF/image menu files.
 - `GET /v1/menus/analyses/:id` — Poll menu extraction progress and review draft.
 - `PATCH /v1/menus/analyses/:id` — Save user corrections to dishes, names, prices and verdicts.
+- `POST /v1/menus/:id/dishes/:dishId/feedback` — Submit dish corrections; uses Gemini 3 to fix typos and generate clean Catalan (`reasonCa`, `noteCa`) and English (`reason`, `note`) explanations.
+- `POST /v1/menus/:id/notes` — Submit restaurant-level community notes with bilingual polishing (`communityNotes`, `communityNotesCa`).
 - `POST /v1/menus/:id/publish` — Publish menu with a public slug.
 - `GET /v1/public/menus/:slug` — Read published menu without requiring edit token.
 - `GET /v1/menu-sources/:menuId/:storedName` — Stream original PDF/image source file.

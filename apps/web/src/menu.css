@@ -299,9 +299,205 @@
   background: #fff0c2;
 }
 
-.review-menu-preview { min-width: 0; }
-.review-menu-preview .public-menu-heading { padding-top: 0; }
-.review-menu-preview .menu-filter-bar { top: 84px; }
+.menu-header-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: center;
+  gap: .8rem;
+  margin-top: .8rem;
+}
+
+.edit-notes-button {
+  display: inline-flex;
+  align-items: center;
+  gap: .35rem;
+  padding: .3rem .6rem;
+  border-radius: 8px;
+  color: var(--muted);
+  font-size: .8rem;
+}
+.edit-notes-button:hover {
+  color: var(--green-dark);
+  background: #eef2ed;
+}
+
+.community-notes-banner {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 1rem;
+  max-width: 680px;
+  margin: 1.2rem auto 0;
+  padding: .8rem 1rem;
+  border: 1px solid #ffd880;
+  border-radius: 12px;
+  background: #fff9e6;
+  text-align: left;
+}
+
+.community-notes-content {
+  display: flex;
+  align-items: flex-start;
+  gap: .65rem;
+  color: #724e00;
+  font-size: .84rem;
+  line-height: 1.45;
+}
+
+.community-notes-content .notes-icon {
+  flex-shrink: 0;
+  width: 18px;
+  height: 18px;
+  margin-top: 2px;
+  color: #c98000;
+}
+
+.community-notes-content p {
+  margin: .2rem 0 0;
+  color: #4d3807;
+}
+
+.menu-dish-heading-right {
+  display: inline-flex;
+  align-items: center;
+  gap: .45rem;
+}
+
+.edit-dish-button {
+  display: inline-grid;
+  place-items: center;
+  width: 24px;
+  height: 24px;
+  padding: 0;
+  border: 1px solid transparent;
+  border-radius: 6px;
+  color: var(--muted);
+  background: transparent;
+  opacity: .55;
+  transition: opacity .15s, background .15s;
+}
+
+.edit-dish-button svg {
+  width: 14px;
+  height: 14px;
+}
+
+.menu-dish:hover .edit-dish-button,
+.edit-dish-button:focus,
+.edit-dish-button:hover {
+  opacity: 1;
+  border-color: var(--line);
+  color: var(--green-dark);
+  background: white;
+}
+
+/* Modal overlay & card */
+.modal-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 1000;
+  display: grid;
+  place-items: center;
+  padding: 1rem;
+  background: rgb(15 23 18 / 65%);
+  backdrop-filter: blur(4px);
+  animation: modalFadeIn .15s ease-out;
+}
+
+.modal-card {
+  width: 100%;
+  max-width: 520px;
+  border: 1px solid var(--line);
+  border-radius: 18px;
+  background: var(--paper);
+  box-shadow: 0 16px 40px rgb(0 0 0 / 22%);
+  overflow: hidden;
+}
+
+.modal-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  padding: 1.2rem 1.4rem 1rem;
+  border-bottom: 1px solid var(--line);
+  background: color-mix(in srgb, var(--paper) 92%, white);
+}
+
+.modal-eyebrow {
+  display: block;
+  color: var(--green);
+  font-size: .72rem;
+  font-weight: 800;
+  letter-spacing: .08em;
+  text-transform: uppercase;
+}
+
+.modal-header h2 {
+  margin: .2rem 0 0;
+  font-size: 1.15rem;
+  font-weight: 700;
+}
+
+.modal-form {
+  padding: 1.4rem;
+  display: flex;
+  flex-direction: column;
+  gap: 1.1rem;
+}
+
+.modal-form .form-group {
+  display: flex;
+  flex-direction: column;
+  gap: .35rem;
+}
+
+.modal-form .form-group label {
+  font-size: .84rem;
+  font-weight: 700;
+  color: var(--foreground);
+}
+
+.modal-form .form-group label small {
+  display: block;
+  font-size: .74rem;
+  font-weight: 400;
+  color: var(--muted);
+  margin-top: .15rem;
+}
+
+.modal-form select,
+.modal-form textarea {
+  width: 100%;
+  padding: .65rem .8rem;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  background: white;
+  color: var(--foreground);
+  font-size: .88rem;
+  font-family: inherit;
+  resize: vertical;
+}
+
+.modal-form select:focus,
+.modal-form textarea:focus {
+  outline: none;
+  border-color: var(--green);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--green) 20%, transparent);
+}
+
+.modal-footer {
+  display: flex;
+  justify-content: flex-end;
+  gap: .6rem;
+  padding-top: .6rem;
+  border-top: 1px solid var(--line);
+}
+
+@keyframes modalFadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
 
 @media (max-width: 620px) {
   .review-actions { flex-wrap: wrap; }
