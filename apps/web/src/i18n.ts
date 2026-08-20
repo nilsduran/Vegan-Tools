@@ -220,6 +220,11 @@ const caPhrases = {
     "El menú ho marca com a vegà, però no dona prou detalls dels ingredients per verificar-ho de manera independent.",
   "The menu marks this as vegetarian, but it does not list enough ingredients to identify the animal-derived component.":
     "El menú ho marca com a vegetarià, però no indica prou ingredients per identificar el component d'origen animal.",
+  "Search this area": "Cerca en aquesta zona",
+  "Search area": "Cerca en aquesta zona",
+  "No matching restaurant was found in this area.": "No s'ha trobat cap restaurant en aquesta zona.",
+  "Check products, find vegan places & menus and adapt recipes.": "Comprova productes, descobreix llocs vegans i cartes, i adapta receptes.",
+  "Search for a restaurant or explore the map.": "Cerca un restaurant o explora el mapa.",
 } as const;
 
 let language: Language =

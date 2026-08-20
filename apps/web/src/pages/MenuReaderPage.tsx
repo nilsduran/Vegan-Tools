@@ -245,8 +245,28 @@ export function MenuReaderPage() {
     );
   }
 
+  const handleSearchArea = async (center: { lat: number; lng: number }) => {
+    setSearchingRestaurants(true);
+    setRestaurantError("");
+    try {
+      const results = await searchRestaurants(restaurantQuery.trim() || "vegan", {
+        location: { latitude: center.lat, longitude: center.lng },
+      });
+      setRestaurantResults(results);
+      if (results.length === 0) {
+        setRestaurantError(tx("No matching restaurant was found in this area."));
+      }
+    } catch (err) {
+      setRestaurantError(
+        err instanceof Error ? err.message : tx("Restaurant search failed."),
+      );
+    } finally {
+      setSearchingRestaurants(false);
+    }
+  };
+
   return (
-    <div className="page narrow-page">
+    <div className="page map-view-page">
       <header className="page-heading">
         <h1>{t("map")}</h1>
         <p>{t("mapSummary")}</p>
@@ -323,58 +343,62 @@ export function MenuReaderPage() {
           {approximateLocation ? tx("Using approximate location") : tx("Prioritize places near me")}
         </button>
 
-        {restaurantResults.length > 0 && (
-          <div className="restaurant-discovery-grid">
-            <div className="restaurant-results-pane">
-              {!selectedRestaurant && (
-                <ul className="restaurant-results">
-                  {restaurantResults.map((restaurant) => (
-                    <li
-                      key={restaurant.id}
-                      className={sameRestaurant(restaurant, selectedRestaurant ?? restaurant) ? "active" : ""}
-                    >
-                      <div>
-                        <strong>{restaurant.name}</strong>
-                        <span>{restaurant.address}</span>
-                        <div className="restaurant-links">
-                          {restaurant.websiteUrl && (
-                            <a href={restaurant.websiteUrl} target="_blank" rel="noreferrer">
-                              {tx("Website")} <ExternalLink />
-                            </a>
-                          )}
-                          <a href={restaurant.mapUrl} target="_blank" rel="noreferrer">
-                            {tx("Map")} <ExternalLink />
+        <div className="restaurant-discovery-grid">
+          <div className="restaurant-results-pane">
+            {!selectedRestaurant && restaurantResults.length > 0 && (
+              <ul className="restaurant-results">
+                {restaurantResults.map((restaurant) => (
+                  <li
+                    key={restaurant.id}
+                    className={sameRestaurant(restaurant, selectedRestaurant ?? restaurant) ? "active" : ""}
+                  >
+                    <div>
+                      <strong>{restaurant.name}</strong>
+                      <span>{restaurant.address}</span>
+                      <div className="restaurant-links">
+                        {restaurant.websiteUrl && (
+                          <a href={restaurant.websiteUrl} target="_blank" rel="noreferrer">
+                            {tx("Website")} <ExternalLink />
                           </a>
-                        </div>
+                        )}
+                        <a href={restaurant.mapUrl} target="_blank" rel="noreferrer">
+                          {tx("Map")} <ExternalLink />
+                        </a>
                       </div>
-                      <button
-                        type="button"
-                        className="primary-button"
-                        disabled={searchingRestaurants}
-                        onClick={() => void selectRestaurant(restaurant)}
-                      >
-                        {tx("Menu")}
-                      </button>
-                    </li>
-                  ))}
-                </ul>
-              )}
-            </div>
-
-            <div className="restaurant-map-pane">
-              <RestaurantMap
-                restaurants={restaurantResults}
-                selectedRestaurant={selectedRestaurant}
-                onSelectRestaurant={(restaurant) => {
-                  setSelectedRestaurant(restaurant);
-                }}
-                onOpenMenu={(restaurant) => {
-                  void selectRestaurant(restaurant);
-                }}
-              />
-            </div>
+                    </div>
+                    <button
+                      type="button"
+                      className="primary-button"
+                      disabled={searchingRestaurants}
+                      onClick={() => void selectRestaurant(restaurant)}
+                    >
+                      {tx("Menu")}
+                    </button>
+                  </li>
+                ))}
+              </ul>
+            )}
+            {!selectedRestaurant && restaurantResults.length === 0 && (
+              <div className="restaurant-results-empty">
+                <p>{searchingRestaurants ? tx("Finding menu…") : tx("Search for a restaurant or explore the map.")}</p>
+              </div>
+            )}
           </div>
-        )}
+
+          <div className="restaurant-map-pane">
+            <RestaurantMap
+              restaurants={restaurantResults}
+              selectedRestaurant={selectedRestaurant}
+              onSelectRestaurant={(restaurant) => {
+                setSelectedRestaurant(restaurant);
+              }}
+              onOpenMenu={(restaurant) => {
+                void selectRestaurant(restaurant);
+              }}
+              onSearchArea={handleSearchArea}
+            />
+          </div>
+        </div>
 
         {selectedRestaurant && (
           <div className="selected-restaurant">

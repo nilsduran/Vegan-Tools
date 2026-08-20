@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import L from "leaflet";
 import "leaflet/dist/leaflet.css";
-import { Crosshair, Maximize2, MapPin } from "lucide-react";
+import { Crosshair, Maximize2, MapPin, Search } from "lucide-react";
 import type { RestaurantCandidate } from "@vegan-tools/domain";
 import { tx, useLanguage } from "../i18n";
 
@@ -54,11 +54,13 @@ export function RestaurantMap({
   selectedRestaurant,
   onSelectRestaurant,
   onOpenMenu,
+  onSearchArea,
 }: {
   restaurants: RestaurantCandidate[];
   selectedRestaurant?: RestaurantCandidate;
   onSelectRestaurant: (restaurant: RestaurantCandidate) => void;
   onOpenMenu: (restaurant: RestaurantCandidate) => void;
+  onSearchArea?: (center: { lat: number; lng: number }) => void;
 }) {
   const language = useLanguage();
   const mapContainerRef = useRef<HTMLDivElement>(null);
@@ -67,6 +69,7 @@ export function RestaurantMap({
   const userMarkerRef = useRef<L.Marker | null>(null);
   const [userCoords, setUserCoords] = useState<{ lat: number; lng: number }>();
   const [isLocating, setIsLocating] = useState(false);
+  const [showSearchAreaBtn, setShowSearchAreaBtn] = useState(false);
 
   // Initialize Map
   useEffect(() => {
@@ -78,7 +81,7 @@ export function RestaurantMap({
     const map = L.map(mapContainerRef.current, {
       center: [initialLat, initialLng],
       zoom: selectedRestaurant ? 16 : 14,
-      zoomControl: false, // Custom placed zoom control
+      zoomControl: false,
       attributionControl: true,
     });
 
@@ -88,7 +91,6 @@ export function RestaurantMap({
       maxZoom: 19,
     }).addTo(map);
 
-    // Zoom control at bottom right for clean ergonomics
     L.control
       .zoom({
         position: "bottomright",
@@ -98,6 +100,13 @@ export function RestaurantMap({
     const markersGroup = L.layerGroup().addTo(map);
     markersGroupRef.current = markersGroup;
     mapInstanceRef.current = map;
+
+    // Detect user pan/drag to show "Search this area" button
+    map.on("dragend", () => {
+      if (onSearchArea) {
+        setShowSearchAreaBtn(true);
+      }
+    });
 
     // Invalidate size on window resize or load
     let resizeObserver: ResizeObserver | undefined;
@@ -218,6 +227,26 @@ export function RestaurantMap({
   return (
     <div className="restaurant-map-container" aria-label={tx("Explore map")}>
       <div ref={mapContainerRef} className="leaflet-map-canvas" />
+
+      {/* Floating Search this area button */}
+      {showSearchAreaBtn && onSearchArea && (
+        <div className="map-search-area-wrapper">
+          <button
+            type="button"
+            className="map-search-area-btn"
+            onClick={() => {
+              const map = mapInstanceRef.current;
+              if (!map) return;
+              const center = map.getCenter();
+              setShowSearchAreaBtn(false);
+              onSearchArea({ lat: center.lat, lng: center.lng });
+            }}
+          >
+            <Search aria-hidden="true" />
+            <span>{tx("Search this area")}</span>
+          </button>
+        </div>
+      )}
 
       {/* Floating control tools on top of the map */}
       <div className="map-floating-controls">
