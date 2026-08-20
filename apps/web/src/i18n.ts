@@ -220,11 +220,21 @@ const caPhrases = {
     "El menú ho marca com a vegà, però no dona prou detalls dels ingredients per verificar-ho de manera independent.",
   "The menu marks this as vegetarian, but it does not list enough ingredients to identify the animal-derived component.":
     "El menú ho marca com a vegetarià, però no indica prou ingredients per identificar el component d'origen animal.",
-  "Search this area": "Cerca en aquesta zona",
   "Search area": "Cerca en aquesta zona",
-  "No matching restaurant was found in this area.": "No s'ha trobat cap restaurant en aquesta zona.",
-  "Check products, find vegan places & menus and adapt recipes.": "Comprova productes, descobreix llocs vegans i cartes, i adapta receptes.",
   "Search for a restaurant or explore the map.": "Cerca un restaurant o explora el mapa.",
+  "Near me": "A prop meu",
+  "Near me active": "Ubicació activa",
+  "a peu": "a peu",
+  "en cotxe": "en cotxe",
+  "Opcions veganes": "Opcions veganes",
+  "Valoració vegana general: qualitat del menjar, servei i atenció a les opcions veganes.": "Valoració vegana general: qualitat del menjar, servei i atenció a les opcions veganes.",
+  "Vols afegir o actualitzar la carta d'aquest restaurant?": "Vols afegir o actualitzar la carta d'aquest restaurant?",
+  "Puja la carta (fotos o PDF)": "Puja la carta (fotos o PDF)",
+  "Check products, find vegan places & menus and adapt recipes.":
+    "Comprova productes, descobreix llocs vegans i cartes, i adapta receptes.",
+  "No matching restaurant was found in this area.":
+    "No s'ha trobat cap restaurant en aquesta zona.",
+  "Maps": "Com arribar",
 } as const;
 
 let language: Language =

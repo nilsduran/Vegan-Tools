@@ -55,12 +55,14 @@ export function RestaurantMap({
   onSelectRestaurant,
   onOpenMenu,
   onSearchArea,
+  onUserCoordsChange,
 }: {
   restaurants: RestaurantCandidate[];
   selectedRestaurant?: RestaurantCandidate;
   onSelectRestaurant: (restaurant: RestaurantCandidate) => void;
   onOpenMenu: (restaurant: RestaurantCandidate) => void;
   onSearchArea?: (center: { lat: number; lng: number }) => void;
+  onUserCoordsChange?: (coords: { lat: number; lng: number }) => void;
 }) {
   const language = useLanguage();
   const mapContainerRef = useRef<HTMLDivElement>(null);
@@ -185,6 +187,7 @@ export function RestaurantMap({
         setIsLocating(false);
         const { latitude, longitude } = position.coords;
         setUserCoords({ lat: latitude, lng: longitude });
+        onUserCoordsChange?.({ lat: latitude, lng: longitude });
 
         const map = mapInstanceRef.current;
         if (!map) return;

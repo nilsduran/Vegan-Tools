@@ -560,25 +560,478 @@
 .restaurant-map-container {
   position: relative;
   width: 100%;
-  height: 380px;
-  min-height: 320px;
-  border-radius: 1rem;
+  height: 100%;
+  min-height: 100%;
   overflow: hidden;
-  border: 1px solid var(--line);
-  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.06);
   background: #f0ede6;
-}
-
-@media (min-width: 768px) {
-  .restaurant-map-container {
-    height: 480px;
-  }
 }
 
 .leaflet-map-canvas {
   width: 100%;
   height: 100%;
   z-index: 1;
+}
+
+/* Fullscreen Google Maps Layout */
+.fullscreen-map-page {
+  padding: 0 !important;
+  max-width: none !important;
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  background: #f8faf8;
+}
+
+.map-view-hero {
+  position: relative;
+  width: 100%;
+  height: calc(100vh - 64px);
+  min-height: 520px;
+  display: flex;
+  overflow: hidden;
+}
+
+.map-fullscreen-canvas {
+  width: 100%;
+  height: 100%;
+  position: relative;
+  z-index: 1;
+}
+
+.map-floating-sidebar {
+  position: absolute;
+  top: 1rem;
+  left: 1rem;
+  bottom: 1rem;
+  width: 380px;
+  max-width: calc(100vw - 2rem);
+  z-index: 1000;
+  background: rgba(255, 255, 255, 0.97);
+  backdrop-filter: blur(12px);
+  border-radius: 1.1rem;
+  box-shadow: 0 8px 30px rgba(0, 0, 0, 0.16);
+  border: 1px solid var(--line);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.sidebar-search-header {
+  padding: 0.85rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  border-bottom: 1px solid var(--line);
+  background: #ffffff;
+}
+
+.sidebar-search-header .restaurant-search-form {
+  display: flex;
+  gap: 0.4rem;
+}
+
+.sidebar-search-header .restaurant-search-form input {
+  flex: 1;
+  padding: 0.65rem 0.9rem;
+  border: 1px solid var(--line);
+  border-radius: 0.6rem;
+  font-size: 0.92rem;
+  outline: none;
+}
+
+.sidebar-search-header .restaurant-search-form input:focus {
+  border-color: var(--green);
+  box-shadow: 0 0 0 2px rgba(15, 92, 69, 0.15);
+}
+
+.sidebar-search-header .restaurant-search-form button {
+  padding: 0.65rem 0.9rem;
+  border-radius: 0.6rem;
+}
+
+.sidebar-search-header .location-bias-button {
+  width: 100%;
+  justify-content: center;
+  padding: 0.45rem 0.8rem;
+  font-size: 0.8rem;
+  border-radius: 0.5rem;
+}
+
+.sidebar-error {
+  margin: 0.5rem 0.85rem 0;
+  font-size: 0.82rem;
+}
+
+.sidebar-content-area {
+  flex: 1;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+}
+
+.sidebar-results-list {
+  flex: 1;
+  overflow-y: auto;
+}
+
+.sidebar-results-list .restaurant-results {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+.sidebar-results-list .restaurant-results li {
+  padding: 0.85rem 1rem;
+  border-bottom: 1px solid var(--line);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  cursor: pointer;
+  transition: background 0.15s ease;
+}
+
+.sidebar-results-list .restaurant-results li:hover {
+  background: #f3f6f3;
+}
+
+.sidebar-results-list .restaurant-results li.active {
+  background: #eef7f2;
+  border-left: 4px solid var(--green);
+}
+
+.sidebar-results-list .restaurant-results li strong {
+  display: block;
+  font-size: 0.95rem;
+  color: var(--green-dark);
+}
+
+.sidebar-results-list .restaurant-results li span {
+  display: block;
+  font-size: 0.8rem;
+  color: #666;
+  margin-top: 0.15rem;
+}
+
+.map-bottom-search-tools {
+  max-width: 900px;
+  margin: 2rem auto 4rem;
+  padding: 0 1.5rem;
+}
+
+/* Detail Pane (Google Maps style) */
+.restaurant-detail-pane {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  animation: fadeInPane 0.2s ease-out;
+}
+
+@keyframes fadeInPane {
+  from { opacity: 0; transform: translateY(6px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.detail-pane-header {
+  padding: 1rem 1.1rem 0.75rem;
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 0.75rem;
+  border-bottom: 1px solid var(--line);
+  background: #ffffff;
+}
+
+.detail-badges-row {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  margin-bottom: 0.35rem;
+  flex-wrap: wrap;
+}
+
+.vegan-status-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+  padding: 0.25rem 0.55rem;
+  border-radius: 999px;
+  font-size: 0.75rem;
+  font-weight: 750;
+}
+
+.vegan-status-badge svg {
+  width: 0.85rem;
+  height: 0.85rem;
+}
+
+.badge-all-vegan {
+  background: #dcfce7;
+  color: #166534;
+  border: 1px solid #bbf7d0;
+}
+
+.badge-vegetarian {
+  background: #fef9c3;
+  color: #854d0e;
+  border: 1px solid #fef08a;
+}
+
+.badge-vegan-options {
+  background: #f1f5f9;
+  color: #334155;
+  border: 1px solid #e2e8f0;
+}
+
+.cuisine-badge {
+  display: inline-block;
+  padding: 0.2rem 0.5rem;
+  background: #f3f4f6;
+  color: #4b5563;
+  border-radius: 999px;
+  font-size: 0.72rem;
+  font-weight: 600;
+}
+
+.detail-pane-titles h2 {
+  font-size: 1.2rem;
+  font-weight: 750;
+  margin: 0;
+  color: #111827;
+  line-height: 1.25;
+}
+
+.detail-pane-close {
+  background: transparent;
+  border: 0;
+  color: #6b7280;
+  cursor: pointer;
+  padding: 0.35rem;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.15s ease;
+}
+
+.detail-pane-close:hover {
+  background: #f3f4f6;
+  color: #111827;
+}
+
+.detail-pane-body {
+  padding: 1rem 1.1rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.9rem;
+  overflow-y: auto;
+}
+
+/* Rating Card */
+.detail-rating-card {
+  background: #f9fafb;
+  border: 1px solid var(--line);
+  border-radius: 0.75rem;
+  padding: 0.75rem 0.9rem;
+}
+
+.rating-leaves-wrapper {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.leaves-score-display {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+}
+
+.leaves-score-display .score-num {
+  font-size: 1.35rem;
+  font-weight: 800;
+  color: var(--green-dark);
+}
+
+.leaves-icons {
+  display: flex;
+  gap: 0.2rem;
+}
+
+.leaf-icon {
+  width: 1.1rem;
+  height: 1.1rem;
+}
+
+.leaf-icon.filled {
+  color: #16a34a;
+  fill: #16a34a;
+}
+
+.leaf-icon.half {
+  color: #16a34a;
+  fill: #86efac;
+}
+
+.leaf-icon.empty {
+  color: #cbd5e1;
+}
+
+.rating-info-toggle {
+  background: transparent;
+  border: 0;
+  color: #6b7280;
+  cursor: pointer;
+  padding: 0.3rem;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.rating-info-toggle:hover {
+  color: var(--green);
+  background: #e5e7eb;
+}
+
+.rating-info-popover {
+  margin-top: 0.6rem;
+  padding-top: 0.6rem;
+  border-top: 1px solid #e5e7eb;
+  font-size: 0.78rem;
+  color: #4b5563;
+  line-height: 1.4;
+}
+
+.rating-info-popover strong {
+  color: #111827;
+}
+
+/* Transit Banner */
+.detail-transit-banner {
+  display: flex;
+  align-items: center;
+  gap: 0.65rem;
+  padding: 0.65rem 0.85rem;
+  border-radius: 0.75rem;
+  font-size: 0.85rem;
+}
+
+.detail-transit-banner.walking {
+  background: #f0fdf4;
+  border: 1px solid #bbf7d0;
+  color: #166534;
+}
+
+.detail-transit-banner.driving {
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+  color: #334155;
+}
+
+.transit-mode-icon {
+  font-size: 1.25rem;
+}
+
+.transit-info {
+  display: flex;
+  flex-direction: column;
+}
+
+.transit-info strong {
+  font-size: 0.92rem;
+}
+
+.transit-info span {
+  font-size: 0.75rem;
+  opacity: 0.85;
+}
+
+/* Info Row */
+.detail-info-row {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.5rem;
+  font-size: 0.85rem;
+  color: #4b5563;
+  line-height: 1.4;
+}
+
+.detail-info-row svg {
+  width: 1rem;
+  height: 1rem;
+  color: #9ca3af;
+  flex-shrink: 0;
+  margin-top: 0.15rem;
+}
+
+/* Action Buttons Grid */
+.detail-actions-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(80px, 1fr));
+  gap: 0.5rem;
+  margin-top: 0.25rem;
+}
+
+.detail-actions-grid button,
+.detail-actions-grid a {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.35rem;
+  padding: 0.6rem 0.75rem;
+  border-radius: 0.65rem;
+  font-size: 0.82rem;
+  font-weight: 700;
+  text-decoration: none;
+}
+
+.detail-actions-grid svg {
+  width: 0.95rem;
+  height: 0.95rem;
+}
+
+.detail-upload-card {
+  margin-top: 0.5rem;
+  padding: 0.85rem;
+  background: #f9fafb;
+  border: 1px dashed var(--line);
+  border-radius: 0.75rem;
+  text-align: center;
+  font-size: 0.8rem;
+  color: #6b7280;
+}
+
+.detail-upload-card p {
+  margin: 0 0 0.5rem;
+}
+
+.compact-upload-btn {
+  width: 100%;
+  padding: 0.5rem 0.75rem;
+  font-size: 0.8rem;
+  justify-content: center;
+}
+
+/* Mobile Responsiveness for Map Layout */
+@media (max-width: 768px) {
+  .map-view-hero {
+    height: calc(100vh - 56px);
+  }
+
+  .map-floating-sidebar {
+    top: auto;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    width: 100%;
+    max-width: 100%;
+    max-height: 56vh;
+    border-radius: 1.25rem 1.25rem 0 0;
+    box-shadow: 0 -8px 24px rgba(0, 0, 0, 0.15);
+  }
 }
 
 .map-floating-controls {

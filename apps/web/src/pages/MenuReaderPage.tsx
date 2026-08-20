@@ -26,6 +26,7 @@ import {
   type CachedRestaurantMenu,
 } from "../api";
 import { MenuEditor } from "../components/MenuEditor";
+import { RestaurantDetailPane } from "../components/RestaurantDetailPane";
 import { RestaurantMap } from "../components/RestaurantMap";
 import { t, tx, useLanguage } from "../i18n";
 
@@ -59,6 +60,7 @@ export function MenuReaderPage() {
     latitude: number;
     longitude: number;
   }>();
+  const [userCoords, setUserCoords] = useState<{ lat: number; lng: number }>();
   const [locationRequested, setLocationRequested] = useState(false);
   const [recentMenus, setRecentMenus] = useState<CachedRestaurantMenu[]>([]);
   const [loadedFromCache, setLoadedFromCache] = useState(false);
@@ -266,139 +268,171 @@ export function MenuReaderPage() {
   };
 
   return (
-    <div className="page map-view-page">
-      <header className="page-heading">
-        <h1>{t("map")}</h1>
-        <p>{t("mapSummary")}</p>
-      </header>
+    <div className="page fullscreen-map-page">
+      <div className="map-view-hero">
+        <aside className="map-floating-sidebar" aria-label={tx("Search restaurants")}>
+          <div className="sidebar-search-header">
+            <form
+              onSubmit={async (event) => {
+                event.preventDefault();
+                setRestaurantError("");
+                setSelectedRestaurant(undefined);
+                setSearchSubmitted(true);
+                setSearchingRestaurants(true);
+                try {
+                  const results = await searchRestaurants(restaurantQuery, {
+                    location: approximateLocation,
+                  });
+                  setRestaurantResults(results);
+                  if (results.length === 0) {
+                    setRestaurantError(tx("No matching restaurant was found. Try adding a city or area."));
+                  }
+                } catch (searchError) {
+                  setRestaurantError(
+                    searchError instanceof Error ? searchError.message : tx("Restaurant search failed."),
+                  );
+                  setRestaurantResults([]);
+                } finally {
+                  setSearchingRestaurants(false);
+                }
+              }}
+              className="restaurant-search-form"
+            >
+              <input
+                value={restaurantQuery}
+                onChange={(event) => {
+                  setRestaurantQuery(event.target.value);
+                  setSelectedRestaurant(undefined);
+                  setSearchSubmitted(false);
+                }}
+                onKeyDown={(event) => {
+                  if (event.key !== "Enter") return;
+                  event.preventDefault();
+                  event.currentTarget.form?.requestSubmit();
+                }}
+                aria-label={tx("Search for a restaurant")}
+                placeholder={tx("Search for a restaurant")}
+                autoComplete="off"
+                required
+                minLength={3}
+              />
+              <button
+                className="secondary-button"
+                disabled={restaurantQuery.trim().length < 3}
+                aria-label={tx("Search restaurants")}
+              >
+                {searchingRestaurants ? <LoaderCircle className="spin" /> : <Search />}
+              </button>
+            </form>
 
-      <section className="restaurant-search" aria-label={tx("Search restaurants")}>
-        <form
-          onSubmit={async (event) => {
-            event.preventDefault();
-            setRestaurantError("");
-            setSelectedRestaurant(undefined);
-            setSearchSubmitted(true);
-            setSearchingRestaurants(true);
-            try {
-              const results = await searchRestaurants(restaurantQuery, {
-                location: approximateLocation,
-              });
-              setRestaurantResults(results);
-              if (results.length === 0) {
-                setRestaurantError(tx("No matching restaurant was found. Try adding a city or area."));
-              }
-            } catch (searchError) {
-              setRestaurantError(
-                searchError instanceof Error ? searchError.message : tx("Restaurant search failed."),
-              );
-              setRestaurantResults([]);
-            } finally {
-              setSearchingRestaurants(false);
-            }
-          }}
-          className="restaurant-search-form"
-        >
-          <input
-            value={restaurantQuery}
-            onChange={(event) => {
-              setRestaurantQuery(event.target.value);
-              setSelectedRestaurant(undefined);
-              setSearchSubmitted(false);
-            }}
-            onKeyDown={(event) => {
-              if (event.key !== "Enter") return;
-              event.preventDefault();
-              event.currentTarget.form?.requestSubmit();
-            }}
-            aria-label={tx("Search for a restaurant")}
-            placeholder={tx("Search for a restaurant")}
-            autoComplete="off"
-            required
-            minLength={3}
-          />
-          <button
-            className="secondary-button"
-            disabled={restaurantQuery.trim().length < 3}
-            aria-label={tx("Search restaurants")}
-          >
-            {searchingRestaurants ? <LoaderCircle className="spin" /> : <Search />}
-            {tx("Search")}
-          </button>
-        </form>
-        <button
-          type="button"
-          className={`location-bias-button${approximateLocation ? " active" : ""}`}
-          onClick={() => {
-            if (approximateLocation) {
-              setApproximateLocation(undefined);
-              setLocationRequested(false);
-              return;
-            }
-            setLocationRequested(false);
-            requestApproximateLocation(true);
-          }}
-        >
-          <MapPin />
-          {approximateLocation ? tx("Using approximate location") : tx("Prioritize places near me")}
-        </button>
+            <button
+              type="button"
+              className={`location-bias-button${approximateLocation ? " active" : ""}`}
+              onClick={() => {
+                if (approximateLocation) {
+                  setApproximateLocation(undefined);
+                  setLocationRequested(false);
+                  return;
+                }
+                setLocationRequested(false);
+                requestApproximateLocation(true);
+              }}
+              title={approximateLocation ? tx("Using approximate location") : tx("Prioritize places near me")}
+            >
+              <MapPin />
+              <span>{approximateLocation ? tx("Near me active") : tx("Near me")}</span>
+            </button>
+          </div>
 
-        <div className="restaurant-discovery-grid">
-          <div className="restaurant-results-pane">
-            {!selectedRestaurant && restaurantResults.length > 0 && (
-              <ul className="restaurant-results">
-                {restaurantResults.map((restaurant) => (
-                  <li
-                    key={restaurant.id}
-                    className={sameRestaurant(restaurant, selectedRestaurant ?? restaurant) ? "active" : ""}
-                  >
-                    <div>
-                      <strong>{restaurant.name}</strong>
-                      <span>{restaurant.address}</span>
-                      <div className="restaurant-links">
-                        {restaurant.websiteUrl && (
-                          <a href={restaurant.websiteUrl} target="_blank" rel="noreferrer">
-                            {tx("Website")} <ExternalLink />
-                          </a>
-                        )}
-                        <a href={restaurant.mapUrl} target="_blank" rel="noreferrer">
-                          {tx("Map")} <ExternalLink />
-                        </a>
-                      </div>
-                    </div>
-                    <button
-                      type="button"
-                      className="primary-button"
-                      disabled={searchingRestaurants}
-                      onClick={() => void selectRestaurant(restaurant)}
-                    >
-                      {tx("Menu")}
-                    </button>
-                  </li>
-                ))}
-              </ul>
-            )}
-            {!selectedRestaurant && restaurantResults.length === 0 && (
-              <div className="restaurant-results-empty">
-                <p>{searchingRestaurants ? tx("Finding menu…") : tx("Search for a restaurant or explore the map.")}</p>
+          {restaurantError && <p className="form-error sidebar-error">{restaurantError}</p>}
+
+          <div className="sidebar-content-area">
+            {selectedRestaurant ? (
+              <RestaurantDetailPane
+                restaurant={selectedRestaurant}
+                userCoords={userCoords}
+                onClose={() => setSelectedRestaurant(undefined)}
+                onOpenMenu={(r) => void selectRestaurant(r)}
+                onUploadMenu={(r) => {
+                  setSelectedRestaurant(r);
+                  uploadSectionRef.current?.scrollIntoView({ behavior: "smooth" });
+                }}
+              />
+            ) : (
+              <div className="sidebar-results-list">
+                {restaurantResults.length > 0 ? (
+                  <ul className="restaurant-results">
+                    {restaurantResults.map((restaurant) => (
+                      <li
+                        key={restaurant.id}
+                        className={sameRestaurant(restaurant, selectedRestaurant ?? restaurant) ? "active clickable" : "clickable"}
+                        onClick={() => setSelectedRestaurant(restaurant)}
+                      >
+                        <div>
+                          <strong>{restaurant.name}</strong>
+                          <span>{restaurant.address}</span>
+                          <div className="restaurant-links">
+                            {restaurant.websiteUrl && (
+                              <a
+                                href={restaurant.websiteUrl}
+                                target="_blank"
+                                rel="noreferrer"
+                                onClick={(e) => e.stopPropagation()}
+                              >
+                                {tx("Website")} <ExternalLink />
+                              </a>
+                            )}
+                            <a
+                              href={restaurant.mapUrl}
+                              target="_blank"
+                              rel="noreferrer"
+                              onClick={(e) => e.stopPropagation()}
+                            >
+                              {tx("Map")} <ExternalLink />
+                            </a>
+                          </div>
+                        </div>
+                        <button
+                          type="button"
+                          className="primary-button compact-btn"
+                          disabled={searchingRestaurants}
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            void selectRestaurant(restaurant);
+                          }}
+                        >
+                          {tx("Menu")}
+                        </button>
+                      </li>
+                    ))}
+                  </ul>
+                ) : (
+                  <div className="restaurant-results-empty">
+                    <p>{searchingRestaurants ? tx("Finding menu…") : tx("Search for a restaurant or explore the map.")}</p>
+                  </div>
+                )}
               </div>
             )}
           </div>
+        </aside>
 
-          <div className="restaurant-map-pane">
-            <RestaurantMap
-              restaurants={restaurantResults}
-              selectedRestaurant={selectedRestaurant}
-              onSelectRestaurant={(restaurant) => {
-                setSelectedRestaurant(restaurant);
-              }}
-              onOpenMenu={(restaurant) => {
-                void selectRestaurant(restaurant);
-              }}
-              onSearchArea={handleSearchArea}
-            />
-          </div>
+        <div className="map-fullscreen-canvas">
+          <RestaurantMap
+            restaurants={restaurantResults}
+            selectedRestaurant={selectedRestaurant}
+            onSelectRestaurant={(restaurant) => {
+              setSelectedRestaurant(restaurant);
+            }}
+            onOpenMenu={(restaurant) => {
+              void selectRestaurant(restaurant);
+            }}
+            onSearchArea={handleSearchArea}
+            onUserCoordsChange={setUserCoords}
+          />
         </div>
+      </div>
+
+      <section className="restaurant-search map-bottom-search-tools" aria-label={tx("Search restaurants")}>
 
         {selectedRestaurant && (
           <div className="selected-restaurant">
