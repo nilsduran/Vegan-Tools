@@ -24,4 +24,26 @@ describe("DishFeedbackPolisher", () => {
     expect(notesResult.communityNotes).toBe("fregidora compartida");
     expect(notesResult.communityNotesCa).toBe("fregidora compartida");
   });
+
+  it("discards nonsense and gibberish input (e.g. xlkzjv, asdfgh, blank spaces) and generates clean defaults", async () => {
+    const polisher = new GeminiDishFeedbackPolisher();
+
+    const gibberishDish = await polisher.polishDishFeedback({
+      dishName: "Pizza Margarita",
+      verdict: "vegetarian",
+      rawNote: "xlkzjv",
+    });
+
+    expect(gibberishDish.reason).toBe("Vegetarian (no meat or fish)");
+    expect(gibberishDish.reasonCa).toBe("Vegetarià (sense carn ni peix)");
+    expect(gibberishDish.modifications).toEqual([]);
+
+    const emptyNotes = await polisher.polishRestaurantNotes("   ");
+    expect(emptyNotes.communityNotes).toBe("");
+    expect(emptyNotes.communityNotesCa).toBe("");
+
+    const spamNotes = await polisher.polishRestaurantNotes("......??????");
+    expect(spamNotes.communityNotes).toBe("");
+    expect(spamNotes.communityNotesCa).toBe("");
+  });
 });
