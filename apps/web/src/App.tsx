@@ -10,7 +10,7 @@ import { RecipeVeganizerPage } from "./pages/RecipeVeganizerPage";
 
 function FlagUK() {
   return (
-    <svg viewBox="0 0 60 40" width="21" height="14" aria-hidden="true" className="flag-icon">
+    <svg viewBox="0 0 60 40" width="24" height="16" aria-hidden="true" className="flag-icon">
       <rect width="60" height="40" fill="#012169" />
       <path d="M0 0L60 40M60 0L0 40" stroke="#ffffff" strokeWidth="6.5" />
       <path d="M0 0L60 40M60 0L0 40" stroke="#C8102E" strokeWidth="3.5" />
@@ -22,7 +22,7 @@ function FlagUK() {
 
 function FlagCatalonia() {
   return (
-    <svg viewBox="0 0 90 60" width="21" height="14" aria-hidden="true" className="flag-icon">
+    <svg viewBox="0 0 90 60" width="24" height="16" aria-hidden="true" className="flag-icon">
       <rect width="90" height="60" fill="#FCD116" />
       <rect y="6.667" width="90" height="6.667" fill="#D7141A" />
       <rect y="20" width="90" height="6.667" fill="#D7141A" />
