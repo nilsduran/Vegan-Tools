@@ -1,7 +1,8 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import type { DietVerdict, MenuItem } from "@vegan-tools/domain";
 import { LoaderCircle, Pencil, X, Check } from "lucide-react";
 import { t, tx, useLanguage } from "../i18n";
+import { localizeGeneratedText } from "../generated-i18n";
 import { submitDishFeedback } from "../api";
 
 export function DishCorrectionDialog({
@@ -26,11 +27,24 @@ export function DishCorrectionDialog({
   >(item.modifiableTo ?? (item.modifications[0]?.target || "none"));
   const [rawNote, setRawNote] = useState(
     language === "ca"
-      ? (item.reasonCa || item.reason || "")
+      ? (item.reasonCa?.trim() || localizeGeneratedText(item.reason || "", "ca"))
       : (item.reason || ""),
   );
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState("");
+
+  useEffect(() => {
+    setVerdict(item.verdict);
+    setTargetModification(
+      item.modifiableTo ?? (item.modifications[0]?.target || "none"),
+    );
+    setRawNote(
+      language === "ca"
+        ? (item.reasonCa?.trim() || localizeGeneratedText(item.reason || "", "ca"))
+        : (item.reason || ""),
+    );
+    setError("");
+  }, [item, isOpen, language]);
 
   if (!isOpen) return null;
 

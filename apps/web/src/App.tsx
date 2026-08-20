@@ -8,6 +8,33 @@ import { ProductScannerPage } from "./pages/ProductScannerPage";
 import { PublicMenuPage } from "./pages/PublicMenuPage";
 import { RecipeVeganizerPage } from "./pages/RecipeVeganizerPage";
 
+function FlagUK() {
+  return (
+    <svg viewBox="0 0 60 30" width="18" height="12" aria-hidden="true" className="flag-icon">
+      <clipPath id="uk-flag-clip"><rect width="60" height="30" rx="2" /></clipPath>
+      <g clipPath="url(#uk-flag-clip)">
+        <path d="M0 0v30h60V0z" fill="#012169" />
+        <path d="M0 0l60 30m0-30L0 30" stroke="#fff" strokeWidth="6" />
+        <path d="M0 0l60 30m0-30L0 30" stroke="#C8102E" strokeWidth="4" />
+        <path d="M30 0v30M0 15h60" stroke="#fff" strokeWidth="10" />
+        <path d="M30 0v30M0 15h60" stroke="#C8102E" strokeWidth="6" />
+      </g>
+    </svg>
+  );
+}
+
+function FlagCatalonia() {
+  return (
+    <svg viewBox="0 0 810 540" width="18" height="12" aria-hidden="true" className="flag-icon">
+      <clipPath id="ca-flag-clip"><rect width="810" height="540" rx="40" /></clipPath>
+      <g clipPath="url(#ca-flag-clip)">
+        <path fill="#FFD700" d="M0 0h810v540H0z" />
+        <path stroke="#D7141A" strokeWidth="60" d="M0 90h810M0 210h810M0 330h810M0 450h810" />
+      </g>
+    </svg>
+  );
+}
+
 export function App() {
   const native = Capacitor.isNativePlatform();
   const language = useLanguage();
@@ -37,13 +64,23 @@ export function App() {
             className={language === "en" ? "active" : ""}
             aria-pressed={language === "en"}
             onClick={() => setLanguage("en")}
-          >EN</button>
+            title="English"
+            aria-label="English"
+          >
+            <FlagUK />
+            <span className="sr-only">English</span>
+          </button>
           <button
             type="button"
             className={language === "ca" ? "active" : ""}
             aria-pressed={language === "ca"}
             onClick={() => setLanguage("ca")}
-          >CA</button>
+            title="Català"
+            aria-label="Català"
+          >
+            <FlagCatalonia />
+            <span className="sr-only">Català</span>
+          </button>
         </div>
       </header>
 
