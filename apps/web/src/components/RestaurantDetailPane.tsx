@@ -16,6 +16,7 @@ import {
 } from "lucide-react";
 import { t, tx, useLanguage } from "../i18n";
 import { getTransitEstimate, type TransitEstimate } from "../utils/transit";
+import { getDirectionsUrl } from "../utils/navigation";
 
 // Helper to determine the vegan status badge of the restaurant
 function getVeganBadge(restaurant: RestaurantCandidate): {
@@ -110,15 +111,7 @@ export function RestaurantDetailPane({
 
   const [loadingMenu, setLoadingMenu] = useState(false);
 
-  const hasCoordinates =
-    typeof restaurant.latitude === "number" &&
-    typeof restaurant.longitude === "number" &&
-    restaurant.latitude !== 0 &&
-    restaurant.longitude !== 0;
-
-  const directionsUrl = hasCoordinates
-    ? `geo:${restaurant.latitude},${restaurant.longitude}?q=${encodeURIComponent(restaurant.name)}`
-    : restaurant.mapUrl || `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(`${restaurant.name} ${restaurant.address}`)}`;
+  const directionsUrl = getDirectionsUrl(restaurant);
 
   return (
     <div className="restaurant-detail-pane" role="region" aria-label={restaurant.name}>

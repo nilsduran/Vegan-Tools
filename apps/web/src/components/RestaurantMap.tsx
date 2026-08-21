@@ -294,30 +294,6 @@ export function RestaurantMap({
           </button>
         )}
       </div>
-
-      {/* Floating details card for currently selected restaurant (mobile & compact view) */}
-      {selectedRestaurant && (
-        <div className="map-selected-card" role="region" aria-label={selectedRestaurant.name}>
-          <div className="map-selected-info">
-            <div className="map-selected-title">
-              <MapPin />
-              <h3>{selectedRestaurant.name}</h3>
-            </div>
-            {selectedRestaurant.address && (
-              <p className="map-selected-address">{selectedRestaurant.address}</p>
-            )}
-          </div>
-          <div className="map-selected-actions">
-            <button
-              type="button"
-              className="primary-button compact-btn"
-              onClick={() => onOpenMenu(selectedRestaurant)}
-            >
-              {tx("Menu")}
-            </button>
-          </div>
-        </div>
-      )}
     </div>
   );
 }

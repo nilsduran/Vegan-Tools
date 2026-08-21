@@ -31,6 +31,7 @@ import { MenuEditor } from "../components/MenuEditor";
 import { RestaurantDetailPane } from "../components/RestaurantDetailPane";
 import { RestaurantMap } from "../components/RestaurantMap";
 import { t, tx, useLanguage } from "../i18n";
+import { getDirectionsUrl } from "../utils/navigation";
 
 function newSearchSessionToken() {
   return crypto.randomUUID().replaceAll("-", "");
@@ -49,7 +50,7 @@ export function MenuReaderPage() {
   const [files, setFiles] = useState<File[]>([]);
   const [draft, setDraft] = useState<MenuDraft>();
   const [error, setError] = useState("");
-  const [showUploadModal, setShowUploadModal] = useState(false);
+  const uploadSectionRef = useRef<HTMLElement>(null);
   const [restaurantQuery, setRestaurantQuery] = useState("");
   const [restaurantResults, setRestaurantResults] = useState<RestaurantCandidate[]>([]);
   const [selectedRestaurant, setSelectedRestaurant] = useState<RestaurantCandidate>();
@@ -68,7 +69,6 @@ export function MenuReaderPage() {
     lng: number;
   }>();
   const [loadedFromCache, setLoadedFromCache] = useState(false);
-  const uploadSectionRef = useRef<HTMLElement>(null);
   const draftId = draft?.id;
   const editToken = draft?.editToken;
   const draftStatus = draft?.status;
@@ -298,14 +298,6 @@ export function MenuReaderPage() {
                 {searchingRestaurants ? <LoaderCircle className="spin" /> : <Search />}
               </button>
             </form>
-            <button
-              type="button"
-              className="sidebar-upload-menu-btn"
-              onClick={() => setShowUploadModal(true)}
-            >
-              <Upload aria-hidden="true" />
-              <span>{language === "ca" ? "Puja una carta (foto/PDF)" : "Upload menu (photo/PDF)"}</span>
-            </button>
             {restaurantError && <div className="sidebar-error error-banner">{restaurantError}</div>}
           </div>
 
@@ -318,7 +310,7 @@ export function MenuReaderPage() {
                 onOpenMenu={(r) => void selectRestaurant(r)}
                 onUploadMenu={(r) => {
                   setSelectedRestaurant(r);
-                  setShowUploadModal(true);
+                  uploadSectionRef.current?.scrollIntoView({ behavior: "smooth" });
                 }}
               />
             ) : (
@@ -326,15 +318,7 @@ export function MenuReaderPage() {
                 {restaurantResults.length > 0 ? (
                   <ul className="restaurant-results">
                     {restaurantResults.map((restaurant) => {
-                      const hasCoordinates =
-                        typeof restaurant.latitude === "number" &&
-                        typeof restaurant.longitude === "number" &&
-                        restaurant.latitude !== 0 &&
-                        restaurant.longitude !== 0;
-
-                      const directionsUrl = hasCoordinates
-                        ? `geo:${restaurant.latitude},${restaurant.longitude}?q=${encodeURIComponent(restaurant.name)}`
-                        : restaurant.mapUrl || `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(`${restaurant.name} ${restaurant.address}`)}`;
+                      const directionsUrl = getDirectionsUrl(restaurant);
 
                       return (
                         <li
@@ -406,123 +390,96 @@ export function MenuReaderPage() {
         </div>
       </div>
 
-      {/* Upload menu modal dialog */}
-      {showUploadModal && (
-        <div className="modal-backdrop" onClick={() => setShowUploadModal(false)}>
-          <div
-            className="modal-content upload-modal-content"
-            onClick={(e) => e.stopPropagation()}
-            role="dialog"
-            aria-labelledby="upload-modal-title"
-          >
-            <div className="modal-header">
-              <h2 id="upload-modal-title">
-                {selectedRestaurant ? `${tx("Add the menu")} · ${selectedRestaurant.name}` : tx("Add the menu")}
-              </h2>
-              <button
-                type="button"
-                className="modal-close-btn"
-                onClick={() => setShowUploadModal(false)}
-                aria-label={t("remove")}
-              >
-                <X />
-              </button>
-            </div>
-            <p className="modal-subtitle">
-              {tx("Upload a menu (photos or PDF) to analyze its dishes.")}
-            </p>
-            <div className="upload-options">
-              <label className="upload-option camera-option">
-                <Camera aria-hidden="true" />
-                <span>
-                  <strong>{tx("Take photos")}</strong>
-                  <small>{tx("Take one per page—you can add up to 8")}</small>
-                </span>
-                <input
-                  type="file"
-                  accept="image/*"
-                  capture="environment"
-                  onChange={(event) => {
-                    const captured = [...(event.target.files ?? [])];
-                    setFiles((current) => [...current, ...captured].slice(0, 8));
-                    event.target.value = "";
-                  }}
-                />
-              </label>
-              <label className="upload-option">
-                <Images aria-hidden="true" />
-                <span>
-                  <strong>{tx("Choose files")}</strong>
-                  <small>{tx("Photos or a PDF, up to 8 files")}</small>
-                </span>
-                <input
-                  type="file"
-                  accept="application/pdf,image/jpeg,image/png,image/webp"
-                  multiple
-                  onChange={(event) => {
-                    const chosen = [...(event.target.files ?? [])];
-                    setFiles((current) => [...current, ...chosen].slice(0, 8));
-                    event.target.value = "";
-                  }}
-                />
-              </label>
-            </div>
-
-            {files.length > 0 && (
-              <>
-                <div className="file-list-heading">
-                  <span>
-                    {files.length}{" "}
-                    {language === "ca"
-                      ? `${files.length === 1 ? "pàgina" : "pàgines"} a punt`
-                      : `${files.length === 1 ? "page" : "pages"} ready`}
-                  </span>
-                  <small>{tx("Photos are read in this order.")}</small>
-                </div>
-                <ul className="file-list">
-                  {files.map((file, index) => (
-                    <li key={`${file.name}-${file.lastModified}-${index}`}>
-                      <span className="file-number">{index + 1}</span>
-                      {file.type === "application/pdf" ? <FileText /> : <FileImage />}
-                      <span>{file.name}</span>
-                      <button
-                        type="button"
-                        aria-label={`Remove ${file.name}`}
-                        onClick={() => setFiles(files.filter((_, candidate) => candidate !== index))}
-                      >
-                        <X />
-                      </button>
-                    </li>
-                  ))}
-                </ul>
-              </>
-            )}
-
-            <div className="modal-actions-row">
-              <button
-                type="button"
-                className="primary-button large-button"
-                disabled={files.length === 0 || draft?.status === "processing"}
-                onClick={async () => {
-                  setError("");
-                  try {
-                    setLoadedFromCache(false);
-                    const newDraft = await createRestaurantMenuAnalysis(files, selectedRestaurant);
-                    setDraft(newDraft);
-                    setShowUploadModal(false);
-                  } catch (analysisError) {
-                    setError(analysisError instanceof Error ? analysisError.message : tx("Analysis failed."));
-                  }
-                }}
-              >
-                {draft?.status === "processing" ? <LoaderCircle className="spin" /> : <Upload />}
-                {draft?.status === "processing" ? tx("Extracting dishes…") : t("analyze")}
-              </button>
-            </div>
-            {error && <div className="error-banner">{error}</div>}
-          </div>
+      {/* Upload menu section below the map */}
+      <section className="menu-upload bottom-menu-upload" ref={uploadSectionRef}>
+        <div className="menu-upload-heading">
+          <h2>{tx("Add the menu")}</h2>
+          <p>{tx("Upload a menu (photos or PDF) to analyze its dishes.")}</p>
         </div>
-      )}
+        <div className="upload-options">
+          <label className="upload-option camera-option">
+            <Camera aria-hidden="true" />
+            <span>
+              <strong>{tx("Take photos")}</strong>
+              <small>{tx("Take one per page—you can add up to 8")}</small>
+            </span>
+            <input
+              type="file"
+              accept="image/*"
+              capture="environment"
+              onChange={(event) => {
+                const captured = [...(event.target.files ?? [])];
+                setFiles((current) => [...current, ...captured].slice(0, 8));
+                event.target.value = "";
+              }}
+            />
+          </label>
+          <label className="upload-option">
+            <Images aria-hidden="true" />
+            <span>
+              <strong>{tx("Choose files")}</strong>
+              <small>{tx("Photos or a PDF, up to 8 files")}</small>
+            </span>
+            <input
+              type="file"
+              accept="application/pdf,image/jpeg,image/png,image/webp"
+              multiple
+              onChange={(event) => {
+                const chosen = [...(event.target.files ?? [])];
+                setFiles((current) => [...current, ...chosen].slice(0, 8));
+                event.target.value = "";
+              }}
+            />
+          </label>
+        </div>
+
+        {files.length > 0 && (
+          <>
+            <div className="file-list-heading">
+              <span>
+                {files.length}{" "}
+                {language === "ca"
+                  ? `${files.length === 1 ? "pàgina" : "pàgines"} a punt`
+                  : `${files.length === 1 ? "page" : "pages"} ready`}
+              </span>
+              <small>{tx("Photos are read in this order.")}</small>
+            </div>
+            <ul className="file-list">
+              {files.map((file, index) => (
+                <li key={`${file.name}-${file.lastModified}-${index}`}>
+                  <span className="file-number">{index + 1}</span>
+                  {file.type === "application/pdf" ? <FileText /> : <FileImage />}
+                  <span>{file.name}</span>
+                  <button
+                    type="button"
+                    aria-label={`Remove ${file.name}`}
+                    onClick={() => setFiles(files.filter((_, candidate) => candidate !== index))}
+                  >
+                    <X />
+                  </button>
+                </li>
+              ))}
+            </ul>
+          </>
+        )}
+
+        <button
+          className="primary-button large-button"
+          disabled={files.length === 0 || draft?.status === "processing"}
+          onClick={async () => {
+            setError("");
+            try {
+              setLoadedFromCache(false);
+              setDraft(await createRestaurantMenuAnalysis(files, selectedRestaurant));
+            } catch (analysisError) {
+              setError(analysisError instanceof Error ? analysisError.message : tx("Analysis failed."));
+            }
+          }}
+        >
+          {draft?.status === "processing" ? <LoaderCircle className="spin" /> : <Upload />}
+          {draft?.status === "processing" ? tx("Extracting dishes…") : t("analyze")}
+        </button>
+      </section>
 
       {(error || draft?.error) && <div className="error-banner">{error || draft?.error}</div>}
     </div>
