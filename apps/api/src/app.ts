@@ -489,7 +489,6 @@ export async function buildApp(
           limit: "35",
           addressdetails: "1",
           extratags: "1",
-          layer: "poi",
           ...(withLocation && hasLocation
             ? {
                 viewbox: `${longitude - 0.12},${latitude + 0.09},${longitude + 0.12},${latitude - 0.09}`,
@@ -548,9 +547,13 @@ export async function buildApp(
           }
         }
 
+        const diningTypes = new Set([
+          "restaurant", "cafe", "fast_food", "bar", "pub", "bistro", "ice_cream",
+          "bakery", "food_court", "pastry", "coffee_shop", "deli", "vegetarian", "vegan"
+        ]);
         const candidates: RestaurantCandidate[] = raw
           .filter((item) =>
-            ["restaurant", "cafe", "fast_food", "bar", "pub", "bistro", "ice_cream", "bakery", "food_court"].includes(item.type ?? "") ||
+            diningTypes.has(item.type ?? "") ||
             item.category === "amenity"
           )
           .map((item) => {

@@ -217,7 +217,7 @@ export function RestaurantDetailPane({
             }}
           >
             {loadingMenu ? <LoaderCircle className="spin" /> : <Leaf aria-hidden="true" />}
-            <span>{loadingMenu ? (language === "ca" ? "Carregant carta…" : "Loading menu…") : tx("Menu")}</span>
+            <span>{tx("Menu")}</span>
           </button>
 
           {restaurant.websiteUrl && (

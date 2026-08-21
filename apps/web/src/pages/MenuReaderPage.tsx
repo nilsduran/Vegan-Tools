@@ -87,15 +87,10 @@ export function MenuReaderPage() {
       setRestaurantError("");
       try {
         setRestaurantResults(await searchRestaurants(query, {
-          autocomplete: true,
-          sessionToken: searchSessionToken,
-          location: approximateLocation,
           signal: controller.signal,
         }));
       } catch (searchError) {
         if (controller.signal.aborted) return;
-        // Suggestions are best-effort. Enter or the Search button still runs
-        // the full provider search if autocomplete is unavailable.
         setRestaurantResults([]);
       } finally {
         if (!controller.signal.aborted) setSearchingRestaurants(false);
@@ -106,9 +101,7 @@ export function MenuReaderPage() {
       controller.abort();
     };
   }, [
-    approximateLocation,
     restaurantQuery,
-    searchSessionToken,
     searchSubmitted,
     selectedRestaurant,
   ]);
@@ -128,7 +121,6 @@ export function MenuReaderPage() {
         setRestaurantError(
           "We couldn’t verify an official website automatically. Add menu photos or a PDF below.",
         );
-        uploadSectionRef.current?.scrollIntoView({ behavior: "smooth" });
       }
     } catch (selectionError) {
       setRestaurantError(
