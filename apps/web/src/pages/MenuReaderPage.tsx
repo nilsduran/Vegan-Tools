@@ -11,8 +11,10 @@ import {
   FileImage,
   FileText,
   Images,
+  Leaf,
   LoaderCircle,
   MapPin,
+  Navigation,
   Search,
   Upload,
   X,
@@ -266,14 +268,16 @@ export function MenuReaderPage() {
                   required
                   minLength={2}
                 />
-                {restaurantQuery.length > 0 && (
+                {(restaurantQuery.length > 0 || restaurantResults.length > 0) && (
                   <button
                     type="button"
                     className="search-clear-btn"
                     onClick={() => {
                       setRestaurantQuery("");
+                      setRestaurantResults([]);
                       setSelectedRestaurant(undefined);
                       setSearchSubmitted(false);
+                      setRestaurantError("");
                     }}
                     title={t("remove")}
                     aria-label={t("remove")}
@@ -310,49 +314,60 @@ export function MenuReaderPage() {
               <div className="sidebar-results-list">
                 {restaurantResults.length > 0 ? (
                   <ul className="restaurant-results">
-                    {restaurantResults.map((restaurant) => (
-                      <li
-                        key={restaurant.id}
-                        className={sameRestaurant(restaurant, selectedRestaurant ?? restaurant) ? "active clickable" : "clickable"}
-                        onClick={() => setSelectedRestaurant(restaurant)}
-                      >
-                        <div>
-                          <strong>{restaurant.name}</strong>
-                          <span>{restaurant.address}</span>
-                          <div className="restaurant-links">
-                            {restaurant.websiteUrl && (
+                    {restaurantResults.map((restaurant) => {
+                      const directionsUrl =
+                        typeof restaurant.latitude === "number" &&
+                        typeof restaurant.longitude === "number" &&
+                        restaurant.latitude !== 0 &&
+                        restaurant.longitude !== 0
+                          ? `https://www.google.com/maps/dir/?api=1&destination=${restaurant.latitude},${restaurant.longitude}`
+                          : restaurant.mapUrl || `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(`${restaurant.name} ${restaurant.address}`)}`;
+
+                      return (
+                        <li
+                          key={restaurant.id}
+                          className={sameRestaurant(restaurant, selectedRestaurant ?? restaurant) ? "active clickable" : "clickable"}
+                          onClick={() => setSelectedRestaurant(restaurant)}
+                        >
+                          <div>
+                            <strong>{restaurant.name}</strong>
+                            <span>{restaurant.address}</span>
+                            <div className="restaurant-links">
+                              <button
+                                type="button"
+                                className="restaurant-link-btn"
+                                disabled={searchingRestaurants}
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  void selectRestaurant(restaurant);
+                                }}
+                              >
+                                <Leaf aria-hidden="true" />
+                                <span>{tx("Menu")}</span>
+                              </button>
+                              {restaurant.websiteUrl && (
+                                <a
+                                  href={restaurant.websiteUrl}
+                                  target="_blank"
+                                  rel="noreferrer"
+                                  onClick={(e) => e.stopPropagation()}
+                                >
+                                  {tx("Website")} <ExternalLink />
+                                </a>
+                              )}
                               <a
-                                href={restaurant.websiteUrl}
+                                href={directionsUrl}
                                 target="_blank"
                                 rel="noreferrer"
                                 onClick={(e) => e.stopPropagation()}
                               >
-                                {tx("Website")} <ExternalLink />
+                                {tx("Directions")} <Navigation />
                               </a>
-                            )}
-                            <a
-                              href={restaurant.mapUrl}
-                              target="_blank"
-                              rel="noreferrer"
-                              onClick={(e) => e.stopPropagation()}
-                            >
-                              {tx("Map")} <ExternalLink />
-                            </a>
+                            </div>
                           </div>
-                        </div>
-                        <button
-                          type="button"
-                          className="primary-button compact-btn"
-                          disabled={searchingRestaurants}
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            void selectRestaurant(restaurant);
-                          }}
-                        >
-                          {tx("Menu")}
-                        </button>
-                      </li>
-                    ))}
+                        </li>
+                      );
+                    })}
                   </ul>
                 ) : null}
               </div>
