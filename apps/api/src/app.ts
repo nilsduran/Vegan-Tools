@@ -266,6 +266,30 @@ export async function buildApp(
           }
         }
       }
+      const isGenericQuery = ["vegan", "vegà", "restaurant", "restaurants", "bar", "cafe", "food", "menjar"].includes(query.trim().toLowerCase());
+      const commaParts = query.split(",").map((part) => part.trim()).filter(Boolean);
+      
+      let inferredNear: string | undefined = request.query.near?.trim() || undefined;
+      let foursquareQuery = query;
+
+      if (hasLocation) {
+        // Strict location search (e.g. from map or Search This Area)
+        inferredNear = undefined;
+        foursquareQuery = query;
+      } else if (commaParts.length > 1) {
+        foursquareQuery = commaParts[0] ?? query;
+        inferredNear = commaParts.slice(1).join(", ");
+      } else if (inferredTextNear) {
+        foursquareQuery = inferredRestaurantQuery;
+        inferredNear = inferredTextNear;
+      } else if (isGenericQuery) {
+        inferredNear = request.query.near?.trim() || defaultNear;
+      } else {
+        // Specific restaurant name without location - do pure global search or use explicit near
+        inferredNear = request.query.near?.trim() || undefined;
+        foursquareQuery = query;
+      }
+
       if (!foursquareKey && request.query.autocomplete === "true") {
         return reply.code(503).send({
           code: "AUTOCOMPLETE_PROVIDER_REQUIRED",
@@ -284,16 +308,14 @@ export async function buildApp(
           }
           const url = new URL("https://places-api.foursquare.com/places/search");
           url.search = new URLSearchParams({
-            query,
+            query: foursquareQuery,
             fsq_category_ids: FOURSQUARE_RESTAURANT_CATEGORY,
             limit: "8",
             fields: "fsq_place_id,name,location,latitude,longitude,website",
-            ...(request.query.near?.trim()
-              ? { near: request.query.near.trim() }
+            ...(inferredNear
+              ? { near: inferredNear }
               : hasLocation
-              ? { ll: `${latitude},${longitude}`, radius: "3500", sort: "DISTANCE" }
-              : defaultNear
-              ? { near: defaultNear }
+              ? { ll: `${latitude},${longitude}`, radius: "5000", sort: "DISTANCE" }
               : {}),
           }).toString();
           try {
@@ -358,27 +380,24 @@ export async function buildApp(
           }
         }
 
-        const commaParts = query.split(",").map((part) => part.trim()).filter(Boolean);
-        const inferredNear = request.query.near?.trim() ||
-          (commaParts.length > 1
-            ? commaParts.slice(1).join(", ")
-            : inferredTextNear || defaultNear);
-        const foursquareQuery = commaParts.length > 1
-          ? commaParts[0] ?? query
-          : inferredRestaurantQuery;
-        const url = new URL("https://places-api.foursquare.com/places/search");
-        url.search = new URLSearchParams({
-          query: foursquareQuery,
-          fsq_category_ids: FOURSQUARE_RESTAURANT_CATEGORY,
-          ...(inferredNear ? { near: inferredNear } : {}),
-          ...(!inferredNear && hasLocation
-            ? { ll: `${latitude},${longitude}`, radius: "3500", sort: "DISTANCE" }
-            : {}),
-          limit: "8",
-          fields: "fsq_place_id,name,location,latitude,longitude,website",
-        }).toString();
+        const buildFoursquareUrl = (useLocation: boolean, customNear?: string) => {
+          const url = new URL("https://places-api.foursquare.com/places/search");
+          url.search = new URLSearchParams({
+            query: foursquareQuery,
+            fsq_category_ids: FOURSQUARE_RESTAURANT_CATEGORY,
+            ...(customNear
+              ? { near: customNear }
+              : useLocation && hasLocation
+              ? { ll: `${latitude},${longitude}`, radius: "5000", sort: "DISTANCE" }
+              : {}),
+            limit: "25",
+            fields: "fsq_place_id,name,location,latitude,longitude,website",
+          }).toString();
+          return url.toString();
+        };
+
         try {
-          const response = await fetch(url, {
+          let response = await fetch(buildFoursquareUrl(hasLocation, inferredNear), {
             headers: {
               Authorization: `Bearer ${foursquareKey}`,
               "X-Places-Api-Version": "2025-06-17",
@@ -387,7 +406,7 @@ export async function buildApp(
             signal: AbortSignal.timeout(8_000),
           });
           if (!response.ok) throw new Error(`Foursquare search failed (${response.status}).`);
-          const payload = await response.json() as {
+          let payload = await response.json() as {
             results?: Array<{
               fsq_place_id?: string;
               name?: string;
@@ -403,6 +422,22 @@ export async function buildApp(
               };
             }>;
           };
+
+          // If local search with coordinates gave 0 results, retry with global search
+          if ((payload.results ?? []).length === 0 && hasLocation) {
+            response = await fetch(buildFoursquareUrl(false, undefined), {
+              headers: {
+                Authorization: `Bearer ${foursquareKey}`,
+                "X-Places-Api-Version": "2025-06-17",
+                Accept: "application/json",
+              },
+              signal: AbortSignal.timeout(8_000),
+            });
+            if (response.ok) {
+              payload = await response.json() as typeof payload;
+            }
+          }
+
           const candidates: RestaurantCandidate[] = (payload.results ?? [])
             .filter((item) =>
               item.fsq_place_id && item.name &&

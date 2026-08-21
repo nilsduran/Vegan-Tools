@@ -74,7 +74,6 @@ describe("MenuReaderPage Form UI", () => {
     await waitFor(() => {
       expect(api.searchRestaurants).toHaveBeenCalledWith(
         "Teresa Carles Barcelona",
-        expect.anything(),
       );
     });
 

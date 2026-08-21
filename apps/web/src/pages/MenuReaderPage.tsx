@@ -239,9 +239,7 @@ export function MenuReaderPage() {
                 setSearchSubmitted(true);
                 setSearchingRestaurants(true);
                 try {
-                  const results = await searchRestaurants(restaurantQuery, {
-                    location: approximateLocation,
-                  });
+                  const results = await searchRestaurants(restaurantQuery);
                   setRestaurantResults(results);
                   if (results.length === 0) {
                     setRestaurantError(tx("No matching restaurant was found. Try adding a city or area."));
