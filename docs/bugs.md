@@ -18,6 +18,7 @@ Aquest document recull tots els bugs, problemes d'UX i incidències trobats dura
 | **MAP-08** | **Creu d'esborrar cerca (X) amb requadre residual**: El botó tenia una capsa de vora innecessària. | Bounding box heretada d'estils previs de botó secundari. | ✅ **RESOLT** | Botó net transparent sense capsa amb una `X` grisa centrada que canvia de to en passar-hi el ratolí. |
 | **MAP-09** | **Llista lateral inicial innecessària**: La barra lateral mostrava tota la llista de curats sense haver cercat. | No es diferenciava entre pins inicials del mapa i resultats de cerca de text. | ✅ **RESOLT** | Estat `curatedPins` dedicat només al mapa. La llista lateral només s'omple quan l'usuari cerca activament. |
 | **MAP-10** | **Resolució fallida de restaurants curats**: En clicar un pin destacat del mapa, no s'obria el restaurant per manca de proveïdor a `/resolve`. | `/v1/restaurants/resolve` només reconeixia `foursquare` o `openstreetmap`. | ✅ **RESOLT** | Suport directe per a proveïdor `curated` i IDs amb prefix `curated-`. |
+| **MAP-11** | **Cerca de locals propers fallida sense ciutat ("Desoriente")**: No trobava el restaurant sense afegir ", bcn". | El cercador web no enviava la latitud/longitud de l'usuari a `searchRestaurants()`. | ✅ **RESOLT** | S'injecten automàticament `latitude` i `longitude` a totes les consultes per activar el *proximity bias* de Komoot Photon. |
 
 ---
 
@@ -28,6 +29,7 @@ Aquest document recull tots els bugs, problemes d'UX i incidències trobats dura
 | **MENU-01** | **Cartes no detectades per rebuig de domini**: Cartes que fallaven en utilitzar dominis de reserves (TheFork, TripAdvisor). | L'algorisme de descobriment no verificava el domini oficial ni tenia reintent de segon nivell. | ✅ **RESOLT** | Sistema de fallback de domini verificat i suport directe per a pujada de PDF i fotografies (fins a 8 pàgines). |
 | **MENU-02** | **Discrepància en el botó de pujar carta**: El botó de càrrega manual es va col·locar a la cerca en lloc de la secció inferior. | Interpretació errònia de la ubicació del formulari de càrrega. | ✅ **RESOLT** | Retirat de la barra de cerca i consolidat a la secció inferior dedicada `bottom-menu-upload` sota el mapa. |
 | **MENU-03** | **Descripcions duplicades de plats**: Plats que repetien el nom dins de la descripció a la vista de carta. | Normalització de text que no comprovava coincidència per subcadena amb el títol. | ✅ **RESOLT** | Filtre `visibleMenuDescription()` a `packages/domain` per suprimir repeticions redundants. |
+| **MENU-04** | **Reanàlisi repetida de cartes ja descobertes**: En tornar al mapa i obrir el mateix restaurant, tornava a sortir "Extracting dishes...". | `/v1/menus/discover` no consultava `RestaurantMenuCache.get()` abans d'iniciar el procés des de zero. | ✅ **RESOLT** | Consulta prèvia a la memòria cau de cartes; si ja existeix, es retorna immediatament en < 5ms amb estat `ready`. |
 
 ---
 

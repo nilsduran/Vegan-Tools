@@ -1037,6 +1037,25 @@ export async function buildApp(
     }
 
     const draft = await repo.createMenu();
+
+    // Check shared menu cache to return previously discovered menus instantly
+    if (restaurant) {
+      try {
+        const cached = await restaurantMenuCache.get(restaurant);
+        if (cached?.menu && cached.menu.status === "ready" && cached.menu.sections.length > 0) {
+          const sessionMenu = {
+            ...cached.menu,
+            id: draft.id,
+            editToken: draft.editToken,
+          };
+          await repo.setMenu(sessionMenu);
+          return reply.code(200).send(sessionMenu);
+        }
+      } catch (cacheError) {
+        request.log.warn({ cacheError }, "Restaurant menu cache lookup failed");
+      }
+    }
+
     const discoverWithFallback = async () => {
       try {
         return await withTimeout(

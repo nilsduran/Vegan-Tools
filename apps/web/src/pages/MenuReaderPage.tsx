@@ -148,6 +148,8 @@ export function MenuReaderPage() {
       setRestaurantError("");
       try {
         setRestaurantResults(await searchRestaurants(query, {
+          latitude: userCoords?.lat ?? approximateLocation?.latitude,
+          longitude: userCoords?.lng ?? approximateLocation?.longitude,
           signal: controller.signal,
         }));
       } catch (searchError) {
@@ -165,6 +167,8 @@ export function MenuReaderPage() {
     restaurantQuery,
     searchSubmitted,
     selectedRestaurant,
+    userCoords,
+    approximateLocation,
   ]);
 
   const selectRestaurant = async (restaurant: RestaurantCandidate) => {
@@ -219,31 +223,41 @@ export function MenuReaderPage() {
 
   if (draft?.status === "ready" || draft?.status === "published") {
     return (
-      <div className="page menu-view-page">
-        <div className="menu-view-nav-bar">
+      <div className="page">
+        <header className="page-header">
           <button
             type="button"
-            className="secondary-button back-to-map-btn"
+            className="secondary-button"
             onClick={() => {
               setDraft(undefined);
+              setSelectedRestaurant(undefined);
             }}
           >
             <ArrowLeft aria-hidden="true" />
-            <span>{tx("Back to map")}</span>
+            <span>{language === "ca" ? "Torna al restaurant" : "Back to restaurant"}</span>
           </button>
-        </div>
+          <div className="header-titles">
+            <span className="eyebrow">{tx("Restaurant menu")}</span>
+            <h1>{draft.restaurantName || (language === "ca" ? "Anàlisi de la carta" : "Menu analysis")}</h1>
+          </div>
+          {draft.sourceUrl && (
+            <a
+              href={draft.sourceUrl}
+              target="_blank"
+              rel="noreferrer"
+              className="source-link"
+            >
+              <ExternalLink aria-hidden="true" />
+              <span>{language === "ca" ? "Font original" : "Original source"}</span>
+            </a>
+          )}
+        </header>
+
         <MenuEditor
           initialMenu={draft}
           sourceFiles={files}
           cached={loadedFromCache}
           onUpdateMenu={setDraft}
-          onEditSources={() => {
-            setDraft(undefined);
-            window.setTimeout(
-              () => uploadSectionRef.current?.scrollIntoView({ behavior: "smooth" }),
-              50,
-            );
-          }}
           onRefresh={() => {
             setDraft(undefined);
             setLoadedFromCache(false);
@@ -261,12 +275,16 @@ export function MenuReaderPage() {
   const handleSearchArea = async (center: { lat: number; lng: number }) => {
     setSearchingRestaurants(true);
     setRestaurantError("");
+    setSelectedRestaurant(undefined);
     try {
-      const results = await searchRestaurants(restaurantQuery.trim() || "vegan", {
-        location: { latitude: center.lat, longitude: center.lng },
+      const results = await searchRestaurants("restaurants", {
+        latitude: center.lat,
+        longitude: center.lng,
+        near: "",
       });
-      setRestaurantResults(Array.isArray(results) ? results : []);
-      if ((Array.isArray(results) ? results : []).length === 0) {
+      const safeResults = Array.isArray(results) ? results : [];
+      setRestaurantResults(safeResults);
+      if (safeResults.length === 0) {
         setRestaurantError(tx("No matching restaurant was found in this area."));
       }
     } catch (err) {
@@ -291,7 +309,10 @@ export function MenuReaderPage() {
                 setSearchSubmitted(true);
                 setSearchingRestaurants(true);
                 try {
-                  const results = await searchRestaurants(restaurantQuery);
+                  const results = await searchRestaurants(restaurantQuery, {
+                    latitude: userCoords?.lat ?? approximateLocation?.latitude,
+                    longitude: userCoords?.lng ?? approximateLocation?.longitude,
+                  });
                   const safeResults = Array.isArray(results) ? results : [];
                   setRestaurantResults(safeResults);
                   if (safeResults.length === 0) {

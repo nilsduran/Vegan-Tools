@@ -8,6 +8,7 @@ export interface CachedRestaurantMenu {
 }
 
 export interface RestaurantMenuCache {
+  get(restaurant: RestaurantCandidate): Promise<CachedRestaurantMenu | undefined>;
   list(limit?: number): Promise<CachedRestaurantMenu[]>;
   save(restaurant: RestaurantCandidate, menu: MenuDraft): Promise<void>;
 }
@@ -25,6 +26,10 @@ function cachedMenu(menu: MenuDraft): MenuDraft {
 
 export class MemoryRestaurantMenuCache implements RestaurantMenuCache {
   private readonly menus = new Map<string, CachedRestaurantMenu>();
+
+  async get(restaurant: RestaurantCandidate) {
+    return this.menus.get(restaurantKey(restaurant));
+  }
 
   async list(limit = 12) {
     return [...this.menus.values()]
@@ -54,6 +59,23 @@ export class SupabaseRestaurantMenuCache implements RestaurantMenuCache {
       "Content-Type": "application/json",
       ...extra,
     };
+  }
+
+  async get(restaurant: RestaurantCandidate) {
+    const endpoint = new URL("/rest/v1/restaurant_menu_cache", this.url);
+    endpoint.searchParams.set("select", "payload,saved_at");
+    endpoint.searchParams.set("restaurant_key", `eq.${restaurantKey(restaurant)}`);
+    endpoint.searchParams.set("limit", "1");
+    try {
+      const response = await fetch(endpoint.toString(), {
+        headers: this.headers(),
+      });
+      if (!response.ok) return undefined;
+      const rows = (await response.json()) as Array<{ payload: CachedRestaurantMenu }>;
+      return rows[0]?.payload;
+    } catch {
+      return undefined;
+    }
   }
 
   async list(limit = 12) {

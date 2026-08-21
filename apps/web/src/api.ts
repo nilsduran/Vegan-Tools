@@ -119,6 +119,8 @@ export async function searchRestaurants(
     autocomplete?: boolean;
     sessionToken?: string;
     near?: string;
+    latitude?: number;
+    longitude?: number;
     location?: { latitude: number; longitude: number };
     signal?: AbortSignal;
   } = {},
@@ -127,9 +129,11 @@ export async function searchRestaurants(
   if (options.autocomplete) params.set("autocomplete", "true");
   if (options.sessionToken) params.set("sessionToken", options.sessionToken);
   if (options.near?.trim()) params.set("near", options.near.trim());
-  if (options.location) {
-    params.set("latitude", String(options.location.latitude));
-    params.set("longitude", String(options.location.longitude));
+  const lat = options.latitude ?? options.location?.latitude;
+  const lng = options.longitude ?? options.location?.longitude;
+  if (typeof lat === "number" && typeof lng === "number") {
+    params.set("latitude", String(lat));
+    params.set("longitude", String(lng));
   }
   const response = await checkedFetch(
     `/v1/restaurants/search?${params}`,
