@@ -249,6 +249,39 @@ describe("API", () => {
     await app.close();
   });
 
+  it("returns approximate location from IP or geo headers", async () => {
+    const app = await buildApp(new MemoryRepository());
+    // Test with geo headers
+    const responseWithHeaders = await app.inject({
+      method: "GET",
+      url: "/v1/location/approximate",
+      headers: {
+        "cf-iplatitude": "41.9390",
+        "cf-iplongitude": "2.2454",
+        "cf-ipcity": "Vic",
+        "cf-ipcountry": "ES",
+      },
+    });
+    expect(responseWithHeaders.statusCode).toBe(200);
+    expect(responseWithHeaders.json()).toMatchObject({
+      latitude: 41.939,
+      longitude: 2.2454,
+      city: "Vic",
+      country: "ES",
+    });
+
+    // Test fallback without headers
+    const responseFallback = await app.inject({
+      method: "GET",
+      url: "/v1/location/approximate",
+    });
+    expect(responseFallback.statusCode).toBe(200);
+    const body = responseFallback.json();
+    expect(typeof body.latitude).toBe("number");
+    expect(typeof body.longitude).toBe("number");
+    await app.close();
+  });
+
   it("uses verified web search when place providers omit the official website", async () => {
     const websiteFinder: RestaurantWebsiteFinder = {
       async find(restaurant) {

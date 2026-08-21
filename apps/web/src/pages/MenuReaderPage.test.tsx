@@ -8,12 +8,17 @@ import * as api from "../api.js";
 import type { MenuDraft, RestaurantCandidate } from "@vegan-tools/domain";
 
 vi.mock("../api.js", () => ({
-  searchRestaurants: vi.fn(),
+  searchRestaurants: vi.fn().mockResolvedValue([]),
   resolveRestaurant: vi.fn(),
   discoverRestaurantMenu: vi.fn(),
   createRestaurantMenuAnalysis: vi.fn(),
   getRecentRestaurantMenus: vi.fn().mockResolvedValue([]),
   getMenuDraft: vi.fn(),
+  getApproximateLocation: vi.fn().mockResolvedValue({
+    latitude: 41.3879,
+    longitude: 2.1699,
+    city: "Barcelona",
+  }),
 }));
 
 function createFakeFile(name: string, type: string, size = 1024): File {
@@ -42,9 +47,14 @@ describe("MenuReaderPage Form UI", () => {
       provider: "foursquare",
     };
 
-    vi.mocked(api.searchRestaurants).mockResolvedValueOnce([candidate]);
-    vi.mocked(api.resolveRestaurant).mockResolvedValueOnce(candidate);
-    vi.mocked(api.discoverRestaurantMenu).mockResolvedValueOnce({
+    vi.mocked(api.searchRestaurants).mockImplementation(async (q) => {
+      if (typeof q === "string" && q.includes("Teresa Carles")) {
+        return [candidate];
+      }
+      return [];
+    });
+    vi.mocked(api.resolveRestaurant).mockResolvedValue(candidate);
+    vi.mocked(api.discoverRestaurantMenu).mockResolvedValue({
       id: "menu-123",
       editToken: "token-123",
       status: "processing",

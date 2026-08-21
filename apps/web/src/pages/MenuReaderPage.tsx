@@ -207,8 +207,8 @@ export function MenuReaderPage() {
       const results = await searchRestaurants(restaurantQuery.trim() || "vegan", {
         location: { latitude: center.lat, longitude: center.lng },
       });
-      setRestaurantResults(results);
-      if (results.length === 0) {
+      setRestaurantResults(Array.isArray(results) ? results : []);
+      if ((Array.isArray(results) ? results : []).length === 0) {
         setRestaurantError(tx("No matching restaurant was found in this area."));
       }
     } catch (err) {
@@ -223,7 +223,7 @@ export function MenuReaderPage() {
   return (
     <div className="page fullscreen-map-page">
       <div className="map-view-hero">
-        <aside className={`map-floating-sidebar ${!selectedRestaurant && restaurantResults.length === 0 ? "compact-sidebar" : ""}`} aria-label={tx("Search restaurants")}>
+        <aside className={`map-floating-sidebar ${!selectedRestaurant && (restaurantResults?.length ?? 0) === 0 ? "compact-sidebar" : ""}`} aria-label={tx("Search restaurants")}>
           <div className="sidebar-search-header">
             <form
               onSubmit={async (event) => {
@@ -234,8 +234,9 @@ export function MenuReaderPage() {
                 setSearchingRestaurants(true);
                 try {
                   const results = await searchRestaurants(restaurantQuery);
-                  setRestaurantResults(results);
-                  if (results.length === 0) {
+                  const safeResults = Array.isArray(results) ? results : [];
+                  setRestaurantResults(safeResults);
+                  if (safeResults.length === 0) {
                     setRestaurantError(tx("No matching restaurant was found. Try adding a city or area."));
                   }
                 } catch (searchError) {

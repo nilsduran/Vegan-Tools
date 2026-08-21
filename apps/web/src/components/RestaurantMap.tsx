@@ -3,6 +3,7 @@ import L from "leaflet";
 import "leaflet/dist/leaflet.css";
 import { Crosshair, Maximize2, MapPin, Search } from "lucide-react";
 import type { RestaurantCandidate } from "@vegan-tools/domain";
+import { getApproximateLocation } from "../api";
 import { tx, useLanguage } from "../i18n";
 
 // Custom modern SVG marker for Vegan Tools restaurants
@@ -126,6 +127,27 @@ export function RestaurantMap({
       mapInstanceRef.current = null;
     };
   }, []);
+
+  const initialLocatedRef = useRef(false);
+
+  // Fetch approximate IP location on load if no specific restaurant was selected or found yet
+  useEffect(() => {
+    if (initialLocatedRef.current || selectedRestaurant || restaurants.length > 0) return;
+    initialLocatedRef.current = true;
+    let cancelled = false;
+    void getApproximateLocation()
+      .then((loc) => {
+        if (cancelled || !loc || !mapInstanceRef.current) return;
+        const map = mapInstanceRef.current;
+        map.setView([loc.latitude, loc.longitude], 13);
+      })
+      .catch(() => {
+        // Fallback silently if offline or IP location lookup fails
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [restaurants.length, selectedRestaurant]);
 
   // Update Markers when restaurants or selectedRestaurant changes
   useEffect(() => {

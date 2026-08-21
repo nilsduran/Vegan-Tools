@@ -281,3 +281,13 @@ export async function updateRestaurantNotes(
   return menuDraftSchema.parse(await response.json());
 }
 
+export async function getApproximateLocation(): Promise<{
+  latitude: number;
+  longitude: number;
+  city?: string;
+  country?: string;
+}> {
+  const response = await checkedFetch("/v1/location/approximate");
+  return response.json();
+}
+
