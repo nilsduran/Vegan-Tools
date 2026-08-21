@@ -653,7 +653,7 @@
   top: 1rem;
   left: 1rem;
   bottom: 1rem;
-  width: 380px;
+  width: 420px;
   max-width: calc(100vw - 2rem);
   z-index: 100;
   background: rgba(255, 255, 255, 0.97);
@@ -672,15 +672,17 @@
   background: transparent;
   border: 0;
   box-shadow: none;
-  border-radius: 999px;
+  border-radius: 1.1rem;
   overflow: visible;
 }
 
 .map-floating-sidebar.compact-sidebar .sidebar-search-header {
-  border-radius: 999px;
+  border-radius: 1.1rem;
   border: 1px solid var(--line);
   box-shadow: 0 4px 20px rgba(0, 0, 0, 0.14);
-  padding: 0.4rem 0.5rem;
+  padding: 0.5rem 0.6rem;
+  background: rgba(255, 255, 255, 0.98);
+  backdrop-filter: blur(12px);
 }
 
 .map-floating-sidebar.compact-sidebar .sidebar-search-header .restaurant-search-form input {
@@ -691,6 +693,256 @@
 
 .map-floating-sidebar.compact-sidebar .sidebar-search-header .restaurant-search-form button {
   border-radius: 999px;
+}
+
+/* Search Typeahead Dropdown */
+.search-typeahead-container {
+  position: relative;
+  width: 100%;
+}
+
+.typeahead-dropdown {
+  position: absolute;
+  top: calc(100% + 8px);
+  left: 0;
+  right: 0;
+  background: white;
+  border-radius: 14px;
+  box-shadow: 0 12px 36px rgba(0, 0, 0, 0.18), 0 2px 6px rgba(0, 0, 0, 0.08);
+  border: 1px solid var(--line);
+  overflow: hidden;
+  z-index: 1000;
+  animation: typeaheadFadeIn 0.15s cubic-bezier(0.16, 1, 0.3, 1);
+  max-height: 380px;
+  display: flex;
+  flex-direction: column;
+}
+
+@keyframes typeaheadFadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(-4px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.typeahead-list {
+  list-style: none;
+  margin: 0;
+  padding: 0.35rem 0;
+  overflow-y: auto;
+}
+
+.typeahead-item {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.65rem 0.85rem;
+  cursor: pointer;
+  transition: background 0.1s ease;
+  border-bottom: 1px solid #f3f4f6;
+  text-align: left;
+}
+
+.typeahead-item:last-child {
+  border-bottom: none;
+}
+
+.typeahead-item.highlighted,
+.typeahead-item:hover {
+  background: #f0fdf4;
+}
+
+.typeahead-item-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  min-width: 32px;
+  border-radius: 50%;
+  background: #ecfdf5;
+  color: var(--green);
+  font-size: 1rem;
+}
+
+.typeahead-item-icon .curated-icon {
+  width: 16px;
+  height: 16px;
+  color: #d97706;
+}
+
+.typeahead-item-icon svg {
+  width: 16px;
+  height: 16px;
+}
+
+.typeahead-item-info {
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+  min-width: 0;
+  flex: 1;
+}
+
+.typeahead-item-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+}
+
+.typeahead-name {
+  font-size: 0.9rem;
+  font-weight: 700;
+  color: #111827;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.typeahead-vegan-badge {
+  font-size: 0.7rem;
+  font-weight: 750;
+  background: #dcfce7;
+  color: #166534;
+  padding: 0.15rem 0.45rem;
+  border-radius: 999px;
+  white-space: nowrap;
+}
+
+.typeahead-address {
+  font-size: 0.76rem;
+  color: #6b7280;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.typeahead-status {
+  padding: 1rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  font-size: 0.84rem;
+  color: #6b7280;
+}
+
+.typeahead-status.empty {
+  color: #9ca3af;
+  font-size: 0.8rem;
+}
+
+.typeahead-footer {
+  padding: 0.4rem 0.75rem;
+  background: #f9fafb;
+  border-top: 1px solid #f3f4f6;
+  font-size: 0.72rem;
+  color: #9ca3af;
+  text-align: center;
+}
+
+/* Filter Pills */
+.filter-pills-container {
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+  padding-top: 0.45rem;
+  width: 100%;
+}
+
+.filter-pills-scroll {
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+  overflow-x: auto;
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+  padding-bottom: 2px;
+}
+
+.filter-pills-scroll::-webkit-scrollbar {
+  display: none;
+}
+
+.filter-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+  padding: 0.32rem 0.65rem;
+  border-radius: 999px;
+  border: 1px solid var(--line);
+  background: white;
+  color: #374151;
+  font-size: 0.78rem;
+  font-weight: 600;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: all 0.15s ease;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+  user-select: none;
+  flex-shrink: 0;
+}
+
+.filter-pill:hover {
+  background: #f9fafb;
+  border-color: #d1d5db;
+}
+
+.filter-pill.active {
+  background: var(--green-dark);
+  color: white;
+  border-color: var(--green-dark);
+  box-shadow: 0 2px 6px rgba(15, 92, 69, 0.25);
+}
+
+.filter-pill.expand-pill {
+  background: #f8fafc;
+  border-style: dashed;
+  color: #4b5563;
+}
+
+.filter-pill.expand-pill .pill-sparkle-icon {
+  width: 13px;
+  height: 13px;
+  color: #8b5cf6;
+}
+
+.filter-pill.expand-pill.has-active {
+  border-color: var(--green);
+  color: var(--green-dark);
+  font-weight: 700;
+}
+
+.filter-pill.clear-pill {
+  background: #fee2e2;
+  border-color: #fecaca;
+  color: #991b1b;
+  font-weight: 600;
+}
+
+.filter-pill.clear-pill:hover {
+  background: #fecaca;
+}
+
+.filter-pill.clear-pill svg {
+  width: 13px;
+  height: 13px;
+}
+
+.filter-pills-extra {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.35rem;
+  padding: 0.5rem;
+  background: #f9fafb;
+  border-radius: 12px;
+  border: 1px solid var(--line);
+  animation: typeaheadFadeIn 0.15s ease;
 }
 
 .community-rating-status {
@@ -724,34 +976,40 @@
 
 .search-clear-btn {
   position: absolute;
-  right: 0.5rem;
-  background: transparent !important;
-  border: none !important;
-  color: #6b7280 !important;
+  right: 0.6rem;
+  top: 50%;
+  transform: translateY(-50%);
+  z-index: 15;
+  background: #e5e7eb !important;
+  border: 1px solid rgba(0, 0, 0, 0.12) !important;
+  color: #1f2937 !important;
   cursor: pointer;
-  width: 24px;
-  height: 24px;
-  min-width: 24px;
-  min-height: 24px;
+  width: 22px;
+  height: 22px;
+  min-width: 22px;
+  min-height: 22px;
   aspect-ratio: 1 / 1;
   padding: 0;
-  display: flex;
+  display: flex !important;
   align-items: center;
   justify-content: center;
   border-radius: 50%;
   transition: all 0.15s ease;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.12);
 }
 
 .search-clear-btn:hover {
-  color: #111827 !important;
-  background: #f3f4f6 !important;
+  color: #000000 !important;
+  background: #d1d5db !important;
+  transform: translateY(-50%) scale(1.08);
 }
 
 .search-clear-btn svg {
-  width: 16px;
-  height: 16px;
-  stroke: currentColor !important;
-  stroke-width: 2.2;
+  width: 14px;
+  height: 14px;
+  stroke: #1f2937 !important;
+  stroke-width: 2.8;
+  display: block;
 }
 
 .restaurant-link-btn {

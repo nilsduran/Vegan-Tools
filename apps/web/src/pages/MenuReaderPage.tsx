@@ -15,7 +15,6 @@ import {
   LoaderCircle,
   MapPin,
   Navigation,
-  Search,
   Upload,
   Utensils,
   X,
@@ -32,6 +31,8 @@ import {
 import { MenuEditor } from "../components/MenuEditor";
 import { RestaurantDetailPane } from "../components/RestaurantDetailPane";
 import { RestaurantMap } from "../components/RestaurantMap";
+import { SearchTypeahead } from "../components/SearchTypeahead";
+import { FilterPills, filterRestaurants } from "../components/FilterPills";
 import { t, tx, useLanguage } from "../i18n";
 import { getDirectionsUrl } from "../utils/navigation";
 import { formatDistance } from "../utils/distance";
@@ -56,11 +57,17 @@ export function MenuReaderPage() {
   const uploadSectionRef = useRef<HTMLElement>(null);
   const [restaurantQuery, setRestaurantQuery] = useState("");
   const [restaurantResults, setRestaurantResults] = useState<RestaurantCandidate[]>([]);
+  const [typeaheadSuggestions, setTypeaheadSuggestions] = useState<RestaurantCandidate[]>([]);
+  const [searchingTypeahead, setSearchingTypeahead] = useState(false);
   const [curatedPins, setCuratedPins] = useState<RestaurantCandidate[]>([]);
   const [selectedRestaurant, setSelectedRestaurant] = useState<RestaurantCandidate>();
   const [searchingRestaurants, setSearchingRestaurants] = useState(false);
   const [searchSubmitted, setSearchSubmitted] = useState(false);
   const [restaurantError, setRestaurantError] = useState("");
+  const [activeFilters, setActiveFilters] = useState<string[]>(() => {
+    const filterParam = searchParams.get("filter");
+    return filterParam ? filterParam.split(",").filter(Boolean) : [];
+  });
   const [searchSessionToken, setSearchSessionToken] = useState(
     newSearchSessionToken,
   );
@@ -89,6 +96,19 @@ export function MenuReaderPage() {
       return next;
     });
   };
+
+  // Synchronize active filters with URL query parameter
+  useEffect(() => {
+    setSearchParams((prev) => {
+      const next = new URLSearchParams(prev);
+      if (activeFilters.length > 0) {
+        next.set("filter", activeFilters.join(","));
+      } else {
+        next.delete("filter");
+      }
+      return next;
+    });
+  }, [activeFilters, setSearchParams]);
 
   // Fetch approximate location and preload curated nearby pins strictly for the map canvas
   useEffect(() => {
@@ -136,40 +156,72 @@ export function MenuReaderPage() {
     }
   }, [searchParams]);
 
+  // Debounced typeahead search
   useEffect(() => {
     const query = restaurantQuery.trim();
-    if (query.length < 3 || selectedRestaurant || searchSubmitted) {
-      if (query.length < 3) setRestaurantResults([]);
+    if (query.length < 2 || selectedRestaurant) {
+      setTypeaheadSuggestions([]);
       return;
     }
     const controller = new AbortController();
     const timeout = window.setTimeout(async () => {
-      setSearchingRestaurants(true);
-      setRestaurantError("");
+      setSearchingTypeahead(true);
       try {
-        setRestaurantResults(await searchRestaurants(query, {
+        const results = await searchRestaurants(query, {
           latitude: userCoords?.lat ?? approximateLocation?.latitude,
           longitude: userCoords?.lng ?? approximateLocation?.longitude,
           signal: controller.signal,
-        }));
-      } catch (searchError) {
-        if (controller.signal.aborted) return;
-        setRestaurantResults([]);
+        });
+        if (!controller.signal.aborted) {
+          setTypeaheadSuggestions(Array.isArray(results) ? results : []);
+        }
+      } catch {
+        if (!controller.signal.aborted) {
+          setTypeaheadSuggestions([]);
+        }
       } finally {
-        if (!controller.signal.aborted) setSearchingRestaurants(false);
+        if (!controller.signal.aborted) {
+          setSearchingTypeahead(false);
+        }
       }
-    }, 200);
+    }, 180);
     return () => {
       window.clearTimeout(timeout);
       controller.abort();
     };
   }, [
     restaurantQuery,
-    searchSubmitted,
     selectedRestaurant,
     userCoords,
     approximateLocation,
   ]);
+
+  const executeSearch = async (queryToSearch: string) => {
+    const trimmed = queryToSearch.trim();
+    if (trimmed.length < 2) return;
+    setRestaurantError("");
+    handleSelectRestaurant(undefined);
+    setSearchSubmitted(true);
+    setSearchingRestaurants(true);
+    try {
+      const results = await searchRestaurants(trimmed, {
+        latitude: userCoords?.lat ?? approximateLocation?.latitude,
+        longitude: userCoords?.lng ?? approximateLocation?.longitude,
+      });
+      const safeResults = Array.isArray(results) ? results : [];
+      setRestaurantResults(safeResults);
+      if (safeResults.length === 0) {
+        setRestaurantError(tx("No matching restaurant was found. Try adding a city or area."));
+      }
+    } catch (searchError) {
+      setRestaurantError(
+        searchError instanceof Error ? searchError.message : tx("Restaurant search failed."),
+      );
+      setRestaurantResults([]);
+    } finally {
+      setSearchingRestaurants(false);
+    }
+  };
 
   const selectRestaurant = async (restaurant: RestaurantCandidate) => {
     setSearchingRestaurants(true);
@@ -296,84 +348,61 @@ export function MenuReaderPage() {
     }
   };
 
+  const filteredResults = filterRestaurants(restaurantResults, activeFilters);
+  const filteredCurated = filterRestaurants(curatedPins, activeFilters);
+  const baseDisplayedRestaurants = restaurantResults.length > 0 ? filteredResults : filteredCurated;
+  const displayedMapRestaurants =
+    selectedRestaurant && !baseDisplayedRestaurants.some((r) => r.id === selectedRestaurant.id)
+      ? [selectedRestaurant, ...baseDisplayedRestaurants]
+      : baseDisplayedRestaurants;
+
   return (
     <div className="page fullscreen-map-page">
       <div className="map-view-hero">
-        <aside className={`map-floating-sidebar ${!selectedRestaurant && (restaurantResults?.length ?? 0) === 0 ? "compact-sidebar" : ""}`} aria-label={tx("Search restaurants")}>
+        <aside className={`map-floating-sidebar ${!selectedRestaurant && filteredResults.length === 0 ? "compact-sidebar" : ""}`} aria-label={tx("Search restaurants")}>
           <div className="sidebar-search-header">
-            <form
-              onSubmit={async (event) => {
-                event.preventDefault();
-                setRestaurantError("");
-                setSelectedRestaurant(undefined);
-                setSearchSubmitted(true);
-                setSearchingRestaurants(true);
-                try {
-                  const results = await searchRestaurants(restaurantQuery, {
-                    latitude: userCoords?.lat ?? approximateLocation?.latitude,
-                    longitude: userCoords?.lng ?? approximateLocation?.longitude,
-                  });
-                  const safeResults = Array.isArray(results) ? results : [];
-                  setRestaurantResults(safeResults);
-                  if (safeResults.length === 0) {
-                    setRestaurantError(tx("No matching restaurant was found. Try adding a city or area."));
-                  }
-                } catch (searchError) {
-                  setRestaurantError(
-                    searchError instanceof Error ? searchError.message : tx("Restaurant search failed."),
-                  );
-                  setRestaurantResults([]);
-                } finally {
-                  setSearchingRestaurants(false);
+            <SearchTypeahead
+              query={restaurantQuery}
+              onQueryChange={(val) => {
+                setRestaurantQuery(val);
+                if (selectedRestaurant) {
+                  handleSelectRestaurant(undefined);
                 }
+                setSearchSubmitted(false);
               }}
-              className="restaurant-search-form"
-            >
-              <div className="search-input-wrapper">
-                <input
-                  value={restaurantQuery}
-                  onChange={(event) => {
-                    setRestaurantQuery(event.target.value);
-                    setSelectedRestaurant(undefined);
-                    setSearchSubmitted(false);
-                  }}
-                  onKeyDown={(event) => {
-                    if (event.key !== "Enter") return;
-                    event.preventDefault();
-                    event.currentTarget.form?.requestSubmit();
-                  }}
-                  aria-label={tx("Search for a restaurant")}
-                  placeholder={tx("Search for a restaurant")}
-                  autoComplete="off"
-                  required
-                  minLength={2}
-                />
-                {(restaurantQuery.length > 0 || restaurantResults.length > 0) && (
-                  <button
-                    type="button"
-                    className="search-clear-btn"
-                    onClick={() => {
-                      setRestaurantQuery("");
-                      setRestaurantResults([]);
-                      setSelectedRestaurant(undefined);
-                      setSearchSubmitted(false);
-                      setRestaurantError("");
-                    }}
-                    title={t("remove")}
-                    aria-label={t("remove")}
-                  >
-                    <X />
-                  </button>
-                )}
-              </div>
-              <button
-                className="secondary-button"
-                disabled={restaurantQuery.trim().length < 2}
-                aria-label={tx("Search restaurants")}
-              >
-                {searchingRestaurants ? <LoaderCircle className="spin" /> : <Search />}
-              </button>
-            </form>
+              suggestions={typeaheadSuggestions}
+              loading={searchingTypeahead || searchingRestaurants}
+              userCoords={userCoords || (approximateLocation ? { lat: approximateLocation.latitude, lng: approximateLocation.longitude } : undefined)}
+              onSelectSuggestion={(restaurant) => {
+                setRestaurantQuery(restaurant.name);
+                setRestaurantResults((prev) =>
+                  prev.some((r) => r.id === restaurant.id) ? prev : [restaurant, ...prev],
+                );
+                handleSelectRestaurant(restaurant);
+              }}
+              onSubmitSearch={(q) => void executeSearch(q)}
+              onClear={() => {
+                setRestaurantQuery("");
+                setRestaurantResults([]);
+                setTypeaheadSuggestions([]);
+                handleSelectRestaurant(undefined);
+                setSearchSubmitted(false);
+                setRestaurantError("");
+              }}
+            />
+
+            <FilterPills
+              activeFilters={activeFilters}
+              onToggleFilter={(filterId) => {
+                setActiveFilters((current) =>
+                  current.includes(filterId)
+                    ? current.filter((id) => id !== filterId)
+                    : [...current, filterId],
+                );
+              }}
+              onClearFilters={() => setActiveFilters([])}
+            />
+
             {restaurantError && <div className="sidebar-error error-banner">{restaurantError}</div>}
           </div>
 
@@ -391,9 +420,9 @@ export function MenuReaderPage() {
               />
             ) : (
               <div className="sidebar-results-list">
-                {restaurantResults.length > 0 ? (
+                {filteredResults.length > 0 ? (
                   <ul className="restaurant-results">
-                    {restaurantResults.map((restaurant) => {
+                    {filteredResults.map((restaurant) => {
                       const directionsUrl = getDirectionsUrl(restaurant);
                       const distanceStr = formatDistance(
                         userCoords || (approximateLocation ? { lat: approximateLocation.latitude, lng: approximateLocation.longitude } : undefined),
@@ -456,7 +485,7 @@ export function MenuReaderPage() {
 
         <div className="map-fullscreen-canvas">
           <RestaurantMap
-            restaurants={restaurantResults.length > 0 ? restaurantResults : curatedPins}
+            restaurants={displayedMapRestaurants}
             selectedRestaurant={selectedRestaurant}
             onSelectRestaurant={(restaurant) => {
               handleSelectRestaurant(restaurant);
