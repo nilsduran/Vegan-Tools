@@ -125,7 +125,7 @@ describe("MenuReaderPage Form UI", () => {
     expect(await screen.findByText("lunch-menu.pdf")).toBeDefined();
     expect(screen.getByText(/1 page ready|1 pàgina a punt/i)).toBeDefined();
 
-    const analyzeButton = screen.getByRole("button", { name: /analyze menu|analitza el menú/i });
+    const analyzeButton = screen.getByRole("button", { name: /analyze menu|analitza la carta|analitza el menú/i });
     expect((analyzeButton as HTMLButtonElement).disabled).toBe(false);
 
     await user.click(analyzeButton);
@@ -169,7 +169,7 @@ describe("MenuReaderPage Form UI", () => {
 
     expect(await screen.findByText("dinner-menu.png")).toBeDefined();
 
-    const analyzeButton = screen.getByRole("button", { name: /analyze menu|analitza el menú/i });
+    const analyzeButton = screen.getByRole("button", { name: /analyze menu|analitza la carta|analitza el menú/i });
     await user.click(analyzeButton);
 
     await waitFor(() => {
@@ -216,7 +216,7 @@ describe("MenuReaderPage Form UI", () => {
     expect(screen.getByText("mains.png")).toBeDefined();
     expect(screen.getByText(/3 pages ready|3 pàgines a punt/i)).toBeDefined();
 
-    const analyzeButton = screen.getByRole("button", { name: /analyze menu|analitza el menú/i });
+    const analyzeButton = screen.getByRole("button", { name: /analyze menu|analitza la carta|analitza el menú/i });
     await user.click(analyzeButton);
 
     await waitFor(() => {

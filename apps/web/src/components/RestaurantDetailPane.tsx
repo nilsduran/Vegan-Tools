@@ -6,6 +6,7 @@ import {
   Globe,
   Info,
   Leaf,
+  LoaderCircle,
   MapPin,
   Navigation,
   Upload,
@@ -107,6 +108,18 @@ export function RestaurantDetailPane({
   const badge = getVeganBadge(restaurant);
   const cuisine = getCuisineTag(restaurant);
 
+  const [loadingMenu, setLoadingMenu] = useState(false);
+
+  const hasCoordinates =
+    typeof restaurant.latitude === "number" &&
+    typeof restaurant.longitude === "number" &&
+    restaurant.latitude !== 0 &&
+    restaurant.longitude !== 0;
+
+  const directionsUrl = hasCoordinates
+    ? `https://www.google.com/maps/dir/?api=1&destination=${restaurant.latitude},${restaurant.longitude}`
+    : restaurant.mapUrl || `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(`${restaurant.name} ${restaurant.address}`)}`;
+
   return (
     <div className="restaurant-detail-pane" role="region" aria-label={restaurant.name}>
       <header className="detail-pane-header">
@@ -193,10 +206,18 @@ export function RestaurantDetailPane({
           <button
             type="button"
             className="primary-button action-btn-menu"
-            onClick={() => onOpenMenu(restaurant)}
+            disabled={loadingMenu}
+            onClick={async () => {
+              setLoadingMenu(true);
+              try {
+                await onOpenMenu(restaurant);
+              } finally {
+                setLoadingMenu(false);
+              }
+            }}
           >
-            <Leaf aria-hidden="true" />
-            <span>{tx("Menu")}</span>
+            {loadingMenu ? <LoaderCircle className="spin" /> : <Leaf aria-hidden="true" />}
+            <span>{loadingMenu ? (language === "ca" ? "Carregant carta…" : "Loading menu…") : tx("Menu")}</span>
           </button>
 
           {restaurant.websiteUrl && (
@@ -212,13 +233,13 @@ export function RestaurantDetailPane({
           )}
 
           <a
-            href={restaurant.mapUrl}
+            href={directionsUrl}
             target="_blank"
             rel="noreferrer"
             className="secondary-button action-btn-map"
           >
             <Navigation aria-hidden="true" />
-            <span>{tx("Maps")}</span>
+            <span>{tx("Directions")}</span>
           </a>
         </div>
 
