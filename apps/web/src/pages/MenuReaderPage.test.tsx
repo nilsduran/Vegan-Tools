@@ -83,7 +83,7 @@ describe("MenuReaderPage Form UI", () => {
       expect(api.resolveRestaurant).toHaveBeenCalledWith(candidate);
     });
 
-    expect(await screen.findByText(/Selected restaurant/i)).toBeDefined();
+    expect(await screen.findByText("Opcions veganes")).toBeDefined();
   });
 
   it("handles PDF menu upload and triggers analysis", async () => {

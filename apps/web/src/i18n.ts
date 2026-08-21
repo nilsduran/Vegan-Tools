@@ -236,6 +236,8 @@ const caPhrases = {
     "No s'ha trobat cap restaurant en aquesta zona.",
   "Ressenyes de la comunitat": "Ressenyes de la comunitat",
   "Properament · Sistema de valoracions verificat": "Properament · Sistema de valoracions verificat",
+  "Upload a menu (photos or PDF) to analyze its dishes.":
+    "Puja una carta (fotos o PDF) per analitzar els seus plats.",
   "Maps": "Com arribar",
 } as const;
 

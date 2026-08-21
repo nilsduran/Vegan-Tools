@@ -5,7 +5,6 @@ import {
 } from "@vegan-tools/domain";
 import {
   Camera,
-  Clock3,
   ExternalLink,
   FileImage,
   FileText,
@@ -20,10 +19,8 @@ import {
   createRestaurantMenuAnalysis,
   discoverRestaurantMenu,
   getMenuDraft,
-  getRecentRestaurantMenus,
   resolveRestaurant,
   searchRestaurants,
-  type CachedRestaurantMenu,
 } from "../api";
 import { MenuEditor } from "../components/MenuEditor";
 import { RestaurantDetailPane } from "../components/RestaurantDetailPane";
@@ -51,8 +48,6 @@ export function MenuReaderPage() {
   const [searchingRestaurants, setSearchingRestaurants] = useState(false);
   const [searchSubmitted, setSearchSubmitted] = useState(false);
   const [restaurantError, setRestaurantError] = useState("");
-  const [manualWebsiteUrl, setManualWebsiteUrl] = useState("");
-  const [directWebsiteUrl, setDirectWebsiteUrl] = useState("");
   const [searchSessionToken, setSearchSessionToken] = useState(
     newSearchSessionToken,
   );
@@ -60,9 +55,10 @@ export function MenuReaderPage() {
     latitude: number;
     longitude: number;
   }>();
-  const [userCoords, setUserCoords] = useState<{ lat: number; lng: number }>();
-  const [locationRequested, setLocationRequested] = useState(false);
-  const [recentMenus, setRecentMenus] = useState<CachedRestaurantMenu[]>([]);
+  const [userCoords, setUserCoords] = useState<{
+    lat: number;
+    lng: number;
+  }>();
   const [loadedFromCache, setLoadedFromCache] = useState(false);
   const uploadSectionRef = useRef<HTMLElement>(null);
   const draftId = draft?.id;
@@ -107,60 +103,6 @@ export function MenuReaderPage() {
     selectedRestaurant,
   ]);
 
-  useEffect(() => {
-    let cancelled = false;
-    void getRecentRestaurantMenus()
-      .then((menus) => {
-        if (!cancelled) setRecentMenus(menus);
-      })
-      .catch(() => {
-        if (!cancelled) setRecentMenus([]);
-      });
-    return () => {
-      cancelled = true;
-    };
-  }, []);
-
-  const startWebsiteDiscovery = async (
-    restaurant: RestaurantCandidate,
-    websiteUrl: string,
-  ) => {
-    setError("");
-    setRestaurantError("");
-    try {
-      setLoadedFromCache(false);
-      setDraft(await discoverRestaurantMenu(restaurant, websiteUrl));
-    } catch (discoveryError) {
-      setRestaurantError(
-        discoveryError instanceof Error
-          ? discoveryError.message
-          : "Could not search this restaurant website.",
-      );
-    }
-  };
-
-  const requestApproximateLocation = (force = false) => {
-    if (!force && (locationRequested || approximateLocation)) return;
-    setLocationRequested(true);
-    if (!navigator.geolocation) {
-      setRestaurantError("Approximate location is not supported by this browser.");
-      return;
-    }
-    navigator.geolocation.getCurrentPosition(
-      ({ coords }) => {
-        setApproximateLocation({
-          latitude: Math.round(coords.latitude * 100) / 100,
-          longitude: Math.round(coords.longitude * 100) / 100,
-        });
-        setRestaurantError("");
-      },
-      () => setRestaurantError(
-        "Location was not available. Include the city in the search and press Search.",
-      ),
-      { enableHighAccuracy: false, timeout: 5_000, maximumAge: 30 * 60_000 },
-    );
-  };
-
   const selectRestaurant = async (restaurant: RestaurantCandidate) => {
     setSearchingRestaurants(true);
     setRestaurantError("");
@@ -168,20 +110,15 @@ export function MenuReaderPage() {
       const resolved = await resolveRestaurant(restaurant);
       setSelectedRestaurant(resolved);
       setRestaurantResults([]);
-      setManualWebsiteUrl(resolved.websiteUrl ?? "");
       setSearchSessionToken(newSearchSessionToken());
-      const saved = recentMenus.find((item) => sameRestaurant(item.restaurant, resolved));
-      if (saved) {
-        setDraft(saved.menu);
-        setLoadedFromCache(true);
-        return;
-      }
       if (resolved.websiteUrl) {
-        await startWebsiteDiscovery(resolved, resolved.websiteUrl);
+        setLoadedFromCache(false);
+        setDraft(await discoverRestaurantMenu(resolved, resolved.websiteUrl));
       } else {
         setRestaurantError(
-          "We couldn’t verify an official website automatically. Paste one below or add menu photos.",
+          "We couldn’t verify an official website automatically. Add menu photos or a PDF below.",
         );
+        uploadSectionRef.current?.scrollIntoView({ behavior: "smooth" });
       }
     } catch (selectionError) {
       setRestaurantError(
@@ -427,165 +364,12 @@ export function MenuReaderPage() {
         </div>
       </div>
 
-      <section className="restaurant-search map-bottom-search-tools" aria-label={tx("Search restaurants")}>
-
-        {selectedRestaurant && (
-          <div className="selected-restaurant">
-            <div>
-              <small>{tx("Selected restaurant")}</small>
-              <strong>{selectedRestaurant.name}</strong>
-              <span>{selectedRestaurant.address}</span>
-            </div>
-            <button
-              type="button"
-              className="text-button"
-              onClick={() => setSelectedRestaurant(undefined)}
-            >
-              {tx("Change")}
-            </button>
-            <details className="website-discovery" open={!selectedRestaurant.websiteUrl}>
-              <summary>{tx("Use a website or menu link")}</summary>
-              <form
-                className="website-discovery-form"
-                onSubmit={(event) => {
-                  event.preventDefault();
-                  void startWebsiteDiscovery(selectedRestaurant, manualWebsiteUrl);
-                }}
-              >
-                <label>
-                  {tx("Official website")}
-                  <input
-                    type="url"
-                    inputMode="url"
-                    value={manualWebsiteUrl}
-                    onChange={(event) => setManualWebsiteUrl(event.target.value)}
-                    placeholder="https://restaurant.example/menu"
-                    required
-                  />
-                </label>
-                <button
-                  className="secondary-button"
-                  disabled={!manualWebsiteUrl.trim() || draft?.status === "processing"}
-                >
-                  {draft?.status === "processing"
-                    ? <LoaderCircle className="spin" />
-                    : <Search />}
-                  {draft?.status === "processing" ? tx("Finding menu…") : tx("Find menu")}
-                </button>
-              </form>
-              <a
-                className="google-search-link"
-                href={`https://www.google.com/search?q=${encodeURIComponent(
-                  `${selectedRestaurant.name} ${selectedRestaurant.address || ""} carta menu web oficial`,
-                )}`}
-                target="_blank"
-                rel="noreferrer"
-              >
-                {tx("Check Google results")} <ExternalLink />
-              </a>
-            </details>
-          </div>
-        )}
-        {!selectedRestaurant && (
-          <details className="direct-website">
-            <summary>{tx("Can’t find the restaurant?")}</summary>
-            <form
-              onSubmit={(event) => {
-                event.preventDefault();
-                const manualRestaurant: RestaurantCandidate = {
-                  id: "manual",
-                  name: restaurantQuery.trim(),
-                  address: "",
-                  latitude: 0,
-                  longitude: 0,
-                  websiteUrl: directWebsiteUrl,
-                  mapUrl: directWebsiteUrl,
-                  provider: "openstreetmap",
-                };
-                setSelectedRestaurant(manualRestaurant);
-                setManualWebsiteUrl(directWebsiteUrl);
-                void startWebsiteDiscovery(manualRestaurant, directWebsiteUrl);
-              }}
-            >
-              <label>
-                {tx("Restaurant name")}
-                <input
-                  value={restaurantQuery}
-                  onChange={(event) => setRestaurantQuery(event.target.value)}
-                  required
-                  minLength={2}
-                />
-              </label>
-              <label>
-                {tx("Official website")}
-                <input
-                  type="url"
-                  inputMode="url"
-                  value={directWebsiteUrl}
-                  onChange={(event) => setDirectWebsiteUrl(event.target.value)}
-                  placeholder="https://restaurant.example"
-                  required
-                />
-              </label>
-              <button
-                className="secondary-button"
-                disabled={
-                  restaurantQuery.trim().length < 3 ||
-                  !directWebsiteUrl.trim() ||
-                  draft?.status === "processing"
-                }
-              >
-                <Search />{tx("Find menu")}
-              </button>
-            </form>
-          </details>
-        )}
-        {restaurantError && <div className="inline-error">{restaurantError}</div>}
-        <small className="osm-credit">
-          {language === "ca" ? "Dades de restaurants de " : "Restaurant data from "}
-          {
-            restaurantResults.length === 0
-              ? language === "ca"
-                ? "Foursquare, amb OpenStreetMap com a alternativa"
-                : "Foursquare, with OpenStreetMap fallback"
-              : restaurantResults.some((result) => result.provider === "foursquare")
-              ? "Foursquare"
-              : language === "ca"
-                ? "les persones col·laboradores d'OpenStreetMap"
-                : "OpenStreetMap contributors"
-          }.
-        </small>
-      </section>
-
-      {recentMenus.length > 0 && (
-        <details className="recent-menus">
-          <summary><Clock3 /> {tx("Recent menus")} <span>{recentMenus.length}</span></summary>
-          <ul>
-            {recentMenus.map((item) => (
-              <li key={`${item.restaurant.id}-${item.savedAt}`}>
-                <button
-                  type="button"
-                  onClick={() => {
-                    setSelectedRestaurant(item.restaurant);
-                    setRestaurantQuery(item.restaurant.name);
-                    setDraft(item.menu);
-                    setLoadedFromCache(true);
-                  }}
-                >
-                  <span>
-                    <strong>{item.restaurant.name}</strong>
-                    <small>{item.restaurant.address || tx("Saved menu")}</small>
-                  </span>
-                  {tx("Open")}
-                </button>
-              </li>
-            ))}
-          </ul>
-        </details>
-      )}
-
-      <section className="menu-upload" ref={uploadSectionRef}>
-        <div className="upload-divider"><span>{tx("Add the menu")}</span></div>
+      {/* Upload menu section below the map */}
+      <section className="menu-upload bottom-menu-upload" ref={uploadSectionRef}>
+        <div className="menu-upload-heading">
+          <h2>{tx("Add the menu")}</h2>
+          <p>{tx("Upload a menu (photos or PDF) to analyze its dishes.")}</p>
+        </div>
         <div className="upload-options">
           <label className="upload-option camera-option">
             <Camera aria-hidden="true" />
