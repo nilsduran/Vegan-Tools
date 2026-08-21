@@ -282,6 +282,45 @@ describe("API", () => {
     await app.close();
   });
 
+  it("searches restaurants by coordinates without forced territorial bias", async () => {
+    vi.stubEnv("FOURSQUARE_API_KEY", "test-key");
+    const fetchMock = vi.fn(async (input: string | URL | Request) => {
+      const url = new URL(String(input));
+      if (url.hostname === "places-api.foursquare.com") {
+        return new Response(JSON.stringify({
+          results: [{
+            fsq_place_id: "fsq-london-1",
+            name: "Purezza Camden",
+            latitude: 51.538,
+            longitude: -0.144,
+            location: { formatted_address: "43 Parkway, London NW1 7PN" },
+          }],
+        }), { status: 200, headers: { "Content-Type": "application/json" } });
+      }
+      return new Response(JSON.stringify([]), { status: 200, headers: { "Content-Type": "application/json" } });
+    });
+    vi.stubGlobal("fetch", fetchMock);
+
+    const app = await buildApp(new MemoryRepository());
+    const response = await app.inject({
+      method: "GET",
+      url: "/v1/restaurants/search?q=vegan&latitude=51.538&longitude=-0.144",
+    });
+    expect(response.statusCode).toBe(200);
+    const results = response.json();
+    expect(results).toHaveLength(1);
+    expect(results[0]?.name).toBe("Purezza Camden");
+
+    const foursquareCall = fetchMock.mock.calls.find(([input]) =>
+      new URL(String(input)).hostname === "places-api.foursquare.com"
+    );
+    const requestedUrl = new URL(String(foursquareCall?.[0]));
+    // Strictly coordinates-based; should NOT impose near=Barcelona
+    expect(requestedUrl.searchParams.get("ll")).toBe("51.538,-0.144");
+    expect(requestedUrl.searchParams.get("near")).toBeNull();
+    await app.close();
+  });
+
   it("uses verified web search when place providers omit the official website", async () => {
     const websiteFinder: RestaurantWebsiteFinder = {
       async find(restaurant) {

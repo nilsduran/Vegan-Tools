@@ -48,10 +48,12 @@ function renderScanner(initialEntry = "/product") {
 describe("ProductScannerPage Form UI", () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    localStorage.clear();
   });
 
   afterEach(() => {
     cleanup();
+    localStorage.clear();
   });
 
   it("allows entering a barcode manually and searching for it", async () => {
@@ -183,5 +185,57 @@ describe("ProductScannerPage Form UI", () => {
     expect(
       await screen.findByText(/Could not reach the Vegan Tools API. fetch failed/i),
     ).toBeDefined();
+  });
+
+  it("shows photo OCR recommendation card when product is not found in database", async () => {
+    vi.mocked(api.getProduct).mockRejectedValueOnce(
+      new Error("Product not found in Open Food Facts database."),
+    );
+
+    renderScanner("/product/9999999999999");
+
+    expect(
+      await screen.findByText(/Product not found in Open Food Facts database/i),
+    ).toBeDefined();
+    expect(
+      screen.getByText(/take a photo of the ingredients list|pots fer una foto a l'etiqueta/i),
+    ).toBeDefined();
+    expect(
+      screen.getByRole("button", { name: /take photo of ingredient label|fes foto a l'etiqueta/i }),
+    ).toBeDefined();
+  });
+
+  it("persists successfully scanned products to recent scans in localStorage", async () => {
+    const mockProduct: ProductResult = {
+      gtin: "8410000000001",
+      productName: "Tofu Bio",
+      brand: "Taifun",
+      verdict: "vegan",
+      assurance: "external",
+      definitive: true,
+      reason: "Organic soya product.",
+      matchedIngredients: ["soy"],
+      findings: [],
+      classifierVersion: "1.0",
+      traces: [],
+      revision: 1,
+      evidence: [],
+    };
+
+    vi.mocked(api.getProduct).mockResolvedValueOnce(mockProduct);
+
+    renderScanner("/product/8410000000001");
+
+    expect(await screen.findByText("Tofu Bio")).toBeDefined();
+
+    // Check localStorage contains the saved scan
+    const saved = JSON.parse(localStorage.getItem("vegan-tools-recent-scans") || "[]");
+    expect(saved).toHaveLength(1);
+    expect(saved[0]).toMatchObject({
+      gtin: "8410000000001",
+      productName: "Tofu Bio",
+      brand: "Taifun",
+      verdict: "vegan",
+    });
   });
 });

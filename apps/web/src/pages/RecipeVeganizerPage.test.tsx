@@ -133,4 +133,46 @@ describe("RecipeVeganizerPage Form UI", () => {
     expect(textarea.value).toContain("Cannelloni");
     expect(textarea.value).toContain("minced");
   });
+
+  it("copies the veganized recipe text to clipboard when clicking Copy", async () => {
+    const user = userEvent.setup();
+    const writeTextMock = vi.fn().mockResolvedValue(undefined);
+    Object.defineProperty(navigator, "clipboard", {
+      value: {
+        writeText: writeTextMock,
+      },
+      configurable: true,
+      writable: true,
+    });
+
+    const mockResult: RecipeAnalysis = {
+      summary: "Pancakes converted to vegan.",
+      verdict: "vegan",
+      findings: [],
+      substitutions: [],
+      originalText: "Pancakes",
+      veganizedText: "Vegan Pancakes Recipe with Soy Milk",
+      classifierVersion: "1.0",
+    };
+
+    vi.mocked(api.veganizeRecipe).mockResolvedValueOnce(mockResult);
+
+    renderVeganizer();
+
+    const textarea = screen.getByLabelText(/recipe/i);
+    await user.type(textarea, "Pancakes");
+
+    const submitButton = screen.getByRole("button", { name: /veganize recipe/i });
+    await user.click(submitButton);
+
+    const copyButton = await screen.findByRole("button", { name: /copy|copia/i });
+    expect(copyButton).toBeDefined();
+
+    await user.click(copyButton);
+
+    expect(writeTextMock).toHaveBeenCalledWith(
+      expect.stringContaining("Vegan Pancakes Recipe"),
+    );
+    expect(await screen.findByText(/copied!|copiat!/i)).toBeDefined();
+  });
 });

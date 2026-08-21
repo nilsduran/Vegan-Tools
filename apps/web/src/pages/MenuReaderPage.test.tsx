@@ -100,6 +100,49 @@ describe("MenuReaderPage Form UI", () => {
     expect(await screen.findByText("Opcions veganes")).toBeDefined();
   });
 
+  it("clears search query and results when clicking the X clear button", async () => {
+    const candidate: RestaurantCandidate = {
+      id: "foursquare-456",
+      name: "Roots Vegan",
+      address: "Gran Via, Barcelona",
+      latitude: 41.388,
+      longitude: 2.165,
+      mapUrl: "https://foursquare.com/v/456",
+      provider: "foursquare",
+    };
+
+    vi.mocked(api.searchRestaurants).mockImplementation(async (q) => {
+      if (typeof q === "string" && q.includes("Roots")) {
+        return [candidate];
+      }
+      return [];
+    });
+
+    render(
+      <MemoryRouter>
+        <MenuReaderPage />
+      </MemoryRouter>
+    );
+
+    const searchInput = screen.getByRole("textbox", { name: /search for a restaurant/i });
+    fireEvent.change(searchInput, { target: { value: "Roots" } });
+
+    const searchButton = screen.getByRole("button", { name: /search restaurants/i });
+    fireEvent.click(searchButton);
+
+    expect(await screen.findByText("Roots Vegan")).toBeDefined();
+
+    // Clear button should be visible
+    const clearButton = screen.getByRole("button", { name: /remove|elimina/i });
+    expect(clearButton).toBeDefined();
+
+    fireEvent.click(clearButton);
+
+    // Search query and results should be wiped
+    expect((searchInput as HTMLInputElement).value).toBe("");
+    expect(screen.queryByText("Roots Vegan")).toBeNull();
+  });
+
   it("handles PDF menu upload and triggers analysis", async () => {
     const user = userEvent.setup();
     const pdfFile = createFakeFile("lunch-menu.pdf", "application/pdf");
