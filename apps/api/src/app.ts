@@ -17,6 +17,7 @@ import {
   type RestaurantCandidate,
   restaurantCandidateSchema,
 } from "@vegan-tools/domain";
+import { CURATED_RESTAURANTS } from "./curated-restaurants.js";
 import { randomUUID } from "node:crypto";
 import { repository, type Repository } from "./store.js";
 import { lookupOpenFoodFacts } from "./open-food-facts.js";
@@ -266,6 +267,37 @@ export async function buildApp(
       country: "ES",
     });
   });
+
+  app.get<{
+    Querystring: {
+      latitude?: string;
+      longitude?: string;
+      limit?: string;
+    };
+  }>(
+    "/v1/restaurants/curated",
+    async (request) => {
+      const latitude = Number(request.query.latitude);
+      const longitude = Number(request.query.longitude);
+      const limit = Math.min(Math.max(Number(request.query.limit) || 20, 1), 50);
+      const hasLocation =
+        Number.isFinite(latitude) && latitude >= -90 && latitude <= 90 &&
+        Number.isFinite(longitude) && longitude >= -180 && longitude <= 180;
+
+      if (!hasLocation) {
+        return CURATED_RESTAURANTS.slice(0, limit);
+      }
+
+      // Sort curated list by geographical proximity
+      const sorted = [...CURATED_RESTAURANTS].sort((a, b) => {
+        const distA = Math.hypot(a.latitude - latitude, a.longitude - longitude);
+        const distB = Math.hypot(b.latitude - latitude, b.longitude - longitude);
+        return distA - distB;
+      });
+
+      return sorted.slice(0, limit);
+    },
+  );
 
   app.get<{
     Querystring: {

@@ -23,6 +23,8 @@ import {
 import {
   createRestaurantMenuAnalysis,
   discoverRestaurantMenu,
+  getApproximateLocation,
+  getCuratedRestaurants,
   getMenuDraft,
   resolveRestaurant,
   searchRestaurants,
@@ -32,6 +34,7 @@ import { RestaurantDetailPane } from "../components/RestaurantDetailPane";
 import { RestaurantMap } from "../components/RestaurantMap";
 import { t, tx, useLanguage } from "../i18n";
 import { getDirectionsUrl } from "../utils/navigation";
+import { formatDistance } from "../utils/distance";
 
 function newSearchSessionToken() {
   return crypto.randomUUID().replaceAll("-", "");
@@ -72,6 +75,58 @@ export function MenuReaderPage() {
   const draftId = draft?.id;
   const editToken = draft?.editToken;
   const draftStatus = draft?.status;
+
+  const handleSelectRestaurant = (restaurant?: RestaurantCandidate) => {
+    setSelectedRestaurant(restaurant);
+    setSearchParams((prev) => {
+      const next = new URLSearchParams(prev);
+      if (restaurant) {
+        next.set("place", restaurant.id);
+      } else {
+        next.delete("place");
+      }
+      return next;
+    });
+  };
+
+  // Fetch approximate location and preload curated nearby restaurants
+  useEffect(() => {
+    let cancelled = false;
+    void getApproximateLocation()
+      .then(async (loc) => {
+        if (cancelled || !loc) return;
+        setApproximateLocation(loc);
+        if (!restaurantQuery && restaurantResults.length === 0) {
+          const curated = await getCuratedRestaurants(loc);
+          if (!cancelled && curated.length > 0) {
+            setRestaurantResults(curated);
+          }
+        }
+      })
+      .catch(() => {
+        // Fallback silently
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  // Handle URL deep-linking and browser back/forward buttons
+  useEffect(() => {
+    const placeId = searchParams.get("place");
+    if (!placeId) {
+      if (selectedRestaurant) {
+        setSelectedRestaurant(undefined);
+      }
+      return;
+    }
+    if (selectedRestaurant?.id === placeId) return;
+
+    const match = restaurantResults.find((r) => r.id === placeId);
+    if (match) {
+      setSelectedRestaurant(match);
+    }
+  }, [searchParams, restaurantResults, selectedRestaurant]);
 
   useEffect(() => {
     const qParam = searchParams.get("q");
@@ -306,10 +361,10 @@ export function MenuReaderPage() {
               <RestaurantDetailPane
                 restaurant={selectedRestaurant}
                 userCoords={userCoords}
-                onClose={() => setSelectedRestaurant(undefined)}
+                onClose={() => handleSelectRestaurant(undefined)}
                 onOpenMenu={(r) => void selectRestaurant(r)}
                 onUploadMenu={(r) => {
-                  setSelectedRestaurant(r);
+                  handleSelectRestaurant(r);
                   uploadSectionRef.current?.scrollIntoView({ behavior: "smooth" });
                 }}
               />
@@ -319,16 +374,20 @@ export function MenuReaderPage() {
                   <ul className="restaurant-results">
                     {restaurantResults.map((restaurant) => {
                       const directionsUrl = getDirectionsUrl(restaurant);
+                      const distanceStr = formatDistance(
+                        userCoords || (approximateLocation ? { lat: approximateLocation.latitude, lng: approximateLocation.longitude } : undefined),
+                        { lat: restaurant.latitude, lng: restaurant.longitude },
+                      );
 
                       return (
                         <li
                           key={restaurant.id}
                           className={sameRestaurant(restaurant, selectedRestaurant ?? restaurant) ? "active clickable" : "clickable"}
-                          onClick={() => setSelectedRestaurant(restaurant)}
+                          onClick={() => handleSelectRestaurant(restaurant)}
                         >
                           <div>
                             <strong>{restaurant.name}</strong>
-                            <span>{restaurant.address}</span>
+                            <span>{distanceStr ? `${distanceStr} · ${restaurant.address}` : restaurant.address}</span>
                             <div className="restaurant-links">
                               <button
                                 type="button"
@@ -379,7 +438,7 @@ export function MenuReaderPage() {
             restaurants={restaurantResults}
             selectedRestaurant={selectedRestaurant}
             onSelectRestaurant={(restaurant) => {
-              setSelectedRestaurant(restaurant);
+              handleSelectRestaurant(restaurant);
             }}
             onOpenMenu={(restaurant) => {
               void selectRestaurant(restaurant);

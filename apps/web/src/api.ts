@@ -291,3 +291,17 @@ export async function getApproximateLocation(): Promise<{
   return response.json();
 }
 
+export async function getCuratedRestaurants(coords?: {
+  latitude: number;
+  longitude: number;
+}): Promise<RestaurantCandidate[]> {
+  const query = coords
+    ? `?latitude=${coords.latitude}&longitude=${coords.longitude}`
+    : "";
+  const response = await checkedFetch(`/v1/restaurants/curated${query}`);
+  const data = await response.json();
+  return Array.isArray(data)
+    ? data.map((item) => restaurantCandidateSchema.parse(item))
+    : [];
+}
+
