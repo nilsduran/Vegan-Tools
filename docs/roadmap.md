@@ -79,4 +79,4 @@ El mapa interactiu s'ha desenvolupat completament a la branca `feature/interacti
 ## 🔒 Polítiques de Desenvolupament i Git
 - **Branca activa de treball**: `feature/interactive-map`.
 - **Branca de producció**: `main`.
-- **Test suite**: 92 tests automatitzats (100% funcionals). Comprovació amb `npm run check`.
+- **Test suite**: 98 tests automatitzats (100% funcionals). Comprovació amb `npm run check`.
