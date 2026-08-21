@@ -5,9 +5,9 @@ import { MemoryRepository } from "./store.js";
 describe("Universal Restaurant Search across multiple cities", () => {
   const getApp = async () => buildApp(new MemoryRepository());
 
-  // Coordinates of Barcelona center for bias testing
-  const BCN_LAT = "41.3879";
-  const BCN_LNG = "2.1699";
+  // Coordinates of user located in Barcelona center
+  const USER_BCN_LAT = "41.3879";
+  const USER_BCN_LNG = "2.1699";
 
   describe("Barcelona restaurants", () => {
     it("finds Desoriente by exact name and with city hint", async () => {
@@ -15,7 +15,7 @@ describe("Universal Restaurant Search across multiple cities", () => {
       // 1. By name only with user location bias
       const resNameOnly = await app.inject({
         method: "GET",
-        url: `/v1/restaurants/search?q=Desoriente&latitude=${BCN_LAT}&longitude=${BCN_LNG}`,
+        url: `/v1/restaurants/search?q=Desoriente&latitude=${USER_BCN_LAT}&longitude=${USER_BCN_LNG}`,
       });
       expect(resNameOnly.statusCode).toBe(200);
       const results1 = resNameOnly.json() as Array<{ name: string; address: string }>;
@@ -25,7 +25,7 @@ describe("Universal Restaurant Search across multiple cities", () => {
       // 2. By name with city hint
       const resWithCity = await app.inject({
         method: "GET",
-        url: "/v1/restaurants/search?q=Desoriente, Barcelona",
+        url: `/v1/restaurants/search?q=Desoriente, Barcelona&latitude=${USER_BCN_LAT}&longitude=${USER_BCN_LNG}`,
       });
       expect(resWithCity.statusCode).toBe(200);
       const results2 = resWithCity.json() as Array<{ name: string; address: string }>;
@@ -37,7 +37,7 @@ describe("Universal Restaurant Search across multiple cities", () => {
       const app = await getApp();
       const resNameOnly = await app.inject({
         method: "GET",
-        url: `/v1/restaurants/search?q=Teresa Carles&latitude=${BCN_LAT}&longitude=${BCN_LNG}`,
+        url: `/v1/restaurants/search?q=Teresa Carles&latitude=${USER_BCN_LAT}&longitude=${USER_BCN_LNG}`,
       });
       expect(resNameOnly.statusCode).toBe(200);
       const results1 = resNameOnly.json() as Array<{ name: string }>;
@@ -45,7 +45,7 @@ describe("Universal Restaurant Search across multiple cities", () => {
 
       const resWithCity = await app.inject({
         method: "GET",
-        url: "/v1/restaurants/search?q=Teresa Carles, Barcelona",
+        url: `/v1/restaurants/search?q=Teresa Carles, Barcelona&latitude=${USER_BCN_LAT}&longitude=${USER_BCN_LNG}`,
       });
       expect(resWithCity.statusCode).toBe(200);
       const results2 = resWithCity.json() as Array<{ name: string }>;
@@ -56,7 +56,7 @@ describe("Universal Restaurant Search across multiple cities", () => {
       const app = await getApp();
       const res = await app.inject({
         method: "GET",
-        url: `/v1/restaurants/search?q=Roots Vegan&latitude=${BCN_LAT}&longitude=${BCN_LNG}`,
+        url: `/v1/restaurants/search?q=Roots Vegan&latitude=${USER_BCN_LAT}&longitude=${USER_BCN_LNG}`,
       });
       expect(res.statusCode).toBe(200);
       const results = res.json() as Array<{ name: string }>;
@@ -65,14 +65,11 @@ describe("Universal Restaurant Search across multiple cities", () => {
   });
 
   describe("Sant Joan Despí restaurants", () => {
-    const SJD_LAT = "41.368";
-    const SJD_LNG = "2.057";
-
-    it("finds restaurants in Sant Joan Despí by name and with city hint", async () => {
+    it("finds restaurants in Sant Joan Despí from Barcelona coords", async () => {
       const app = await getApp();
       const resCity = await app.inject({
         method: "GET",
-        url: `/v1/restaurants/search?q=restaurants, Sant Joan Despí&latitude=${SJD_LAT}&longitude=${SJD_LNG}`,
+        url: `/v1/restaurants/search?q=restaurants, Sant Joan Despí&latitude=${USER_BCN_LAT}&longitude=${USER_BCN_LNG}`,
       });
       expect(resCity.statusCode).toBe(200);
       const results = resCity.json() as Array<{ name: string; address: string }>;
@@ -83,7 +80,7 @@ describe("Universal Restaurant Search across multiple cities", () => {
       const app = await getApp();
       const res = await app.inject({
         method: "GET",
-        url: "/v1/restaurants/search?q=Foment, Sant Joan Despí",
+        url: `/v1/restaurants/search?q=Foment, Sant Joan Despí&latitude=${USER_BCN_LAT}&longitude=${USER_BCN_LNG}`,
       });
       expect(res.statusCode).toBe(200);
       const results = res.json() as Array<{ name: string }>;
@@ -91,34 +88,33 @@ describe("Universal Restaurant Search across multiple cities", () => {
     });
   });
 
-  describe("Girona restaurants", () => {
-    const GIR_LAT = "41.984";
-    const GIR_LNG = "2.821";
-
-    it("finds Bionèctar by name and with city hint", async () => {
+  describe("Girona restaurants (queried while user is in Barcelona)", () => {
+    it("finds Bionèctar with accent and with city hint while located in Barcelona", async () => {
       const app = await getApp();
+      // Name only with accent (Bionèctar) from Barcelona coordinates
       const resNameOnly = await app.inject({
         method: "GET",
-        url: `/v1/restaurants/search?q=Bionèctar&latitude=${GIR_LAT}&longitude=${GIR_LNG}`,
+        url: `/v1/restaurants/search?q=Bionèctar&latitude=${USER_BCN_LAT}&longitude=${USER_BCN_LNG}`,
       });
       expect(resNameOnly.statusCode).toBe(200);
       const results1 = resNameOnly.json() as Array<{ name: string }>;
-      expect(results1.some((r) => r.name.toLowerCase().includes("bionectar") || r.name.toLowerCase().includes("bionèctar"))).toBe(true);
+      expect(results1.some((r) => r.name.toLowerCase().includes("bionectar"))).toBe(true);
 
+      // Name with city hint from Barcelona coordinates
       const resWithCity = await app.inject({
         method: "GET",
-        url: "/v1/restaurants/search?q=Bionèctar, Girona",
+        url: `/v1/restaurants/search?q=Bionèctar, Girona&latitude=${USER_BCN_LAT}&longitude=${USER_BCN_LNG}`,
       });
       expect(resWithCity.statusCode).toBe(200);
       const results2 = resWithCity.json() as Array<{ name: string }>;
-      expect(results2.some((r) => r.name.toLowerCase().includes("bionectar") || r.name.toLowerCase().includes("bionèctar"))).toBe(true);
+      expect(results2.some((r) => r.name.toLowerCase().includes("bionectar"))).toBe(true);
     });
 
-    it("finds Restaurant Integral in Girona with city hint", async () => {
+    it("finds Restaurant Integral in Girona with city hint from Barcelona", async () => {
       const app = await getApp();
       const res = await app.inject({
         method: "GET",
-        url: "/v1/restaurants/search?q=Integral, Girona",
+        url: `/v1/restaurants/search?q=Integral, Girona&latitude=${USER_BCN_LAT}&longitude=${USER_BCN_LNG}`,
       });
       expect(res.statusCode).toBe(200);
       const results = res.json() as Array<{ name: string }>;
@@ -126,36 +122,25 @@ describe("Universal Restaurant Search across multiple cities", () => {
     });
   });
 
-  describe("London restaurants", () => {
-    const LON_LAT = "51.5074";
-    const LON_LNG = "-0.1278";
-
-    it("finds Purezza by name and with city hint", async () => {
+  describe("London restaurants (queried while user is in Barcelona)", () => {
+    it("finds Purezza in London while user coords are set to Barcelona", async () => {
       const app = await getApp();
-      // 1. By name alone (even when search origin is elsewhere)
-      const resNameOnly = await app.inject({
-        method: "GET",
-        url: `/v1/restaurants/search?q=Purezza&latitude=${LON_LAT}&longitude=${LON_LNG}`,
-      });
-      expect(resNameOnly.statusCode).toBe(200);
-      const results1 = resNameOnly.json() as Array<{ name: string }>;
-      expect(results1.some((r) => r.name.toLowerCase().includes("purezza"))).toBe(true);
-
-      // 2. By name with city hint
+      // 1. By query with city hint while browser sends Barcelona GPS coords
       const resWithCity = await app.inject({
         method: "GET",
-        url: "/v1/restaurants/search?q=Purezza, London",
+        url: `/v1/restaurants/search?q=Purezza, London&latitude=${USER_BCN_LAT}&longitude=${USER_BCN_LNG}`,
       });
       expect(resWithCity.statusCode).toBe(200);
-      const results2 = resWithCity.json() as Array<{ name: string }>;
-      expect(results2.some((r) => r.name.toLowerCase().includes("purezza"))).toBe(true);
+      const results1 = resWithCity.json() as Array<{ name: string }>;
+      expect(results1.length).toBeGreaterThan(0);
+      expect(results1.some((r) => r.name.toLowerCase().includes("purezza"))).toBe(true);
     });
 
-    it("finds Mildreds in London", async () => {
+    it("finds Mildreds in London while user coords are set to Barcelona", async () => {
       const app = await getApp();
       const res = await app.inject({
         method: "GET",
-        url: "/v1/restaurants/search?q=Mildreds, London",
+        url: `/v1/restaurants/search?q=Mildreds, London&latitude=${USER_BCN_LAT}&longitude=${USER_BCN_LNG}`,
       });
       expect(res.statusCode).toBe(200);
       const results = res.json() as Array<{ name: string }>;

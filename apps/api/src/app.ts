@@ -637,15 +637,23 @@ export async function buildApp(
           request.log.warn({ error }, "Foursquare restaurant search failed; using OpenStreetMap");
         }
       }
+      const normalizeText = (str: string) =>
+        str.normalize("NFD").replace(/\p{Diacritic}/gu, "").trim().toLowerCase();
+
+      const normQuery = normalizeText(query);
+      const queryParts = query.split(",").map((p) => p.trim()).filter(Boolean);
+      const searchHead = normalizeText(queryParts[0] ?? query);
+
       // 1. Check curated catalog for instant high-confidence matches
       const curatedMatches = CURATED_RESTAURANTS.filter((r) => {
-        const qLower = query.toLowerCase();
-        const rName = r.name.toLowerCase();
-        const rAddr = r.address.toLowerCase();
+        const rName = normalizeText(r.name);
+        const rAddr = normalizeText(r.address);
         return (
-          rName.includes(qLower) ||
-          qLower.includes(rName) ||
-          (rAddr.includes(qLower) && rName.length > 2)
+          rName.includes(normQuery) ||
+          normQuery.includes(rName) ||
+          rName.includes(searchHead) ||
+          searchHead.includes(rName) ||
+          (rAddr.includes(normQuery) && rName.length > 2)
         );
       });
 
@@ -655,7 +663,8 @@ export async function buildApp(
         const photonUrl = new URL("https://photon.komoot.io/api/");
         photonUrl.searchParams.set("q", query);
         photonUrl.searchParams.set("limit", "25");
-        if (hasLocation) {
+        // Only bias by user location if query doesn't explicitly specify another town/city
+        if (hasLocation && queryParts.length === 1) {
           photonUrl.searchParams.set("lat", String(latitude));
           photonUrl.searchParams.set("lon", String(longitude));
         }
@@ -700,9 +709,8 @@ export async function buildApp(
             if (!p?.name || !f.geometry?.coordinates) continue;
             const [lon, lat] = f.geometry.coordinates;
             const isDining = (p.osm_key === "amenity" || p.osm_key === "shop") && diningValues.has(p.osm_value ?? "");
-            const searchHead = query.split(",")[0]?.trim().toLowerCase() ?? query.toLowerCase();
-            const nameMatches = p.name.toLowerCase().includes(searchHead) ||
-              query.toLowerCase().includes(p.name.toLowerCase());
+            const pNorm = normalizeText(p.name);
+            const nameMatches = pNorm.includes(searchHead) || searchHead.includes(pNorm) || pNorm.includes(normQuery);
             if (!isDining && !nameMatches && p.osm_key !== "amenity") continue;
 
             const streetAddress = [p.street, p.housenumber].filter(Boolean).join(" ");
@@ -726,8 +734,8 @@ export async function buildApp(
         request.log.warn({ photonErr }, "Photon search failed, falling back to Nominatim");
       }
 
-      // If we got high quality results from Photon or curated, return them
-      if (photonResults.length >= 3 || (curatedMatches.length > 0 && photonResults.length > 0)) {
+      // If we got results from Photon or curated, return them directly
+      if (photonResults.length > 0 || curatedMatches.length > 0) {
         const combined = [...curatedMatches, ...photonResults];
         const deduplicated = deduplicateRestaurants(combined);
         restaurantSearchCache.set(cacheKey, {
