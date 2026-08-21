@@ -138,24 +138,55 @@ export function RestaurantMap({
 
   const initialLocatedRef = useRef(false);
 
-  // Fetch approximate IP location on load if no specific restaurant was selected
+  // On mount, try requesting GPS location once with silent fallback to IP location
   useEffect(() => {
     if (initialLocatedRef.current || selectedRestaurant) return;
     initialLocatedRef.current = true;
     let cancelled = false;
-    void getApproximateLocation()
-      .then((loc) => {
-        if (cancelled || !loc || !mapInstanceRef.current) return;
-        const map = mapInstanceRef.current;
-        map.setView([loc.latitude, loc.longitude], 14);
-      })
-      .catch(() => {
-        // Fallback silently if offline or IP lookup fails
-      });
+
+    if (typeof navigator !== "undefined" && navigator.geolocation) {
+      navigator.geolocation.getCurrentPosition(
+        (position) => {
+          if (cancelled || !mapInstanceRef.current) return;
+          const { latitude, longitude } = position.coords;
+          setUserCoords({ lat: latitude, lng: longitude });
+          onUserCoordsChange?.({ lat: latitude, lng: longitude });
+
+          const map = mapInstanceRef.current;
+          if (userMarkerRef.current) {
+            userMarkerRef.current.setLatLng([latitude, longitude]);
+          } else {
+            userMarkerRef.current = L.marker([latitude, longitude], {
+              icon: createUserLocationIcon(),
+              zIndexOffset: 500,
+            }).addTo(map);
+          }
+          map.setView([latitude, longitude], 15);
+        },
+        () => {
+          // If permission is dismissed or denied, use approximate IP location smoothly
+          void getApproximateLocation()
+            .then((loc) => {
+              if (cancelled || !loc || !mapInstanceRef.current) return;
+              mapInstanceRef.current.setView([loc.latitude, loc.longitude], 14);
+            })
+            .catch(() => {});
+        },
+        { enableHighAccuracy: true, timeout: 6000, maximumAge: 60000 },
+      );
+    } else {
+      void getApproximateLocation()
+        .then((loc) => {
+          if (cancelled || !loc || !mapInstanceRef.current) return;
+          mapInstanceRef.current.setView([loc.latitude, loc.longitude], 14);
+        })
+        .catch(() => {});
+    }
+
     return () => {
       cancelled = true;
     };
-  }, [selectedRestaurant]);
+  }, [selectedRestaurant, onUserCoordsChange]);
 
   // Update Markers when restaurants or selectedRestaurant changes
   useEffect(() => {
