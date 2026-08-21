@@ -182,6 +182,16 @@ describe("deterministic ingredient classification", () => {
     expect(recipe.veganizedText).toContain("80 g neutral vegetable oil");
     expect(recipe.substitutions[0]?.guidance).toContain("80 g");
   });
+
+  it("correctly replaces rovells d'ou in Catalan custard recipes", () => {
+    const crema = veganizeRecipe(
+      "Crema catalana\n500 ml de llet sencera\n4 rovells d'ou\n100 g de sucre\nInstruccions:\nBat els rovells d'ou amb el sucre.",
+    );
+    expect(crema.substitutions.find((item) => item.ingredientId === "egg")).toBeDefined();
+    expect(crema.veganizedText).not.toContain("4 rovells d'ou");
+    expect(crema.veganizedText).toContain("240 g silken tofu");
+    expect(crema.veganizedText).not.toContain("els tofu sedós");
+  });
 });
 
 describe("backwards-compatible product responses", () => {

@@ -28,7 +28,10 @@ function extractAmount(line?: string): string | undefined {
 }
 
 function eggCount(line?: string): number | undefined {
-  const value = line?.match(/^\s*(\d+)\s*(?:eggs?|ous?|huevos?)\b/i)?.[1];
+  if (!line) return undefined;
+  const value = line.match(
+    /^\s*(\d+)\s*(?:egg\s+whites?|egg\s+yolks?|eggs?|clares?(?:\s+d['’]ou)?|rovells?(?:\s+d['’]ou)?|ous?|claras?(?:\s+de\s+huevo)?|yemas?(?:\s+de\s+huevo)?|huevos?)\b/i,
+  )?.[1];
   return value ? Number(value) : undefined;
 }
 
@@ -156,7 +159,7 @@ function veganizedIngredientLine(
     }
     return line.replace(
       new RegExp(
-        `^\\s*${eggs}\\s*(?:egg\\s+whites?|egg\\s+yolks?|eggs?|clares?\\s+d['’]ou|rovells?|ous?|claras?\\s+de\\s+huevo|yemas?(?:\\s+de\\s+huevo)?|huevos?)`,
+        `^\\s*${eggs}\\s*(?:egg\\s+whites?|egg\\s+yolks?|eggs?|clares?\\s+d['’]ou|rovells?(?:\\s+d['’]ou)?|ous?|claras?\\s+de\\s+huevo|yemas?(?:\\s+de\\s+huevo)?|huevos?)\\b`,
         "i",
       ),
       replacement,
@@ -222,6 +225,26 @@ function instructionNote(substitution: RecipeSubstitution): string | undefined {
   }
 }
 
+function replaceEggInInstructions(text: string, selectedSuggestion: string): string {
+  const repl = preferredReplacement("egg", selectedSuggestion);
+
+  return text.replace(
+    /\b(?:(the\s+)?(egg\s+whites?|egg\s+yolks?|eggs?)|(?:(els|les)\s+)?(clares?(?:\s+d['’]ou)?|rovells?(?:\s+d['’]ou)?|ous?))\b/gi,
+    (_match, enThe, _enTerm, caArticle, _caTerm) => {
+      if (enThe) {
+        return `the ${repl}`;
+      }
+      if (caArticle) {
+        if (repl === "silken tofu") return "el tofu sedós";
+        if (repl === "aquafaba") return "l'aquafaba";
+        if (repl === "commercial egg replacer") return "el substitut d'ou";
+        return "els ous de lli";
+      }
+      return repl;
+    },
+  );
+}
+
 function buildVeganizedText(
   text: string,
   findings: IngredientFinding[],
@@ -252,19 +275,7 @@ function buildVeganizedText(
             substitution.selectedSuggestion,
           )
         : finding.id === "egg"
-          ? line
-              .replace(
-                /egg\s+whites?|clares?\s+d['’]ou|claras?\s+de\s+huevo/gi,
-                preferredReplacement(finding.id, substitution.selectedSuggestion),
-              )
-              .replace(
-                /egg\s+yolks?|rovells?|yemas?(?:\s+de\s+huevo)?/gi,
-                preferredReplacement(finding.id, substitution.selectedSuggestion),
-              )
-              .replace(
-                /\beggs?\b|\bous?\b|\bhuevos?\b/gi,
-                preferredReplacement(finding.id, substitution.selectedSuggestion),
-              )
+          ? replaceEggInInstructions(line, substitution.selectedSuggestion)
           : replaceAlias(
               line,
               finding.matchedAlias,

@@ -25,21 +25,31 @@ const RECIPE_EXAMPLES: ExampleRecipe[] = [
       en: `Pancakes
 200 g flour
 2 eggs
-300 ml milk
+300 ml whole milk
 30 g butter
 1 tbsp honey
+1 tsp baking powder
+Pinch of salt
 
 Instructions:
-Whisk eggs with milk, melted butter and honey. Fold in flour. Cook in a hot pan until bubbly, flip and brown.`,
+1. Whisk eggs with milk, melted butter and honey in a large bowl.
+2. Add sifted flour, baking powder and salt. Mix gently until just combined without overworking.
+3. Heat a non-stick pan over medium heat with a drop of oil or butter.
+4. Pour 1/4 cup of batter per pancake. Cook for 2-3 minutes until bubbles form on the surface, flip and cook the other side for 1-2 minutes until golden brown.`,
       ca: `Pancakes
 200 g de farina
 2 ous
-300 ml de llet
+300 ml de llet sencera
 30 g de mantega
 1 cullerada de mel
+1 culleradeta de llevat en pols
+Un polsim de sal
 
 Instruccions:
-Bat els ous amb la llet, la mantega desfeta i la mel. Afegeix la farina. Cuina a la paella volta i volta fins que estiguin daurats.`,
+1. Bat els ous amb la llet, la mantega desfeta i la mel en un bol ampli.
+2. Afegeix la farina tamisada amb el llevat i la sal. Barreja-ho suaument fins que quedi homogeni sense batre en excés.
+3. Escalfa una paella antiadherent a foc mitjà amb una mica d'oli o mantega.
+4. Aboca una cullerada gran de massa. Cuina durant 2-3 minuts fins que surtin bombolles a la superfície, gira el pancake i daura l'altre costat durant 1-2 minuts.`,
     },
   },
   {
@@ -50,28 +60,38 @@ Bat els ous amb la llet, la mantega desfeta i la mel. Afegeix la farina. Cuina a
 16 cannelloni pasta tubes
 300 g minced pork and beef
 50 g chicken liver
+1 onion, finely chopped
 40 g butter
 50 g flour
 500 ml whole milk
 60 g grated Parmesan cheese
 1 egg
-Salt, pepper, nutmeg
+Salt, black pepper and nutmeg
 
 Instructions:
-Cook pasta. Brown minced meats and liver with butter. Make béchamel sauce with butter, flour and milk. Fill tubes, cover with béchamel, top with cheese and bake at 200°C for 20 minutes.`,
+1. Boil the pasta tubes in salted water until al dente. Drain and lay flat on a clean damp kitchen towel.
+2. In a skillet, sauté the chopped onion and brown the minced meats and liver with half the butter. Add salt and pepper, let cool, and mix in the egg.
+3. Prepare the béchamel: melt the remaining butter, whisk in the flour for 1 minute, and slowly pour in the warm milk while whisking constantly until smooth and thickened. Season with salt, pepper, and nutmeg.
+4. Fill each pasta tube with the meat filling and arrange neatly in a baking dish.
+5. Pour the béchamel over the cannelloni, sprinkle grated cheese on top, and bake at 200°C for 20 minutes until golden and bubbly.`,
       ca: `Canelons tradicionals
 16 plaques de canelons
 300 g de carn picada de porc i vedella
 50 g de fetge de pollastre
+1 ceba picada finament
 40 g de mantega
 50 g de farina
 500 ml de llet sencera
 60 g de formatge ratllat
 1 ou
-Sal, pebre i nou moscada
+Sal, pebre negre i nou moscada
 
 Instruccions:
-Bull les plaques. Rostir la carn i el fetge amb mantega. Fes la beixamel amb mantega, farina i llet. Farcir els canelons, cobrir amb beixamel i formatge ratllat, i gratinar al forn a 200°C durant 20 minuts.`,
+1. Bull les plaques de canelons en aigua amb sal fins que estiguin al dente. Escorre-les i estén-les sobre un drap de cuina net i humit.
+2. En una paella, sofregir la ceba i daurar la carn picada i el fetge amb la meitat de la mantega. Salpebra, deixa refredar i barreja-hi l'ou.
+3. Prepara la beixamel: fon la resta de mantega, afegeix la farina remenant 1 minut, i aboca la llet tèbia a poc a poc sense parar de remenar amb varetes fins que espesseixi. Condimenta amb sal, pebre i nou moscada.
+4. Farcir les plaques amb la barreja de carn, enrotllar els canelons i col·locar-los en una safata de forn.
+5. Cobrir amb la beixamel, escampar el formatge ratllat per sobre i gratinar al forn a 200°C durant 20 minuts fins que estiguin ben daurats.`,
     },
   },
   {
@@ -82,22 +102,34 @@ Bull les plaques. Rostir la carn i el fetge amb mantega. Fes la beixamel amb man
 500 ml whole milk
 4 egg yolks
 100 g sugar
-25 g cornstarch
+30 g cornstarch (Maizena)
 1 cinnamon stick
-Lemon zest
+Zest of 1 lemon (yellow peel only)
+4 tbsp sugar for caramelizing
 
 Instructions:
-Heat milk with cinnamon and lemon zest. Whisk egg yolks with sugar and cornstarch. Slowly temper with warm milk, return to low heat and stir until thickened. Chill and caramelize sugar on top before serving.`,
+1. In a pot, heat 400 ml of milk with the cinnamon stick and lemon zest over medium heat. Bring to a gentle simmer, turn off the heat, cover and let infuse for 15 minutes.
+2. In a bowl, dissolve the cornstarch and sugar in the remaining 100 ml of cold milk, then whisk in the egg yolks until smooth.
+3. Strain the warm infused milk and slowly pour it into the bowl while whisking continuously.
+4. Pour the mixture back into the pot over low heat. Stir constantly with a wooden spoon or whisk until it thickens into a glossy custard (do not let it boil).
+5. Pour immediately into shallow clay ramekins and let cool. Refrigerate for at least 3 hours.
+6. Just before serving, sprinkle a thin, even layer of sugar on top and caramelize with a kitchen blowtorch or hot iron until a crisp amber crust forms.`,
       ca: `Crema catalana
 500 ml de llet sencera
 4 rovells d'ou
 100 g de sucre
-25 g de midó de blat de moro (Maizena)
+30 g de midó de blat de moro (Maizena)
 1 branca de canyella
-Pell de llimona
+Pell d'1 llimona (només la part groga)
+4 cullerades de sucre per cremar
 
 Instruccions:
-Infusiona la llet amb la canyella i la llimona. Bat els rovells amb el sucre i el midó. Afegeix la llet tèbia a poc a poc, cou a foc lent sense parar de remenar fins que espesseixi. Deixa refredar i crema amb sucre abans de servir.`,
+1. En un cassó, escalfa 400 ml de llet amb la branca de canyella i la pell de llimona a foc mitjà. Quan comenci a bullir, apaga el foc, tapa i deixa infusionar 15 minuts.
+2. En un bol, dissol el midó de blat de moro i el sucre amb els 100 ml restants de llet freda, i després incorpora els rovells d'ou batent fins que quedi fi.
+3. Cola la llet infusionada tèbia i aboca-la lentament al bol sense parar de remenar amb les varetes.
+4. Torna a posar la mescla al cassó a foc lent. Remena constantment amb varetes o cullera de fusta fins que espesseixi amb textura de crema (sense que arribi a bullir fort).
+5. Reparteix la crema en cassoletes individuals de fang i deixa refredar. Posa-les a la nevera un mínim de 3 hores.
+6. Just abans de servir, escampa una capa fina i uniforme de sucre per sobre i crema amb un bufador de cuina o pala de cremar fins a obtenir una crosta daurada i cruixent.`,
     },
   },
   {
@@ -110,22 +142,34 @@ Infusiona la llet amb la canyella i la llimona. Bat els rovells amb el sucre i e
 200 g sugar
 125 g plain yogurt
 100 ml whole milk
-80 g butter
+80 g butter, melted
 16 g baking powder
+Pinch of salt
+1 tsp vanilla extract
 
 Instructions:
-Beat eggs with sugar until fluffy. Add yogurt, melted butter and milk. Fold in sifted flour and baking powder. Bake at 180°C for 35 minutes.`,
+1. Preheat the oven to 180°C (350°F) and grease a round cake tin with a little butter and flour.
+2. In a large mixing bowl, beat the eggs and sugar with an electric whisk for 5 minutes until pale, thick and fluffy.
+3. Add the plain yogurt, melted butter, milk, and vanilla extract. Whisk gently until combined.
+4. Sift together the flour, baking powder, and pinch of salt. Fold into the wet ingredients with a spatula using gentle circular motions until no flour pockets remain.
+5. Pour batter into the tin and bake at 180°C for 35-40 minutes (test with a toothpick in the center; it should come out clean). Let cool on a wire rack before unmolding.`,
       ca: `Pa de pessic
 250 g de farina
 4 ous
 200 g de sucre
 125 g de iogurt natural
 100 ml de llet sencera
-80 g de mantega
+80 g de mantega desfeta
 16 g de llevat en pols
+Un polsim de sal
+1 culleradeta d'extracte de vainilla
 
 Instruccions:
-Bat els ous amb el sucre fins que blanquegin. Afegeix el iogurt, la mantega desfeta i la llet. Incorpora la farina tamisada amb el llevat. Enforna a 180°C durant 35 minuts.`,
+1. Preescalfa el forn a 180°C i engreixa un motlle rodó amb una mica de mantega i farina.
+2. En un bol gran, bat els ous amb el sucre amb varetes durant 5 minuts fins que la barreja blanquegi i dobli el volum.
+3. Incorpora el iogurt natural, la mantega desfeta, la llet i l'extracte de vainilla. Barreja-ho suaument.
+4. Tamisa la farina amb el llevat en pols i el polsim de sal. Afegeix-ho a la massa amb una espàtula fent moviments envolvents suaus fins que no quedin grumolls.
+5. Aboca la massa al motlle i enforna a 180°C durant 35-40 minuts (comprova la cocció clavant un escuradents al centre; ha de sortir net). Deixa refredar abans de desemmotllar.`,
     },
   },
   {
@@ -134,26 +178,40 @@ Bat els ous amb el sucre fins que blanquegin. Afegeix el iogurt, la mantega desf
     text: {
       en: `Chocolate Chip Cookies
 220 g flour
-100 g butter
+100 g butter, softened at room temperature
 1 egg
 120 g brown sugar
-150 g chocolate chips
+50 g white sugar
+150 g dark chocolate chips
 1 tsp vanilla extract
 1/2 tsp baking soda
+Pinch of salt
 
 Instructions:
-Cream soft butter with sugar. Beat in the egg and vanilla. Stir in flour and baking soda, then fold in chocolate chips. Form dough balls and bake at 180°C for 10-12 minutes.`,
+1. Preheat oven to 180°C (350°F) and line a baking sheet with parchment paper.
+2. In a bowl, cream the softened butter with brown sugar and white sugar until smooth and creamy.
+3. Beat in the egg and vanilla extract until fully incorporated.
+4. Stir in the sifted flour, baking soda, and salt until a cohesive dough forms. Fold in the chocolate chips.
+5. Scoop dough into golf-ball sized portions (about 12-14 balls) and place on the baking sheet leaving 5 cm space between each.
+6. Bake at 180°C for 10-12 minutes until edges are lightly golden while centers remain soft. Let cool for 5 minutes on the sheet before transferring to a wire rack.`,
       ca: `Galetes de xocolata
 220 g de farina
-100 g de mantega
+100 g de mantega a temperatura ambient
 1 ou
 120 g de sucre morè
-150 g de xips de xocolata
+50 g de sucre blanc
+150 g de xips de xocolata negra
 1 culleradeta d'extracte de vainilla
 1/2 culleradeta de bicarbonat
+Un polsim de sal
 
 Instruccions:
-Bat la mantega pomada amb el sucre. Afegeix l'ou i la vainilla. Incorpora la farina i el bicarbonat, i per últim els xips de xocolata. Fes boletes i enforna a 180°C durant 10-12 minuts.`,
+1. Preescalfa el forn a 180°C i folra una safata de forn amb paper vegetal.
+2. En un bol, bat la mantega pomada amb el sucre morè i el sucre blanc fins a obtenir una textura cremosa.
+3. Afegeix l'ou i l'extracte de vainilla, batent fins que quedi ben integrat.
+4. Incorpora la farina tamisada amb el bicarbonat i el polsim de sal fins a formar una massa homogènia. Afegeix els xips de xocolata.
+5. Forma boletes de massa de la mida d'una nou (unes 12-14 boletes) i col·loca-les a la safata separades uns 5 cm entre elles.
+6. Enforna a 180°C durant 10-12 minuts fins que les vores estiguin lleugerament daurades i el centre encara estigui tou. Deixa refredar 5 minuts a la safata abans de passar-les a una reixeta.`,
     },
   },
 ];

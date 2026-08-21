@@ -192,7 +192,12 @@ export const INGREDIENT_DICTIONARY: IngredientDefinition[] = [
   {
     id: "egg",
     name: "Egg",
-    aliases: ["egg", "eggs", "egg white", "egg yolk", "albumen", "ou", "ous", "clara d'ou", "rovell", "huevo", "huevos", "clara de huevo", "yema", "oeuf", "oeufs", "œuf", "œufs", "blanc d'oeuf", "jaune d'oeuf"],
+    aliases: [
+      "egg", "eggs", "egg white", "egg whites", "egg yolk", "egg yolks", "albumen",
+      "ou", "ous", "clara d'ou", "clares d'ou", "rovell d'ou", "rovells d'ou", "rovell", "rovells",
+      "huevo", "huevos", "clara de huevo", "claras de huevo", "yema de huevo", "yemas de huevo", "yema", "yemas",
+      "oeuf", "oeufs", "œuf", "œufs", "blanc d'oeuf", "blancs d'oeufs", "jaune d'oeuf", "jaunes d'oeufs"
+    ],
     status: "vegetarian",
     reason: "Egg is animal-derived, so the recipe is not vegan.",
     category: "egg",
