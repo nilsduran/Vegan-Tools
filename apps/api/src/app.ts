@@ -268,6 +268,25 @@ export async function buildApp(
     });
   });
 
+  function deduplicateRestaurants(candidates: RestaurantCandidate[]): RestaurantCandidate[] {
+    const seen = new Set<string>();
+    const result: RestaurantCandidate[] = [];
+
+    for (const c of candidates) {
+      const latKey = c.latitude.toFixed(3);
+      const lngKey = c.longitude.toFixed(3);
+      const normName = c.name.trim().toLowerCase().replace(/[^a-z0-9]/g, "");
+      const key = `${normName}:${latKey}:${lngKey}`;
+
+      if (!seen.has(key)) {
+        seen.add(key);
+        result.push(c);
+      }
+    }
+
+    return result;
+  }
+
   app.get<{
     Querystring: {
       latitude?: string;
@@ -618,12 +637,24 @@ export async function buildApp(
           request.log.warn({ error }, "Foursquare restaurant search failed; using OpenStreetMap");
         }
       }
+      // 1. Check curated catalog for instant high-confidence matches
+      const curatedMatches = CURATED_RESTAURANTS.filter((r) => {
+        const qLower = query.toLowerCase();
+        const rName = r.name.toLowerCase();
+        const rAddr = r.address.toLowerCase();
+        return (
+          rName.includes(qLower) ||
+          qLower.includes(rName) ||
+          (rAddr.includes(qLower) && rName.length > 2)
+        );
+      });
 
-      // 1. Try Photon (OSM POI search engine with continuous proximity scoring)
+      // 2. Query Photon (Komoot OSM POI engine with soft proximity ranking)
+      const photonResults: RestaurantCandidate[] = [];
       try {
         const photonUrl = new URL("https://photon.komoot.io/api/");
         photonUrl.searchParams.set("q", query);
-        photonUrl.searchParams.set("limit", "30");
+        photonUrl.searchParams.set("limit", "25");
         if (hasLocation) {
           photonUrl.searchParams.set("lat", String(latitude));
           photonUrl.searchParams.set("lon", String(longitude));
@@ -664,62 +695,61 @@ export async function buildApp(
             "restaurant", "cafe", "fast_food", "bar", "pub", "bistro", "ice_cream",
             "bakery", "food_court", "pastry", "coffee_shop", "deli", "vegetarian", "vegan", "yes"
           ]);
-          const photonCandidates: RestaurantCandidate[] = (photonData.features ?? [])
-            .filter((f) => {
-              const p = f.properties;
-              if (!p?.name || !f.geometry?.coordinates) return false;
-              if (p.osm_key === "amenity" || p.osm_key === "shop") {
-                return diningValues.has(p.osm_value ?? "") || true;
-              }
-              return (
-                p.name.toLowerCase().includes(query.toLowerCase()) ||
-                query.toLowerCase().includes(p.name.toLowerCase())
-              );
-            })
-            .map((f) => {
-              const p = f.properties!;
-              const [lon, lat] = f.geometry!.coordinates!;
-              const streetAddress = [p.street, p.housenumber].filter(Boolean).join(" ");
-              const locality = p.city || p.town || p.village;
-              const fullAddress = [streetAddress, locality, p.state, p.country]
-                .filter(Boolean)
-                .join(", ");
-              return {
-                id: `osm-${p.osm_type ?? "N"}-${p.osm_id ?? Math.floor(Math.random() * 1e8)}`,
-                name: p.name!,
-                address: fullAddress || locality || p.country || "",
-                latitude: lat,
-                longitude: lon,
-                mapUrl: `https://www.openstreetmap.org/?mlat=${lat}&mlon=${lon}#map=17/${lat}/${lon}`,
-                provider: "openstreetmap" as const,
-              };
-            });
+          for (const f of photonData.features ?? []) {
+            const p = f.properties;
+            if (!p?.name || !f.geometry?.coordinates) continue;
+            const [lon, lat] = f.geometry.coordinates;
+            const isDining = (p.osm_key === "amenity" || p.osm_key === "shop") && diningValues.has(p.osm_value ?? "");
+            const searchHead = query.split(",")[0]?.trim().toLowerCase() ?? query.toLowerCase();
+            const nameMatches = p.name.toLowerCase().includes(searchHead) ||
+              query.toLowerCase().includes(p.name.toLowerCase());
+            if (!isDining && !nameMatches && p.osm_key !== "amenity") continue;
 
-          if (photonCandidates.length > 0) {
-            restaurantSearchCache.set(cacheKey, {
-              expiresAt: Date.now() + 15 * 60_000,
-              results: photonCandidates,
+            const streetAddress = [p.street, p.housenumber].filter(Boolean).join(" ");
+            const locality = p.city || p.town || p.village;
+            const fullAddress = [streetAddress, locality, p.state, p.country]
+              .filter(Boolean)
+              .join(", ");
+
+            photonResults.push({
+              id: `osm-${p.osm_type ?? "N"}-${p.osm_id ?? Math.floor(Math.random() * 1e8)}`,
+              name: p.name,
+              address: fullAddress || locality || p.country || "",
+              latitude: lat,
+              longitude: lon,
+              mapUrl: `https://www.openstreetmap.org/?mlat=${lat}&mlon=${lon}#map=17/${lat}/${lon}`,
+              provider: "openstreetmap" as const,
             });
-            return photonCandidates;
           }
         }
       } catch (photonErr) {
-        request.log.warn({ photonErr }, "Photon search fallback failed, trying Nominatim");
+        request.log.warn({ photonErr }, "Photon search failed, falling back to Nominatim");
       }
 
-      // 2. Fallback to OpenStreetMap Nominatim
+      // If we got high quality results from Photon or curated, return them
+      if (photonResults.length >= 3 || (curatedMatches.length > 0 && photonResults.length > 0)) {
+        const combined = [...curatedMatches, ...photonResults];
+        const deduplicated = deduplicateRestaurants(combined);
+        restaurantSearchCache.set(cacheKey, {
+          expiresAt: Date.now() + 15 * 60_000,
+          results: deduplicated,
+        });
+        return deduplicated;
+      }
+
+      // 3. Fallback to OpenStreetMap Nominatim
       const buildNominatimUrl = (withLocation: boolean) => {
         const url = new URL("https://nominatim.openstreetmap.org/search");
         url.search = new URLSearchParams({
-          q: withLocation ? query : [query, request.query.near?.trim() || inferredTextNear].filter(Boolean).join(", "),
+          q: query,
           format: "jsonv2",
-          limit: "35",
+          limit: "30",
           addressdetails: "1",
           extratags: "1",
           ...(withLocation && hasLocation
             ? {
-                viewbox: `${longitude - 0.12},${latitude + 0.09},${longitude + 0.12},${latitude - 0.09}`,
-                bounded: "1",
+                viewbox: `${longitude - 0.25},${latitude + 0.2},${longitude + 0.25},${latitude - 0.2}`,
+                bounded: "0",
               }
             : {}),
         }).toString();
@@ -778,10 +808,12 @@ export async function buildApp(
           "restaurant", "cafe", "fast_food", "bar", "pub", "bistro", "ice_cream",
           "bakery", "food_court", "pastry", "coffee_shop", "deli", "vegetarian", "vegan"
         ]);
-        const candidates: RestaurantCandidate[] = raw
+        const searchHead = query.split(",")[0]?.trim().toLowerCase() ?? query.toLowerCase();
+        const nominatimCandidates: RestaurantCandidate[] = raw
           .filter((item) =>
             diningTypes.has(item.type ?? "") ||
-            item.category === "amenity"
+            item.category === "amenity" ||
+            (item.name && item.name.toLowerCase().includes(searchHead))
           )
           .map((item) => {
             const website = item.extratags?.website ?? item.extratags?.["contact:website"];
@@ -807,13 +839,21 @@ export async function buildApp(
               cuisine: item.extratags?.cuisine,
             };
           });
+
+        const allResults = [...curatedMatches, ...photonResults, ...nominatimCandidates];
+        const finalResults = deduplicateRestaurants(allResults);
+
         restaurantSearchCache.set(cacheKey, {
           expiresAt: Date.now() + 15 * 60_000,
-          results: candidates,
+          results: finalResults,
         });
-        return candidates;
+        return finalResults;
       } catch (error) {
         request.log.warn({ error }, "Restaurant search failed");
+        if (photonResults.length > 0 || curatedMatches.length > 0) {
+          const fallback = deduplicateRestaurants([...curatedMatches, ...photonResults]);
+          return fallback;
+        }
         return reply.code(503).send({
           code: "RESTAURANT_SEARCH_UNAVAILABLE",
           message: "Restaurant search is temporarily unavailable. You can still upload a menu.",
