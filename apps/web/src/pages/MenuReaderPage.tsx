@@ -56,6 +56,7 @@ export function MenuReaderPage() {
   const uploadSectionRef = useRef<HTMLElement>(null);
   const [restaurantQuery, setRestaurantQuery] = useState("");
   const [restaurantResults, setRestaurantResults] = useState<RestaurantCandidate[]>([]);
+  const [curatedPins, setCuratedPins] = useState<RestaurantCandidate[]>([]);
   const [selectedRestaurant, setSelectedRestaurant] = useState<RestaurantCandidate>();
   const [searchingRestaurants, setSearchingRestaurants] = useState(false);
   const [searchSubmitted, setSearchSubmitted] = useState(false);
@@ -89,18 +90,16 @@ export function MenuReaderPage() {
     });
   };
 
-  // Fetch approximate location and preload curated nearby restaurants
+  // Fetch approximate location and preload curated nearby pins strictly for the map canvas
   useEffect(() => {
     let cancelled = false;
     void getApproximateLocation()
       .then(async (loc) => {
         if (cancelled || !loc) return;
         setApproximateLocation(loc);
-        if (!restaurantQuery && restaurantResults.length === 0) {
-          const curated = await getCuratedRestaurants(loc);
-          if (!cancelled && curated.length > 0) {
-            setRestaurantResults(curated);
-          }
+        const curated = await getCuratedRestaurants(loc);
+        if (!cancelled && curated.length > 0) {
+          setCuratedPins(curated);
         }
       })
       .catch(() => {
@@ -122,11 +121,13 @@ export function MenuReaderPage() {
     }
     if (selectedRestaurant?.id === placeId) return;
 
-    const match = restaurantResults.find((r) => r.id === placeId);
+    const match =
+      restaurantResults.find((r) => r.id === placeId) ||
+      curatedPins.find((r) => r.id === placeId);
     if (match) {
       setSelectedRestaurant(match);
     }
-  }, [searchParams, restaurantResults, selectedRestaurant]);
+  }, [searchParams, restaurantResults, curatedPins, selectedRestaurant]);
 
   useEffect(() => {
     const qParam = searchParams.get("q");
@@ -434,7 +435,7 @@ export function MenuReaderPage() {
 
         <div className="map-fullscreen-canvas">
           <RestaurantMap
-            restaurants={restaurantResults}
+            restaurants={restaurantResults.length > 0 ? restaurantResults : curatedPins}
             selectedRestaurant={selectedRestaurant}
             onSelectRestaurant={(restaurant) => {
               handleSelectRestaurant(restaurant);

@@ -831,6 +831,9 @@ export async function buildApp(
       });
     }
     const candidate = parsed.data;
+    if (candidate.provider === "curated" || candidate.id.startsWith("curated-")) {
+      return candidate;
+    }
     if (candidate.provider !== "foursquare") {
       if (candidate.websiteUrl) return candidate;
       try {

@@ -80,7 +80,7 @@ export function RestaurantMap({
 
     const map = L.map(mapContainerRef.current, {
       center: [initialLat, initialLng],
-      zoom: selectedRestaurant ? 16 : 13,
+      zoom: selectedRestaurant ? 16 : 14,
       zoomControl: false,
       attributionControl: true,
     });
@@ -101,6 +101,17 @@ export function RestaurantMap({
     const markersGroup = L.layerGroup().addTo(map);
     markersGroupRef.current = markersGroup;
     mapInstanceRef.current = map;
+
+    const updateZoomClass = () => {
+      if (!mapContainerRef.current) return;
+      if (map.getZoom() >= 14) {
+        mapContainerRef.current.classList.add("leaflet-map-zoom-close");
+      } else {
+        mapContainerRef.current.classList.remove("leaflet-map-zoom-close");
+      }
+    };
+    map.on("zoomend", updateZoomClass);
+    updateZoomClass();
 
     // Detect user pan/drag to show "Search this area" button
     map.on("dragend", () => {
@@ -136,7 +147,7 @@ export function RestaurantMap({
       .then((loc) => {
         if (cancelled || !loc || !mapInstanceRef.current) return;
         const map = mapInstanceRef.current;
-        map.setView([loc.latitude, loc.longitude], 13);
+        map.setView([loc.latitude, loc.longitude], 14);
       })
       .catch(() => {
         // Fallback silently if offline or IP lookup fails

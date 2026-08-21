@@ -725,34 +725,33 @@
 .search-clear-btn {
   position: absolute;
   right: 0.5rem;
-  background: #f3f4f6;
-  border: 1px solid #d1d5db;
-  color: #374151;
+  background: transparent !important;
+  border: none !important;
+  color: #6b7280 !important;
   cursor: pointer;
-  width: 26px;
-  height: 26px;
-  min-width: 26px;
-  min-height: 26px;
+  width: 24px;
+  height: 24px;
+  min-width: 24px;
+  min-height: 24px;
   aspect-ratio: 1 / 1;
   padding: 0;
   display: flex;
   align-items: center;
   justify-content: center;
-  border-radius: 6px;
+  border-radius: 50%;
   transition: all 0.15s ease;
 }
 
 .search-clear-btn:hover {
-  color: #111827;
-  background: #e5e7eb;
-  border-color: #9ca3af;
+  color: #111827 !important;
+  background: #f3f4f6 !important;
 }
 
 .search-clear-btn svg {
-  width: 14px;
-  height: 14px;
-  stroke: #374151;
-  stroke-width: 2.5;
+  width: 16px;
+  height: 16px;
+  stroke: currentColor !important;
+  stroke-width: 2.2;
 }
 
 .restaurant-link-btn {
@@ -909,7 +908,20 @@
   justify-content: center !important;
 }
 
+/* By default, hide tooltips when zoomed out */
 .map-pin-name-tooltip {
+  display: none !important;
+  opacity: 0;
+}
+
+.map-pin-name-tooltip::before {
+  display: none !important;
+}
+
+/* Only display tooltips when the map container is zoomed in close (zoom >= 14) */
+.leaflet-map-zoom-close .map-pin-name-tooltip {
+  display: block !important;
+  opacity: 1;
   background: rgba(255, 255, 255, 0.96) !important;
   border: 1px solid rgba(0, 0, 0, 0.15) !important;
   border-radius: 5px !important;
@@ -920,14 +932,10 @@
   box-shadow: 0 2px 6px rgba(0, 0, 0, 0.18) !important;
   white-space: nowrap !important;
   pointer-events: none !important;
-  transition: all 0.15s ease !important;
+  transition: opacity 0.15s ease !important;
 }
 
-.map-pin-name-tooltip::before {
-  display: none !important;
-}
-
-.map-pin-name-tooltip.selected {
+.leaflet-map-zoom-close .map-pin-name-tooltip.selected {
   background: #064e3b !important;
   color: #ffffff !important;
   border-color: #042f2e !important;
