@@ -171,8 +171,7 @@ export function MenuReaderPage() {
     setRestaurantError("");
     try {
       const resolved = await resolveRestaurant(restaurant);
-      setSelectedRestaurant(resolved);
-      setRestaurantResults([]);
+      handleSelectRestaurant(resolved);
       setSearchSessionToken(newSearchSessionToken());
       if (resolved.websiteUrl) {
         setLoadedFromCache(false);

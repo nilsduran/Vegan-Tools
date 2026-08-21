@@ -279,7 +279,7 @@ export async function buildApp(
     async (request) => {
       const latitude = Number(request.query.latitude);
       const longitude = Number(request.query.longitude);
-      const limit = Math.min(Math.max(Number(request.query.limit) || 20, 1), 50);
+      const limit = Math.min(Math.max(Number(request.query.limit) || 12, 1), 50);
       const hasLocation =
         Number.isFinite(latitude) && latitude >= -90 && latitude <= 90 &&
         Number.isFinite(longitude) && longitude >= -180 && longitude <= 180;
@@ -288,14 +288,24 @@ export async function buildApp(
         return CURATED_RESTAURANTS.slice(0, limit);
       }
 
-      // Sort curated list by geographical proximity
-      const sorted = [...CURATED_RESTAURANTS].sort((a, b) => {
-        const distA = Math.hypot(a.latitude - latitude, a.longitude - longitude);
-        const distB = Math.hypot(b.latitude - latitude, b.longitude - longitude);
-        return distA - distB;
-      });
+      // Calculate distance in km to each curated place
+      const withDistance = CURATED_RESTAURANTS.map((r) => {
+        const dLat = ((r.latitude - latitude) * Math.PI) / 180;
+        const dLng = ((r.longitude - longitude) * Math.PI) / 180;
+        const a =
+          Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+          Math.cos((latitude * Math.PI) / 180) *
+            Math.cos((r.latitude * Math.PI) / 180) *
+            Math.sin(dLng / 2) *
+            Math.sin(dLng / 2);
+        const distKm = 6371 * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+        return { r, distKm };
+      }).sort((a, b) => a.distKm - b.distKm);
 
-      return sorted.slice(0, limit);
+      // Return only venues within regional reach (max 50 km) or the 5 closest within 100km
+      const nearby = withDistance.filter((item) => item.distKm <= 55);
+      const candidates = nearby.length > 0 ? nearby : withDistance.filter((item) => item.distKm <= 120).slice(0, 6);
+      return candidates.slice(0, limit).map((item) => item.r);
     },
   );
 

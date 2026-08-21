@@ -10,21 +10,21 @@ import { tx, useLanguage } from "../i18n";
 function createRestaurantIcon(isSelected: boolean) {
   const pinColor = isSelected ? "#064e3b" : "#0f5c45";
   const strokeColor = isSelected ? "#a7f3d0" : "#ffffff";
-  const width = isSelected ? 40 : 32;
-  const height = isSelected ? 50 : 40;
+  const width = isSelected ? 36 : 28;
+  const height = isSelected ? 46 : 36;
 
   const svgHtml = `
-    <div style="width: ${width}px; height: ${height}px; cursor: pointer; filter: drop-shadow(0 3px 6px rgba(0,0,0,0.35)); transition: transform 0.15s ease;">
-      <svg viewBox="0 0 24 30" width="${width}" height="${height}" fill="${pinColor}" stroke="${strokeColor}" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+    <div style="width: ${width}px; height: ${height}px; margin: 0; padding: 0; display: block; line-height: 0;">
+      <svg viewBox="0 0 24 30" width="${width}" height="${height}" fill="${pinColor}" stroke="${strokeColor}" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" style="filter: drop-shadow(0 3px 5px rgba(0,0,0,0.32));">
         <path d="M12 2C7.03 2 3 6.03 3 11c0 6.75 9 17 9 17s9-10.25 9-17c0-4.97-4.03-9-9-9z"/>
-        <circle cx="12" cy="11" r="3.8" fill="#d9f99d" stroke="none"/>
+        <circle cx="12" cy="11" r="3.6" fill="#d9f99d" stroke="none"/>
       </svg>
     </div>
   `;
 
   return L.divIcon({
     html: svgHtml,
-    className: "vegan-tools-map-pin",
+    className: "vegan-tools-map-pin-container",
     iconSize: [width, height],
     iconAnchor: [width / 2, height],
     popupAnchor: [0, -height],
@@ -33,7 +33,7 @@ function createRestaurantIcon(isSelected: boolean) {
 
 function createUserLocationIcon() {
   const svgHtml = `
-    <div style="position: relative; width: 24px; height: 24px;">
+    <div style="position: relative; width: 24px; height: 24px; margin: 0; padding: 0;">
       <div style="position: absolute; inset: 0; background: rgba(30, 144, 255, 0.25); border-radius: 50%; animation: pulse-ring 2s infinite;"></div>
       <div style="position: absolute; top: 4px; left: 4px; width: 16px; height: 16px; background: #1e90ff; border: 2.5px solid #ffffff; border-radius: 50%; box-shadow: 0 2px 5px rgba(0,0,0,0.3);"></div>
     </div>
@@ -75,12 +75,12 @@ export function RestaurantMap({
   useEffect(() => {
     if (!mapContainerRef.current || mapInstanceRef.current) return;
 
-    const initialLat = selectedRestaurant?.latitude || restaurants[0]?.latitude || 41.3879;
-    const initialLng = selectedRestaurant?.longitude || restaurants[0]?.longitude || 2.1699;
+    const initialLat = selectedRestaurant?.latitude || 41.3879;
+    const initialLng = selectedRestaurant?.longitude || 2.1699;
 
     const map = L.map(mapContainerRef.current, {
       center: [initialLat, initialLng],
-      zoom: selectedRestaurant ? 16 : 14,
+      zoom: selectedRestaurant ? 16 : 13,
       zoomControl: false,
       attributionControl: true,
     });
@@ -127,9 +127,9 @@ export function RestaurantMap({
 
   const initialLocatedRef = useRef(false);
 
-  // Fetch approximate IP location on load if no specific restaurant was selected or found yet
+  // Fetch approximate IP location on load if no specific restaurant was selected
   useEffect(() => {
-    if (initialLocatedRef.current || selectedRestaurant || restaurants.length > 0) return;
+    if (initialLocatedRef.current || selectedRestaurant) return;
     initialLocatedRef.current = true;
     let cancelled = false;
     void getApproximateLocation()
@@ -139,12 +139,12 @@ export function RestaurantMap({
         map.setView([loc.latitude, loc.longitude], 13);
       })
       .catch(() => {
-        // Fallback silently if offline or IP location lookup fails
+        // Fallback silently if offline or IP lookup fails
       });
     return () => {
       cancelled = true;
     };
-  }, [restaurants.length, selectedRestaurant]);
+  }, [selectedRestaurant]);
 
   // Update Markers when restaurants or selectedRestaurant changes
   useEffect(() => {
@@ -170,14 +170,23 @@ export function RestaurantMap({
         zIndexOffset: isSelected ? 1000 : 0,
       });
 
-      marker.on("click", () => {
+      // Bind persistent name tooltip displayed under the pin
+      marker.bindTooltip(restaurant.name, {
+        permanent: true,
+        direction: "bottom",
+        offset: [0, 4],
+        className: isSelected ? "map-pin-name-tooltip selected" : "map-pin-name-tooltip",
+      });
+
+      marker.on("click", (e) => {
+        L.DomEvent.stopPropagation(e);
         onSelectRestaurant(restaurant);
       });
 
       markersGroup.addLayer(marker);
     }
 
-    // If selectedRestaurant is provided, center and fly to it
+    // If selectedRestaurant is provided, center and fly smoothly to it
     if (
       selectedRestaurant &&
       typeof selectedRestaurant.latitude === "number" &&
@@ -189,11 +198,6 @@ export function RestaurantMap({
       map.flyTo([selectedRestaurant.latitude, selectedRestaurant.longitude], 16, {
         duration: 0.8,
       });
-    } else if (validRestaurants.length > 0 && !selectedRestaurant) {
-      const bounds = L.latLngBounds(
-        validRestaurants.map((r) => [r.latitude, r.longitude]),
-      );
-      map.fitBounds(bounds, { padding: [40, 40], maxZoom: 16 });
     }
   }, [restaurants, selectedRestaurant, onSelectRestaurant]);
 
