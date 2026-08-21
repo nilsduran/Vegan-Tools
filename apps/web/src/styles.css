@@ -402,10 +402,10 @@ button:disabled { cursor: not-allowed; opacity: .55; }
 .restaurant-results { display: grid; gap: .5rem; margin: 1rem 0 0; padding: 0; list-style: none; }
 .restaurant-results li { display: flex; align-items: center; justify-content: space-between; gap: 1rem; padding: .75rem; border: 1px solid var(--line); border-radius: 12px; background: #f8f9f6; }
 .restaurant-results li > div { display: grid; min-width: 0; gap: .2rem; }
-.restaurant-results li span, .selected-restaurant span { overflow: hidden; color: var(--muted); font-size: .76rem; text-overflow: ellipsis; white-space: nowrap; }
-.restaurant-links { display: flex; gap: .75rem; margin-top: .25rem; }
-.restaurant-links a { display: inline-flex; align-items: center; gap: .2rem; color: var(--green); font-size: .75rem; font-weight: 700; }
-.restaurant-links svg { width: 12px; height: 12px; }
+.restaurant-links { display: flex; align-items: center; gap: .85rem; margin-top: .35rem; }
+.restaurant-links a, .restaurant-links button { display: inline-flex; align-items: center; gap: .28rem; color: var(--green); font-size: .78rem; font-weight: 700; text-decoration: underline; line-height: 1; border: 0; background: transparent; padding: 0; cursor: pointer; }
+.restaurant-links a:hover, .restaurant-links button:hover { color: var(--green-dark); }
+.restaurant-links svg { width: 13px; height: 13px; flex-shrink: 0; }
 .selected-restaurant { display: grid; grid-template-columns: 1fr auto; align-items: center; gap: .8rem 1rem; margin-top: 1rem; padding: .8rem; border-radius: 12px; background: #e9f6ee; }
 .selected-restaurant > div { display: grid; min-width: 0; gap: .15rem; }
 .selected-restaurant small { color: var(--green); font-size: .68rem; font-weight: 800; text-transform: uppercase; }

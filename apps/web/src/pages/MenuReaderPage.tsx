@@ -10,13 +10,14 @@ import {
   ExternalLink,
   FileImage,
   FileText,
+  Globe,
   Images,
-  Leaf,
   LoaderCircle,
   MapPin,
   Navigation,
   Search,
   Upload,
+  Utensils,
   X,
 } from "lucide-react";
 import {
@@ -35,7 +36,8 @@ function newSearchSessionToken() {
   return crypto.randomUUID().replaceAll("-", "");
 }
 
-function sameRestaurant(left: RestaurantCandidate, right: RestaurantCandidate) {
+function sameRestaurant(left?: RestaurantCandidate, right?: RestaurantCandidate): boolean {
+  if (!left || !right) return false;
   if (left.id === right.id) return true;
   return left.name.trim().toLocaleLowerCase() === right.name.trim().toLocaleLowerCase() &&
     left.address.trim().toLocaleLowerCase() === right.address.trim().toLocaleLowerCase();
@@ -47,6 +49,7 @@ export function MenuReaderPage() {
   const [files, setFiles] = useState<File[]>([]);
   const [draft, setDraft] = useState<MenuDraft>();
   const [error, setError] = useState("");
+  const [showUploadModal, setShowUploadModal] = useState(false);
   const [restaurantQuery, setRestaurantQuery] = useState("");
   const [restaurantResults, setRestaurantResults] = useState<RestaurantCandidate[]>([]);
   const [selectedRestaurant, setSelectedRestaurant] = useState<RestaurantCandidate>();
@@ -295,9 +298,16 @@ export function MenuReaderPage() {
                 {searchingRestaurants ? <LoaderCircle className="spin" /> : <Search />}
               </button>
             </form>
+            <button
+              type="button"
+              className="sidebar-upload-menu-btn"
+              onClick={() => setShowUploadModal(true)}
+            >
+              <Upload aria-hidden="true" />
+              <span>{language === "ca" ? "Puja una carta (foto/PDF)" : "Upload menu (photo/PDF)"}</span>
+            </button>
+            {restaurantError && <div className="sidebar-error error-banner">{restaurantError}</div>}
           </div>
-
-          {restaurantError && <p className="form-error sidebar-error">{restaurantError}</p>}
 
           <div className="sidebar-content-area">
             {selectedRestaurant ? (
@@ -308,7 +318,7 @@ export function MenuReaderPage() {
                 onOpenMenu={(r) => void selectRestaurant(r)}
                 onUploadMenu={(r) => {
                   setSelectedRestaurant(r);
-                  uploadSectionRef.current?.scrollIntoView({ behavior: "smooth" });
+                  setShowUploadModal(true);
                 }}
               />
             ) : (
@@ -316,13 +326,15 @@ export function MenuReaderPage() {
                 {restaurantResults.length > 0 ? (
                   <ul className="restaurant-results">
                     {restaurantResults.map((restaurant) => {
-                      const directionsUrl =
+                      const hasCoordinates =
                         typeof restaurant.latitude === "number" &&
                         typeof restaurant.longitude === "number" &&
                         restaurant.latitude !== 0 &&
-                        restaurant.longitude !== 0
-                          ? `https://www.google.com/maps/dir/?api=1&destination=${restaurant.latitude},${restaurant.longitude}`
-                          : restaurant.mapUrl || `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(`${restaurant.name} ${restaurant.address}`)}`;
+                        restaurant.longitude !== 0;
+
+                      const directionsUrl = hasCoordinates
+                        ? `geo:${restaurant.latitude},${restaurant.longitude}?q=${encodeURIComponent(restaurant.name)}`
+                        : restaurant.mapUrl || `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(`${restaurant.name} ${restaurant.address}`)}`;
 
                       return (
                         <li
@@ -343,7 +355,7 @@ export function MenuReaderPage() {
                                   void selectRestaurant(restaurant);
                                 }}
                               >
-                                <Leaf aria-hidden="true" />
+                                <Utensils aria-hidden="true" />
                                 <span>{tx("Menu")}</span>
                               </button>
                               {restaurant.websiteUrl && (
@@ -353,7 +365,8 @@ export function MenuReaderPage() {
                                   rel="noreferrer"
                                   onClick={(e) => e.stopPropagation()}
                                 >
-                                  {tx("Website")} <ExternalLink />
+                                  <Globe aria-hidden="true" />
+                                  <span>{tx("Website")}</span>
                                 </a>
                               )}
                               <a
@@ -362,7 +375,8 @@ export function MenuReaderPage() {
                                 rel="noreferrer"
                                 onClick={(e) => e.stopPropagation()}
                               >
-                                {tx("Directions")} <Navigation />
+                                <Navigation aria-hidden="true" />
+                                <span>{tx("Directions")}</span>
                               </a>
                             </div>
                           </div>
@@ -392,112 +406,124 @@ export function MenuReaderPage() {
         </div>
       </div>
 
-      {/* Upload menu section below the map */}
-      <section className="menu-upload bottom-menu-upload" ref={uploadSectionRef}>
-        <div className="menu-upload-heading">
-          <h2>{tx("Add the menu")}</h2>
-          <p>{tx("Upload a menu (photos or PDF) to analyze its dishes.")}</p>
-        </div>
-        <div className="upload-options">
-          <label className="upload-option camera-option">
-            <Camera aria-hidden="true" />
-            <span>
-              <strong>{tx("Take photos")}</strong>
-              <small>{tx("Take one per page—you can add up to 8")}</small>
-            </span>
-            <input
-              type="file"
-              accept="image/*"
-              capture="environment"
-              onChange={(event) => {
-                const captured = [...event.target.files ?? []];
-                setFiles((current) => [...current, ...captured].slice(0, 8));
-                event.target.value = "";
-              }}
-            />
-          </label>
-          <label className="upload-option">
-            <Images aria-hidden="true" />
-            <span>
-              <strong>{tx("Choose files")}</strong>
-              <small>{tx("Photos or a PDF, up to 8 files")}</small>
-            </span>
-            <input
-              type="file"
-              accept="application/pdf,image/jpeg,image/png,image/webp"
-              multiple
-              onChange={(event) => {
-                const chosen = [...event.target.files ?? []];
-                setFiles((current) => [...current, ...chosen].slice(0, 8));
-                event.target.value = "";
-              }}
-            />
-          </label>
-        </div>
-
-        {files.length > 0 && (
-          <>
-            <div className="file-list-heading">
-              <span>
-                {files.length}{" "}
-                {language === "ca"
-                  ? `${files.length === 1 ? "pàgina" : "pàgines"} a punt`
-                  : `${files.length === 1 ? "page" : "pages"} ready`}
-              </span>
-              <small>{tx("Photos are read in this order.")}</small>
+      {/* Upload menu modal dialog */}
+      {showUploadModal && (
+        <div className="modal-backdrop" onClick={() => setShowUploadModal(false)}>
+          <div
+            className="modal-content upload-modal-content"
+            onClick={(e) => e.stopPropagation()}
+            role="dialog"
+            aria-labelledby="upload-modal-title"
+          >
+            <div className="modal-header">
+              <h2 id="upload-modal-title">
+                {selectedRestaurant ? `${tx("Add the menu")} · ${selectedRestaurant.name}` : tx("Add the menu")}
+              </h2>
+              <button
+                type="button"
+                className="modal-close-btn"
+                onClick={() => setShowUploadModal(false)}
+                aria-label={t("remove")}
+              >
+                <X />
+              </button>
             </div>
-            <ul className="file-list">
-              {files.map((file, index) => (
-                <li key={`${file.name}-${file.lastModified}-${index}`}>
-                  <span className="file-number">{index + 1}</span>
-                  {file.type === "application/pdf" ? <FileText /> : <FileImage />}
-                  <span>{file.name}</span>
-                  <button
-                    type="button"
-                    aria-label={`Remove ${file.name}`}
-                    onClick={() => setFiles(files.filter((_, candidate) => candidate !== index))}
-                  ><X /></button>
-                </li>
-              ))}
-            </ul>
-          </>
-        )}
-      </section>
+            <p className="modal-subtitle">
+              {tx("Upload a menu (photos or PDF) to analyze its dishes.")}
+            </p>
+            <div className="upload-options">
+              <label className="upload-option camera-option">
+                <Camera aria-hidden="true" />
+                <span>
+                  <strong>{tx("Take photos")}</strong>
+                  <small>{tx("Take one per page—you can add up to 8")}</small>
+                </span>
+                <input
+                  type="file"
+                  accept="image/*"
+                  capture="environment"
+                  onChange={(event) => {
+                    const captured = [...(event.target.files ?? [])];
+                    setFiles((current) => [...current, ...captured].slice(0, 8));
+                    event.target.value = "";
+                  }}
+                />
+              </label>
+              <label className="upload-option">
+                <Images aria-hidden="true" />
+                <span>
+                  <strong>{tx("Choose files")}</strong>
+                  <small>{tx("Photos or a PDF, up to 8 files")}</small>
+                </span>
+                <input
+                  type="file"
+                  accept="application/pdf,image/jpeg,image/png,image/webp"
+                  multiple
+                  onChange={(event) => {
+                    const chosen = [...(event.target.files ?? [])];
+                    setFiles((current) => [...current, ...chosen].slice(0, 8));
+                    event.target.value = "";
+                  }}
+                />
+              </label>
+            </div>
 
-      <button
-        className="primary-button large-button"
-        disabled={files.length === 0 || draft?.status === "processing"}
-        onClick={async () => {
-          setError("");
-          try {
-            setLoadedFromCache(false);
-            setDraft(await createRestaurantMenuAnalysis(files, selectedRestaurant));
-          } catch (analysisError) {
-            setError(analysisError instanceof Error ? analysisError.message : tx("Analysis failed."));
-          }
-        }}
-      >
-        {draft?.status === "processing" ? <LoaderCircle className="spin" /> : <Upload />}
-        {draft?.status === "processing" ? tx("Extracting dishes…") : t("analyze")}
-      </button>
-      {draft?.status === "processing" && (
-        <button
-          type="button"
-          className="text-button cancel-analysis"
-          onClick={() => {
-            setDraft(undefined);
-            setError("");
-          }}
-        >
-          {tx("Cancel analysis")}
-        </button>
+            {files.length > 0 && (
+              <>
+                <div className="file-list-heading">
+                  <span>
+                    {files.length}{" "}
+                    {language === "ca"
+                      ? `${files.length === 1 ? "pàgina" : "pàgines"} a punt`
+                      : `${files.length === 1 ? "page" : "pages"} ready`}
+                  </span>
+                  <small>{tx("Photos are read in this order.")}</small>
+                </div>
+                <ul className="file-list">
+                  {files.map((file, index) => (
+                    <li key={`${file.name}-${file.lastModified}-${index}`}>
+                      <span className="file-number">{index + 1}</span>
+                      {file.type === "application/pdf" ? <FileText /> : <FileImage />}
+                      <span>{file.name}</span>
+                      <button
+                        type="button"
+                        aria-label={`Remove ${file.name}`}
+                        onClick={() => setFiles(files.filter((_, candidate) => candidate !== index))}
+                      >
+                        <X />
+                      </button>
+                    </li>
+                  ))}
+                </ul>
+              </>
+            )}
+
+            <div className="modal-actions-row">
+              <button
+                type="button"
+                className="primary-button large-button"
+                disabled={files.length === 0 || draft?.status === "processing"}
+                onClick={async () => {
+                  setError("");
+                  try {
+                    setLoadedFromCache(false);
+                    const newDraft = await createRestaurantMenuAnalysis(files, selectedRestaurant);
+                    setDraft(newDraft);
+                    setShowUploadModal(false);
+                  } catch (analysisError) {
+                    setError(analysisError instanceof Error ? analysisError.message : tx("Analysis failed."));
+                  }
+                }}
+              >
+                {draft?.status === "processing" ? <LoaderCircle className="spin" /> : <Upload />}
+                {draft?.status === "processing" ? tx("Extracting dishes…") : t("analyze")}
+              </button>
+            </div>
+            {error && <div className="error-banner">{error}</div>}
+          </div>
+        </div>
       )}
 
-      <p className="privacy-note">
-        {language === "ca"
-          ? "Els fitxers originals es desen amb el menú analitzat perquè es pugui comparar el resultat amb la font. Els menús acabats es comparteixen mitjançant la memòria cau de l'aplicació."
-          : "Original files are saved with the analyzed menu so anyone using the result can compare it with the source. Finished restaurant menus are shared through the app’s small cache."}
-      </p>
       {(error || draft?.error) && <div className="error-banner">{error || draft?.error}</div>}
     </div>
   );

@@ -11,6 +11,7 @@ import {
   Navigation,
   Upload,
   User,
+  Utensils,
   X,
 } from "lucide-react";
 import { t, tx, useLanguage } from "../i18n";
@@ -27,7 +28,6 @@ function getVeganBadge(restaurant: RestaurantCandidate): {
 
   if (
     name.includes("vegan") ||
-    name.includes("vegà") ||
     name.includes("vegà") ||
     name.includes("plant-based")
   ) {
@@ -117,7 +117,7 @@ export function RestaurantDetailPane({
     restaurant.longitude !== 0;
 
   const directionsUrl = hasCoordinates
-    ? `https://www.google.com/maps/dir/?api=1&destination=${restaurant.latitude},${restaurant.longitude}`
+    ? `geo:${restaurant.latitude},${restaurant.longitude}?q=${encodeURIComponent(restaurant.name)}`
     : restaurant.mapUrl || `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(`${restaurant.name} ${restaurant.address}`)}`;
 
   return (
@@ -216,7 +216,7 @@ export function RestaurantDetailPane({
               }
             }}
           >
-            {loadingMenu ? <LoaderCircle className="spin" /> : <Leaf aria-hidden="true" />}
+            {loadingMenu ? <LoaderCircle className="spin" /> : <Utensils aria-hidden="true" />}
             <span>{tx("Menu")}</span>
           </button>
 

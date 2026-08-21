@@ -577,6 +577,95 @@ export async function buildApp(
         }
       }
 
+      // 1. Try Photon (OSM POI search engine with continuous proximity scoring)
+      try {
+        const photonUrl = new URL("https://photon.komoot.io/api/");
+        photonUrl.searchParams.set("q", query);
+        photonUrl.searchParams.set("limit", "30");
+        if (hasLocation) {
+          photonUrl.searchParams.set("lat", String(latitude));
+          photonUrl.searchParams.set("lon", String(longitude));
+        }
+        const photonRes = await fetch(photonUrl.toString(), {
+          headers: {
+            "User-Agent":
+              process.env.NOMINATIM_USER_AGENT ??
+              process.env.OFF_USER_AGENT ??
+              "VeganTools/0.1 (https://nilsduran.github.io)",
+            Accept: "application/json",
+          },
+          signal: AbortSignal.timeout(6_000),
+        });
+        if (photonRes.ok) {
+          const photonData = (await photonRes.json()) as {
+            features?: Array<{
+              properties?: {
+                osm_id?: number;
+                osm_type?: string;
+                name?: string;
+                city?: string;
+                town?: string;
+                village?: string;
+                state?: string;
+                country?: string;
+                street?: string;
+                housenumber?: string;
+                osm_key?: string;
+                osm_value?: string;
+              };
+              geometry?: {
+                coordinates?: [number, number];
+              };
+            }>;
+          };
+          const diningValues = new Set([
+            "restaurant", "cafe", "fast_food", "bar", "pub", "bistro", "ice_cream",
+            "bakery", "food_court", "pastry", "coffee_shop", "deli", "vegetarian", "vegan", "yes"
+          ]);
+          const photonCandidates: RestaurantCandidate[] = (photonData.features ?? [])
+            .filter((f) => {
+              const p = f.properties;
+              if (!p?.name || !f.geometry?.coordinates) return false;
+              if (p.osm_key === "amenity" || p.osm_key === "shop") {
+                return diningValues.has(p.osm_value ?? "") || true;
+              }
+              return (
+                p.name.toLowerCase().includes(query.toLowerCase()) ||
+                query.toLowerCase().includes(p.name.toLowerCase())
+              );
+            })
+            .map((f) => {
+              const p = f.properties!;
+              const [lon, lat] = f.geometry!.coordinates!;
+              const streetAddress = [p.street, p.housenumber].filter(Boolean).join(" ");
+              const locality = p.city || p.town || p.village;
+              const fullAddress = [streetAddress, locality, p.state, p.country]
+                .filter(Boolean)
+                .join(", ");
+              return {
+                id: `osm-${p.osm_type ?? "N"}-${p.osm_id ?? Math.floor(Math.random() * 1e8)}`,
+                name: p.name!,
+                address: fullAddress || locality || p.country || "",
+                latitude: lat,
+                longitude: lon,
+                mapUrl: `https://www.openstreetmap.org/?mlat=${lat}&mlon=${lon}#map=17/${lat}/${lon}`,
+                provider: "openstreetmap" as const,
+              };
+            });
+
+          if (photonCandidates.length > 0) {
+            restaurantSearchCache.set(cacheKey, {
+              expiresAt: Date.now() + 15 * 60_000,
+              results: photonCandidates,
+            });
+            return photonCandidates;
+          }
+        }
+      } catch (photonErr) {
+        request.log.warn({ photonErr }, "Photon search fallback failed, trying Nominatim");
+      }
+
+      // 2. Fallback to OpenStreetMap Nominatim
       const buildNominatimUrl = (withLocation: boolean) => {
         const url = new URL("https://nominatim.openstreetmap.org/search");
         url.search = new URLSearchParams({

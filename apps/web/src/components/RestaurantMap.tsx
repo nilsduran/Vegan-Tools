@@ -9,44 +9,41 @@ import { tx, useLanguage } from "../i18n";
 // Custom modern SVG marker for Vegan Tools restaurants
 function createRestaurantIcon(isSelected: boolean) {
   const pinColor = isSelected ? "#064e3b" : "#0f5c45";
-  const scale = isSelected ? 1.25 : 1.0;
-  const size = 46 * scale;
+  const strokeColor = isSelected ? "#a7f3d0" : "#ffffff";
+  const width = isSelected ? 40 : 32;
+  const height = isSelected ? 50 : 40;
 
   const svgHtml = `
-    <div style="position: relative; width: ${size}px; height: ${size}px; transform: translate(-50%, -100%); cursor: pointer; transition: transform 0.15s ease;">
-      <svg viewBox="0 0 24 24" width="${size}" height="${size}" fill="${pinColor}" stroke="#ffffff" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" style="filter: drop-shadow(0 4px 8px rgba(0,0,0,0.35));">
-        <path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7z"/>
-        <circle cx="12" cy="9" r="3.2" fill="#d9f99d" stroke="none"/>
+    <div style="width: ${width}px; height: ${height}px; cursor: pointer; filter: drop-shadow(0 3px 6px rgba(0,0,0,0.35)); transition: transform 0.15s ease;">
+      <svg viewBox="0 0 24 30" width="${width}" height="${height}" fill="${pinColor}" stroke="${strokeColor}" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M12 2C7.03 2 3 6.03 3 11c0 6.75 9 17 9 17s9-10.25 9-17c0-4.97-4.03-9-9-9z"/>
+        <circle cx="12" cy="11" r="3.8" fill="#d9f99d" stroke="none"/>
       </svg>
-      ${
-        isSelected
-          ? `<div style="position: absolute; bottom: -4px; left: 50%; width: 14px; height: 5px; background: rgba(0,0,0,0.35); border-radius: 50%; transform: translateX(-50%); filter: blur(1.5px);"></div>`
-          : ""
-      }
     </div>
   `;
 
   return L.divIcon({
     html: svgHtml,
     className: "vegan-tools-map-pin",
-    iconSize: [0, 0],
-    iconAnchor: [0, 0],
+    iconSize: [width, height],
+    iconAnchor: [width / 2, height],
+    popupAnchor: [0, -height],
   });
 }
 
 function createUserLocationIcon() {
   const svgHtml = `
-    <div style="position: relative; width: 22px; height: 22px; transform: translate(-50%, -50%);">
-      <div style="position: absolute; width: 22px; height: 22px; background: rgba(30, 144, 255, 0.25); border-radius: 50%; animation: pulse-ring 2s infinite;"></div>
-      <div style="position: absolute; top: 4px; left: 4px; width: 14px; height: 14px; background: #1e90ff; border: 2.5px solid #ffffff; border-radius: 50%; box-shadow: 0 1px 4px rgba(0,0,0,0.3);"></div>
+    <div style="position: relative; width: 24px; height: 24px;">
+      <div style="position: absolute; inset: 0; background: rgba(30, 144, 255, 0.25); border-radius: 50%; animation: pulse-ring 2s infinite;"></div>
+      <div style="position: absolute; top: 4px; left: 4px; width: 16px; height: 16px; background: #1e90ff; border: 2.5px solid #ffffff; border-radius: 50%; box-shadow: 0 2px 5px rgba(0,0,0,0.3);"></div>
     </div>
   `;
 
   return L.divIcon({
     html: svgHtml,
     className: "vegan-tools-user-location-pin",
-    iconSize: [0, 0],
-    iconAnchor: [0, 0],
+    iconSize: [24, 24],
+    iconAnchor: [12, 12],
   });
 }
 

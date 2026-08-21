@@ -169,6 +169,9 @@ describe("MenuReaderPage Form UI", () => {
       </MemoryRouter>
     );
 
+    const openUploadButton = screen.getByRole("button", { name: /upload menu|puja una carta/i });
+    fireEvent.click(openUploadButton);
+
     const fileInput = container.querySelector('input[type="file"][multiple]') as HTMLInputElement;
     expect(fileInput).toBeDefined();
 
@@ -216,6 +219,9 @@ describe("MenuReaderPage Form UI", () => {
       </MemoryRouter>
     );
 
+    const openUploadButton = screen.getByRole("button", { name: /upload menu|puja una carta/i });
+    fireEvent.click(openUploadButton);
+
     const fileInput = container.querySelector('input[type="file"][multiple]') as HTMLInputElement;
     fireEvent.change(fileInput, { target: { files: [pngFile] } });
 
@@ -239,8 +245,8 @@ describe("MenuReaderPage Form UI", () => {
     const pngFile2 = createFakeFile("mains.png", "image/png");
 
     const mockDraft: MenuDraft = {
-      id: "menu-draft-mix",
-      editToken: "token-mix",
+      id: "menu-draft-mixed",
+      editToken: "token-mixed",
       status: "processing",
       restaurantName: "",
       sourceLabel: "Uploaded menu",
@@ -259,6 +265,9 @@ describe("MenuReaderPage Form UI", () => {
         <MenuReaderPage />
       </MemoryRouter>
     );
+
+    const openUploadButton = screen.getByRole("button", { name: /upload menu|puja una carta/i });
+    fireEvent.click(openUploadButton);
 
     const fileInput = container.querySelector('input[type="file"][multiple]') as HTMLInputElement;
     fireEvent.change(fileInput, { target: { files: [pdfFile, pngFile1, pngFile2] } });

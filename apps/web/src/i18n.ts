@@ -254,10 +254,25 @@ const caPhrases = {
   "Clear history": "Neteja l'historial",
 } as const;
 
-let language: Language =
-  typeof localStorage !== "undefined" && localStorage.getItem("vegan-tools-language") === "ca"
-    ? "ca"
-    : "en";
+function getInitialLanguage(): Language {
+  if (typeof window !== "undefined") {
+    const params = new URLSearchParams(window.location.search);
+    const langParam = params.get("lang");
+    if (langParam === "ca" || langParam === "en") return langParam;
+    if (window.location.pathname.startsWith("/ca")) return "ca";
+    if (window.location.pathname.startsWith("/en")) return "en";
+  }
+  if (typeof localStorage !== "undefined") {
+    const stored = localStorage.getItem("vegan-tools-language");
+    if (stored === "ca" || stored === "en") return stored;
+  }
+  if (typeof navigator !== "undefined" && navigator.language?.startsWith("ca")) {
+    return "ca";
+  }
+  return "en";
+}
+
+let language: Language = getInitialLanguage();
 if (typeof document !== "undefined") document.documentElement.lang = language;
 const listeners = new Set<() => void>();
 
