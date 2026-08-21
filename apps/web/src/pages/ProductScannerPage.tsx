@@ -224,16 +224,16 @@ export function ProductScannerPage() {
           {!routeGtin && <BarcodeCamera onDetected={runLookup} />}
 
           {!routeGtin && <form
-            className="manual-code-form"
+            className="barcode-form"
             onSubmit={(event) => {
               event.preventDefault();
               if (code.trim()) runLookup(code.trim());
             }}
           >
-            <label htmlFor="manual-barcode">{t("manualCode")}</label>
-            <div className="manual-code-row">
+            <label htmlFor="barcode">{t("manualCode")}</label>
+            <div>
               <input
-                id="manual-barcode"
+                id="barcode"
                 type="text"
                 pattern="[0-9]*"
                 inputMode="numeric"
