@@ -238,6 +238,9 @@ const caPhrases = {
   "Properament · Sistema de valoracions verificat": "Properament · Sistema de valoracions verificat",
   "Upload a menu (photos or PDF) to analyze its dishes.":
     "Puja una carta (fotos o PDF) per analitzar els seus plats.",
+  "Back to map": "Torna al mapa",
+  "Edit sources / Upload menu": "Edita les fonts / Puja carta",
+  "Carta del restaurant": "Carta del restaurant",
   "Maps": "Com arribar",
 } as const;
 

@@ -123,10 +123,12 @@ export function MenuView({
   menu,
   onSourceReference,
   onUpdateMenu,
+  onEditSources,
 }: {
   menu: MenuDraft;
   onSourceReference?: (item: MenuItem) => void;
   onUpdateMenu?: (updated: MenuDraft) => void;
+  onEditSources?: () => void;
 }) {
   const language = useLanguage();
   const [selectedDiets, setSelectedDiets] = useState<Set<DietFilter>>(
@@ -170,7 +172,7 @@ export function MenuView({
         .map((section) => ({
           ...section,
           items: section.items.filter((item) =>
-            matchesSelection(item, selectedDiets, allSelected, showAdaptable),
+            matchesSelection(item, selectedDiets, allSelected, showAdaptable)
           ),
         }))
         .filter((section) => section.items.length > 0),
@@ -225,38 +227,50 @@ export function MenuView({
   return (
     <div className="menu-view">
       <header className="public-menu-heading">
-        <p className="menu-eyebrow">Menu</p>
-        <h1>{menu.restaurantName || tx("Restaurant menu")}</h1>
-        <div className="menu-header-actions">
+        <p className="menu-eyebrow">{language === "ca" ? "Carta" : "Menu"}</p>
+        <h1>{menu.restaurantName || (language === "ca" ? "Carta del restaurant" : "Restaurant menu")}</h1>
+        <div className="menu-secondary-actions-bar">
           {menu.sourceUrl && (
             <a
-              className="menu-website-link"
+              className="menu-sub-action-link"
               href={menu.sourceUrl}
               target="_blank"
               rel="noreferrer"
             >
-              <ExternalLink />{tx("Open original website")}
+              <ExternalLink />
+              <span>{tx("Open original website")}</span>
             </a>
           )}
           {presentableSources.map((source, index) => (
             <a
               key={source.url}
-              className="menu-website-link"
+              className="menu-sub-action-link"
               href={resolveApiUrl(source.url)}
               target="_blank"
               rel="noreferrer"
             >
-              <BookOpen />{tx("Open saved original")}{presentableSources.length > 1 ? ` ${tx("Page").toLocaleLowerCase()} ${index + 1}` : ""}
+              <BookOpen />
+              <span>{tx("Open saved original")}{presentableSources.length > 1 ? ` (${index + 1})` : ""}</span>
             </a>
           ))}
           <button
             type="button"
-            className="text-button edit-notes-button"
+            className="menu-sub-action-button"
             onClick={() => setIsEditingNotes(true)}
           >
             <MessageSquareWarning />
-            {communityNotes ? tx("Edit venue notes") : tx("Add venue notes")}
+            <span>{communityNotes ? tx("Edit venue notes") : tx("Add venue notes")}</span>
           </button>
+          {onEditSources && (
+            <button
+              type="button"
+              className="menu-sub-action-button"
+              onClick={onEditSources}
+            >
+              <Pencil />
+              <span>{tx("Edit sources / Upload menu")}</span>
+            </button>
+          )}
         </div>
 
         {communityNotes && (

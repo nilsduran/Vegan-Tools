@@ -1,9 +1,11 @@
 import { useEffect, useRef, useState } from "react";
+import { useSearchParams } from "react-router-dom";
 import {
   type MenuDraft,
   type RestaurantCandidate,
 } from "@vegan-tools/domain";
 import {
+  ArrowLeft,
   Camera,
   ExternalLink,
   FileImage,
@@ -39,6 +41,7 @@ function sameRestaurant(left: RestaurantCandidate, right: RestaurantCandidate) {
 
 export function MenuReaderPage() {
   const language = useLanguage();
+  const [searchParams, setSearchParams] = useSearchParams();
   const [files, setFiles] = useState<File[]>([]);
   const [draft, setDraft] = useState<MenuDraft>();
   const [error, setError] = useState("");
@@ -64,6 +67,13 @@ export function MenuReaderPage() {
   const draftId = draft?.id;
   const editToken = draft?.editToken;
   const draftStatus = draft?.status;
+
+  useEffect(() => {
+    const qParam = searchParams.get("q");
+    if (qParam && !restaurantQuery) {
+      setRestaurantQuery(qParam);
+    }
+  }, [searchParams]);
 
   useEffect(() => {
     const query = restaurantQuery.trim();
@@ -135,28 +145,19 @@ export function MenuReaderPage() {
     if (!draftId || !editToken || draftStatus !== "processing") return;
     let cancelled = false;
     let timeout: number | undefined;
-    const deadline = Date.now() + 185_000;
-
     const poll = async () => {
       try {
         const next = await getMenuDraft(draftId, editToken);
         if (cancelled) return;
         setDraft(next);
         if (next.status === "processing") {
-          if (Date.now() >= deadline) {
-            setError("Menu analysis took too long. Please try again with a clear image.");
-            setDraft(undefined);
-            return;
-          }
-          timeout = window.setTimeout(() => void poll(), 1_000);
+          timeout = window.setTimeout(() => void poll(), 1200);
         }
       } catch (pollError) {
         if (cancelled) return;
-        setError(pollError instanceof Error ? pollError.message : "Analysis failed.");
-        setDraft(undefined);
+        setError(pollError instanceof Error ? pollError.message : "Analysis check failed.");
       }
     };
-
     timeout = window.setTimeout(() => void poll(), 400);
     return () => {
       cancelled = true;
@@ -166,21 +167,42 @@ export function MenuReaderPage() {
 
   if (draft?.status === "ready" || draft?.status === "published") {
     return (
-      <MenuEditor
-        initialMenu={draft}
-        sourceFiles={files}
-        cached={loadedFromCache}
-        onUpdateMenu={setDraft}
-        onRefresh={() => {
-          setDraft(undefined);
-          setLoadedFromCache(false);
-          setFiles([]);
-          window.setTimeout(
-            () => uploadSectionRef.current?.scrollIntoView({ behavior: "smooth" }),
-            0,
-          );
-        }}
-      />
+      <div className="page menu-view-page">
+        <div className="menu-view-nav-bar">
+          <button
+            type="button"
+            className="secondary-button back-to-map-btn"
+            onClick={() => {
+              setDraft(undefined);
+            }}
+          >
+            <ArrowLeft aria-hidden="true" />
+            <span>{tx("Back to map")}</span>
+          </button>
+        </div>
+        <MenuEditor
+          initialMenu={draft}
+          sourceFiles={files}
+          cached={loadedFromCache}
+          onUpdateMenu={setDraft}
+          onEditSources={() => {
+            setDraft(undefined);
+            window.setTimeout(
+              () => uploadSectionRef.current?.scrollIntoView({ behavior: "smooth" }),
+              50,
+            );
+          }}
+          onRefresh={() => {
+            setDraft(undefined);
+            setLoadedFromCache(false);
+            setFiles([]);
+            window.setTimeout(
+              () => uploadSectionRef.current?.scrollIntoView({ behavior: "smooth" }),
+              0,
+            );
+          }}
+        />
+      </div>
     );
   }
 
@@ -453,23 +475,16 @@ export function MenuReaderPage() {
         {draft?.status === "processing" ? tx("Extracting dishes…") : t("analyze")}
       </button>
       {draft?.status === "processing" && (
-        <>
-          <p className="privacy-note">
-            {language === "ca"
-              ? "Una foto o un menú curt pot trigar pocs segons. Els menús llargs de diverses pàgines poden trigar un parell de minuts."
-              : "A photo or short menu may finish in a few seconds. Large, multi-page menus can take a couple of minutes."}
-          </p>
-          <button
-            type="button"
-            className="text-button cancel-analysis"
-            onClick={() => {
-              setDraft(undefined);
-              setError("");
-            }}
-          >
-            {tx("Cancel analysis")}
-          </button>
-        </>
+        <button
+          type="button"
+          className="text-button cancel-analysis"
+          onClick={() => {
+            setDraft(undefined);
+            setError("");
+          }}
+        >
+          {tx("Cancel analysis")}
+        </button>
       )}
 
       <p className="privacy-note">

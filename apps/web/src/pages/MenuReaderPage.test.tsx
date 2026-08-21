@@ -2,6 +2,7 @@
 import { describe, expect, it, vi, beforeEach, afterEach } from "vitest";
 import { cleanup, render, screen, waitFor, fireEvent } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
+import { MemoryRouter } from "react-router-dom";
 import { MenuReaderPage } from "./MenuReaderPage.js";
 import * as api from "../api.js";
 import type { MenuDraft, RestaurantCandidate } from "@vegan-tools/domain";
@@ -57,7 +58,11 @@ describe("MenuReaderPage Form UI", () => {
       originalDeleteAt: new Date().toISOString(),
     });
 
-    render(<MenuReaderPage />);
+    render(
+      <MemoryRouter>
+        <MenuReaderPage />
+      </MemoryRouter>
+    );
 
     const searchInput = screen.getByRole("textbox", { name: /search for a restaurant/i });
     expect(searchInput).toBeDefined();
@@ -106,7 +111,11 @@ describe("MenuReaderPage Form UI", () => {
 
     vi.mocked(api.createRestaurantMenuAnalysis).mockResolvedValueOnce(mockDraft);
 
-    const { container } = render(<MenuReaderPage />);
+    const { container } = render(
+      <MemoryRouter>
+        <MenuReaderPage />
+      </MemoryRouter>
+    );
 
     const fileInput = container.querySelector('input[type="file"][multiple]') as HTMLInputElement;
     expect(fileInput).toBeDefined();
@@ -149,7 +158,11 @@ describe("MenuReaderPage Form UI", () => {
 
     vi.mocked(api.createRestaurantMenuAnalysis).mockResolvedValueOnce(mockDraft);
 
-    const { container } = render(<MenuReaderPage />);
+    const { container } = render(
+      <MemoryRouter>
+        <MenuReaderPage />
+      </MemoryRouter>
+    );
 
     const fileInput = container.querySelector('input[type="file"][multiple]') as HTMLInputElement;
     fireEvent.change(fileInput, { target: { files: [pngFile] } });
@@ -189,7 +202,11 @@ describe("MenuReaderPage Form UI", () => {
 
     vi.mocked(api.createRestaurantMenuAnalysis).mockResolvedValueOnce(mockDraft);
 
-    const { container } = render(<MenuReaderPage />);
+    const { container } = render(
+      <MemoryRouter>
+        <MenuReaderPage />
+      </MemoryRouter>
+    );
 
     const fileInput = container.querySelector('input[type="file"][multiple]') as HTMLInputElement;
     fireEvent.change(fileInput, { target: { files: [pdfFile, pngFile1, pngFile2] } });
