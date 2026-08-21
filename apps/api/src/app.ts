@@ -328,6 +328,61 @@ export async function buildApp(
     },
   );
 
+  function inferTagsAndVegan(input: {
+    name: string;
+    cuisine?: string;
+    osm_key?: string;
+    osm_value?: string;
+    type?: string;
+  }) {
+    const tags = new Set<string>();
+    const nameLower = input.name.toLowerCase();
+    const cuisineLower = (input.cuisine ?? "").toLowerCase();
+    const typeLower = (input.osm_value ?? input.type ?? "").toLowerCase();
+    const allText = `${nameLower} ${cuisineLower} ${typeLower}`;
+
+    const isVegan = allText.includes("vegan") || allText.includes("vegà") || allText.includes("vegano") || cuisineLower.includes("vegan");
+    const isVegetarian = isVegan || allText.includes("vegetarian") || allText.includes("vegetarià") || allText.includes("vegetariano") || cuisineLower.includes("vegetarian");
+
+    if (isVegan) tags.add("vegan");
+    if (isVegetarian) tags.add("vegetarian");
+
+    if (allText.includes("pizza") || allText.includes("pizzeria") || cuisineLower.includes("pizza") || cuisineLower.includes("italian")) {
+      tags.add("pizza");
+    }
+    if (allText.includes("burger") || allText.includes("hamburgues") || cuisineLower.includes("burger")) {
+      tags.add("burger");
+    }
+    if (allText.includes("cafe") || allText.includes("cafeteria") || allText.includes("coffee") || typeLower === "cafe" || typeLower === "coffee_shop") {
+      tags.add("cafe");
+    }
+    if (allText.includes("bakery") || allText.includes("pastisseria") || allText.includes("pasteleria") || allText.includes("panaderia") || allText.includes("donut") || typeLower === "bakery" || typeLower === "pastry") {
+      tags.add("bakery");
+    }
+    if (allText.includes("salad") || allText.includes("bowl") || allText.includes("organic") || allText.includes("bio") || allText.includes("healthy") || allText.includes("saludable")) {
+      tags.add("healthy");
+    }
+    if (allText.includes("sushi") || allText.includes("ramen") || allText.includes("asian") || allText.includes("asiatic") || allText.includes("asiatico") || allText.includes("japanese") || allText.includes("japones") || allText.includes("chinese")) {
+      tags.add("asian");
+    }
+    if (allText.includes("mexic") || allText.includes("taco") || allText.includes("burrito")) {
+      tags.add("mexican");
+    }
+    if (allText.includes("tapas") || allText.includes("tapes") || allText.includes("platets") || allText.includes("bar")) {
+      tags.add("tapas");
+    }
+    if (allText.includes("gluten") || allText.includes("celiac") || allText.includes("sense gluten") || allText.includes("sin gluten")) {
+      tags.add("gluten_free");
+    }
+
+    return {
+      tags: Array.from(tags),
+      isVegan: isVegan || undefined,
+      isVegetarian: isVegetarian || undefined,
+      cuisine: input.cuisine || (tags.has("pizza") ? "pizza" : tags.has("burger") ? "burger" : tags.has("cafe") ? "cafe" : tags.has("bakery") ? "bakery" : tags.has("asian") ? "asian" : tags.has("mexican") ? "mexican" : tags.has("healthy") ? "healthy" : undefined),
+    };
+  }
+
   app.get<{
     Querystring: {
       q?: string;
@@ -442,7 +497,6 @@ export async function buildApp(
       } else if (isGenericQuery) {
         inferredNear = request.query.near?.trim() || defaultNear;
       } else {
-        // Specific restaurant name without location - do pure global search or use explicit near
         inferredNear = request.query.near?.trim() || undefined;
         foursquareQuery = query;
       }
@@ -511,6 +565,9 @@ export async function buildApp(
                 } catch {
                   websiteUrl = undefined;
                 }
+                const { tags, isVegan, isVegetarian, cuisine } = inferTagsAndVegan({
+                  name,
+                });
                 return {
                   id: `foursquare-${id}`,
                   name,
@@ -520,6 +577,10 @@ export async function buildApp(
                   websiteUrl,
                   mapUrl: `https://foursquare.com/v/${id}`,
                   provider: "foursquare" as const,
+                  cuisine,
+                  tags,
+                  isVegan,
+                  isVegetarian,
                 };
               })
               .filter((item): item is RestaurantCandidate => item !== undefined);
@@ -617,26 +678,37 @@ export async function buildApp(
                 location?.region,
                 location?.country,
               ].filter(Boolean).join(", ");
+              const candName = item.name ?? query;
+              const { tags, isVegan, isVegetarian, cuisine } = inferTagsAndVegan({
+                name: candName,
+              });
               return {
                 id: `foursquare-${item.fsq_place_id}`,
-                name: item.name ?? query,
+                name: candName,
                 address: address || request.query.near?.trim() || "",
                 latitude: item.latitude ?? 0,
                 longitude: item.longitude ?? 0,
                 websiteUrl,
                 mapUrl: `https://foursquare.com/v/${item.fsq_place_id}`,
                 provider: "foursquare" as const,
+                cuisine,
+                tags,
+                isVegan,
+                isVegetarian,
               };
             });
-          restaurantSearchCache.set(cacheKey, {
-            expiresAt: Date.now() + 15 * 60_000,
-            results: candidates,
-          });
-          return candidates;
+          if (candidates.length > 0) {
+            restaurantSearchCache.set(cacheKey, {
+              expiresAt: Date.now() + 15 * 60_000,
+              results: candidates,
+            });
+            return candidates;
+          }
         } catch (error) {
           request.log.warn({ error }, "Foursquare restaurant search failed; using OpenStreetMap");
         }
       }
+
       const normalizeText = (str: string) =>
         str.normalize("NFD").replace(/\p{Diacritic}/gu, "").trim().toLowerCase();
 
@@ -657,13 +729,12 @@ export async function buildApp(
         );
       });
 
-      // 2. Query Photon (Komoot OSM POI engine with soft proximity ranking)
+      // 2. Query Photon (Komoot OSM POI engine with universal coverage and soft proximity ranking)
       const photonResults: RestaurantCandidate[] = [];
       try {
         const photonUrl = new URL("https://photon.komoot.io/api/");
         photonUrl.searchParams.set("q", query);
         photonUrl.searchParams.set("limit", "25");
-        // Only bias by user location if query doesn't explicitly specify another town/city
         if (hasLocation && queryParts.length === 1) {
           photonUrl.searchParams.set("lat", String(latitude));
           photonUrl.searchParams.set("lon", String(longitude));
@@ -719,6 +790,12 @@ export async function buildApp(
               .filter(Boolean)
               .join(", ");
 
+            const { tags, isVegan, isVegetarian, cuisine } = inferTagsAndVegan({
+              name: p.name,
+              osm_key: p.osm_key,
+              osm_value: p.osm_value,
+            });
+
             photonResults.push({
               id: `osm-${p.osm_type ?? "N"}-${p.osm_id ?? Math.floor(Math.random() * 1e8)}`,
               name: p.name,
@@ -727,14 +804,18 @@ export async function buildApp(
               longitude: lon,
               mapUrl: `https://www.openstreetmap.org/?mlat=${lat}&mlon=${lon}#map=17/${lat}/${lon}`,
               provider: "openstreetmap" as const,
+              cuisine,
+              tags,
+              isVegan,
+              isVegetarian,
             });
           }
         }
       } catch (photonErr) {
-        request.log.warn({ photonErr }, "Photon search failed, falling back to Nominatim");
+        request.log.warn({ photonErr }, "Photon search failed, trying fallback providers");
       }
 
-      // If we got results from Photon or curated, return them directly
+      // If we got results from Photon or curated, return them directly without calling Nominatim
       if (photonResults.length > 0 || curatedMatches.length > 0) {
         const combined = [...curatedMatches, ...photonResults];
         const deduplicated = deduplicateRestaurants(combined);
@@ -834,6 +915,12 @@ export async function buildApp(
             } catch {
               websiteUrl = undefined;
             }
+            const { tags, isVegan, isVegetarian, cuisine } = inferTagsAndVegan({
+              name: item.name ?? item.display_name,
+              cuisine: item.extratags?.cuisine,
+              type: item.type,
+            });
+
             return {
               id: `${item.osm_type}-${item.osm_id}`,
               name: item.name?.trim() || item.display_name.split(",")[0]?.trim() || query,
@@ -844,7 +931,10 @@ export async function buildApp(
               mapUrl: `https://www.openstreetmap.org/${item.osm_type}/${item.osm_id}`,
               provider: "openstreetmap",
               openingHours: item.extratags?.opening_hours,
-              cuisine: item.extratags?.cuisine,
+              cuisine,
+              tags,
+              isVegan,
+              isVegetarian,
             };
           });
 
