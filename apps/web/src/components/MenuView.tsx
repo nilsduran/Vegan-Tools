@@ -42,7 +42,7 @@ function verdictGroup(verdict: DietVerdict): DietFilter | "unknown" {
 function verdictLabel(verdict: DietVerdict) {
   if (verdict === "probably_vegan") return t("probablyVegan");
   if (verdict === "probably_vegetarian") return t("probablyVegetarian");
-  if (verdict === "non_vegetarian") return "Carnist";
+  if (verdict === "non_vegetarian") return tx("Non-vegan");
   return t(verdict);
 }
 
@@ -204,7 +204,7 @@ export function MenuView({
   }> = [
     { value: "vegan", label: t("vegan"), Icon: Leaf },
     { value: "vegetarian", label: t("vegetarian"), Icon: Egg },
-    { value: "meat", label: tx("Carnist"), Icon: Utensils },
+    { value: "meat", label: tx("Non-vegan"), Icon: Utensils },
   ];
 
   const communityNotes = language === "ca" && menu.communityNotesCa?.trim()

@@ -121,4 +121,16 @@ describe("RecipeVeganizerPage Form UI", () => {
 
     expect(await screen.findByText("Recipe veganization service is busy.")).toBeDefined();
   });
+
+  it("loads specific examples like Cannelloni when clicking example pill", async () => {
+    const user = userEvent.setup();
+    renderVeganizer();
+
+    const canneloniPill = screen.getByRole("button", { name: /cannelloni|canelons/i });
+    await user.click(canneloniPill);
+
+    const textarea = screen.getByLabelText(/recipe/i) as HTMLTextAreaElement;
+    expect(textarea.value).toContain("Cannelloni");
+    expect(textarea.value).toContain("minced");
+  });
 });

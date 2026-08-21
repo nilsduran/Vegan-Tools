@@ -93,7 +93,8 @@ const caPhrases = {
   "Open original website": "Obre el web original",
   "Open saved original": "Obre l'original desat",
   "Diet filter": "Filtre alimentari",
-  "Carnist": "Carnista",
+  "Non-vegan": "No vegà",
+  "Carnist": "No vegà",
   "Show adaptable": "Mostra els adaptables",
   "Select a diet to show matching dishes.": "Selecciona una dieta per mostrar els plats corresponents.",
   "Original menu": "Carta original",
@@ -243,6 +244,14 @@ const caPhrases = {
   "Carta del restaurant": "Carta del restaurant",
   "Directions": "Indicacions",
   "Maps": "Indicacions",
+  "Copy": "Copia",
+  "Copied!": "Copiat!",
+  "Copy to clipboard": "Copia al porta-retalls",
+  "Examples": "Exemples",
+  "Product not found in Open Food Facts database.": "No s'ha trobat el producte a la base de dades.",
+  "Take photo of ingredient label": "Fes foto a l'etiqueta d'ingredients",
+  "Recent products": "Productes recents",
+  "Clear history": "Neteja l'historial",
 } as const;
 
 let language: Language =

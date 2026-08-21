@@ -89,6 +89,38 @@ function FlaggedIngredientChips({
   );
 }
 
+type RecentScanItem = {
+  gtin: string;
+  productName: string;
+  brand?: string;
+  verdict: string;
+  imageUrl?: string;
+  timestamp: number;
+};
+
+const RECENT_SCANS_STORAGE_KEY = "vegan-tools-recent-scans";
+
+function getStoredRecentScans(): RecentScanItem[] {
+  if (typeof localStorage === "undefined") return [];
+  try {
+    const raw = localStorage.getItem(RECENT_SCANS_STORAGE_KEY);
+    return raw ? JSON.parse(raw) : [];
+  } catch {
+    return [];
+  }
+}
+
+function saveStoredRecentScan(item: RecentScanItem) {
+  if (typeof localStorage === "undefined") return;
+  try {
+    const existing = getStoredRecentScans().filter((entry) => entry.gtin !== item.gtin);
+    const updated = [item, ...existing].slice(0, 8);
+    localStorage.setItem(RECENT_SCANS_STORAGE_KEY, JSON.stringify(updated));
+  } catch {
+    // Ignore storage issues
+  }
+}
+
 export function ProductScannerPage() {
   const language = useLanguage();
   const navigate = useNavigate();
@@ -99,6 +131,7 @@ export function ProductScannerPage() {
   const [ingredientPhoto, setIngredientPhoto] = useState<File>();
   const [photoUrl, setPhotoUrl] = useState("");
   const [remotePhotoUrl, setRemotePhotoUrl] = useState("");
+  const [recentScans, setRecentScans] = useState<RecentScanItem[]>(getStoredRecentScans);
   const lookup = useQuery({
     queryKey: ["product", routeGtin],
     queryFn: () => getProduct(routeGtin ?? ""),
@@ -109,6 +142,21 @@ export function ProductScannerPage() {
   const productPhotoExtraction = useMutation({
     mutationFn: extractProductIngredientText,
   });
+
+  useEffect(() => {
+    if (lookup.data) {
+      const item: RecentScanItem = {
+        gtin: lookup.data.gtin,
+        productName: lookup.data.productName || `Product ${lookup.data.gtin}`,
+        brand: cleanBrand(lookup.data.brand, lookup.data.productName),
+        verdict: lookup.data.verdict,
+        imageUrl: lookup.data.imageUrl,
+        timestamp: Date.now(),
+      };
+      saveStoredRecentScan(item);
+      setRecentScans(getStoredRecentScans());
+    }
+  }, [lookup.data]);
 
   useEffect(() => {
     if (!ingredientPhoto) {
@@ -158,7 +206,7 @@ export function ProductScannerPage() {
           className={mode === "barcode" ? "active" : ""}
           onClick={() => selectMode("barcode")}
         >
-          <ScanBarcode /> {tx("Barcode")}
+          <ScanBarcode />{tx("Barcode")}
         </button>
         <button
           type="button"
@@ -167,25 +215,27 @@ export function ProductScannerPage() {
           className={mode === "ingredients" ? "active" : ""}
           onClick={() => selectMode("ingredients")}
         >
-          <Type /> {tx("Ingredients")}
+          <Type />{tx("Ingredients")}
         </button>
       </div>}
 
       {mode === "barcode" && (
         <section className="checker-panel" aria-label="Barcode checker">
-          {!routeGtin && !lookup.data && <BarcodeCamera onDetected={runLookup} />}
+          {!routeGtin && <BarcodeCamera onDetected={runLookup} />}
 
           {!routeGtin && <form
-            className="barcode-form"
+            className="manual-code-form"
             onSubmit={(event) => {
               event.preventDefault();
               if (code.trim()) runLookup(code.trim());
             }}
           >
-            <label htmlFor="barcode">{t("manualCode")}</label>
-            <div>
+            <label htmlFor="manual-barcode">{t("manualCode")}</label>
+            <div className="manual-code-row">
               <input
-                id="barcode"
+                id="manual-barcode"
+                type="text"
+                pattern="[0-9]*"
                 inputMode="numeric"
                 autoComplete="off"
                 value={code}
@@ -196,8 +246,39 @@ export function ProductScannerPage() {
             </div>
           </form>}
 
-          {routeGtin && lookup.isPending && <div className="loading"><LoaderCircle />{tx("Checking product…")}</div>}
-          {routeGtin && lookup.error && <div className="error-banner">{lookup.error.message}</div>}
+          {routeGtin && lookup.isPending && <div className="loading"><LoaderCircle className="spin" />{tx("Checking product…")}</div>}
+          
+          {routeGtin && lookup.error && (
+            <div className="product-not-found-card">
+              <div className="error-banner">{lookup.error.message || tx("Product not found in Open Food Facts database.")}</div>
+              <p className="muted">
+                {language === "ca"
+                  ? "Pots fer una foto a l'etiqueta d'ingredients del paquet per comprovar-lo ara mateix:"
+                  : "You can take a photo of the ingredients list on the packaging to check it directly:"}
+              </p>
+              <div className="not-found-actions">
+                <button
+                  type="button"
+                  className="primary-button fallback-ocr-btn"
+                  onClick={() => {
+                    selectMode("ingredients");
+                    void navigate("/scanner");
+                  }}
+                >
+                  <Camera aria-hidden="true" />
+                  <span>{tx("Take photo of ingredient label")}</span>
+                </button>
+                <button
+                  type="button"
+                  className="secondary-button"
+                  onClick={() => void navigate("/scanner")}
+                >
+                  <RotateCcw aria-hidden="true" />
+                  <span>{tx("Scan another")}</span>
+                </button>
+              </div>
+            </div>
+          )}
 
           {lookup.data && (
             <article className="product-result">
@@ -255,6 +336,48 @@ export function ProductScannerPage() {
                 </div>
               </div>
             </article>
+          )}
+
+          {/* Recent Scans History in Supermarket session */}
+          {!routeGtin && recentScans.length > 0 && (
+            <section className="recent-scans-section" aria-label={tx("Recent products")}>
+              <div className="recent-scans-header">
+                <h3>{tx("Recent products")}</h3>
+                <button
+                  type="button"
+                  className="text-button clear-history-btn"
+                  onClick={() => {
+                    localStorage.removeItem(RECENT_SCANS_STORAGE_KEY);
+                    setRecentScans([]);
+                  }}
+                >
+                  {tx("Clear history")}
+                </button>
+              </div>
+              <div className="recent-scans-grid">
+                {recentScans.map((item) => (
+                  <button
+                    key={item.gtin}
+                    type="button"
+                    className="recent-scan-card"
+                    onClick={() => {
+                      void navigate(`/product/${item.gtin}`);
+                    }}
+                  >
+                    {item.imageUrl ? (
+                      <img src={item.imageUrl} alt="" className="recent-scan-img" referrerPolicy="no-referrer" />
+                    ) : (
+                      <div className="recent-scan-placeholder"><ScanBarcode aria-hidden="true" /></div>
+                    )}
+                    <div className="recent-scan-info">
+                      <strong>{item.productName}</strong>
+                      {item.brand && <small>{item.brand}</small>}
+                    </div>
+                    <VerdictBadge verdict={item.verdict as any} />
+                  </button>
+                ))}
+              </div>
+            </section>
           )}
         </section>
       )}

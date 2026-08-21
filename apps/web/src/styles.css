@@ -249,6 +249,122 @@ button:disabled { cursor: not-allowed; opacity: .55; }
 }
 .substitute-option:hover { border-color: #7fa08d; color: var(--green-dark); }
 .substitute-option.active { border-color: var(--green); color: white; background: var(--green); }
+.product-not-found-card {
+  margin: 1.5rem 0;
+  padding: 1.25rem;
+  border-radius: 14px;
+  background: #fdfaf6;
+  border: 1px solid #f2dfce;
+  text-align: center;
+}
+
+.not-found-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: center;
+  gap: 0.75rem;
+  margin-top: 1rem;
+}
+
+.fallback-ocr-btn {
+  font-size: 0.92rem;
+  padding: 0.75rem 1.25rem;
+}
+
+.recent-scans-section {
+  margin-top: 2.5rem;
+  padding-top: 1.5rem;
+  border-top: 1px solid var(--line);
+}
+
+.recent-scans-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 0.85rem;
+}
+
+.recent-scans-header h3 {
+  margin: 0;
+  font-size: 1.05rem;
+  color: var(--green-dark);
+}
+
+.clear-history-btn {
+  font-size: 0.76rem;
+  color: var(--muted);
+  padding: 0.2rem 0.5rem;
+}
+
+.recent-scans-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+  gap: 0.75rem;
+}
+
+.recent-scan-card {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.75rem 0.9rem;
+  border-radius: 12px;
+  background: white;
+  border: 1px solid var(--line);
+  text-align: left;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.recent-scan-card:hover {
+  border-color: var(--green);
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
+}
+
+.recent-scan-img {
+  width: 44px;
+  height: 44px;
+  object-fit: contain;
+  border-radius: 8px;
+  background: #fafaf8;
+  flex-shrink: 0;
+}
+
+.recent-scan-placeholder {
+  width: 44px;
+  height: 44px;
+  display: grid;
+  place-items: center;
+  border-radius: 8px;
+  background: #f0f3ee;
+  color: var(--muted);
+  flex-shrink: 0;
+}
+
+.recent-scan-info {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+}
+
+.recent-scan-info strong {
+  font-size: 0.82rem;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: #1f2924;
+}
+
+.recent-scan-info small {
+  font-size: 0.72rem;
+  color: var(--muted);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
 .disclaimer { margin: 1.5rem 0 0; padding-top: 1rem; border-top: 1px solid var(--line); color: var(--muted); font-size: .8rem; line-height: 1.5; }
 
 .menu-upload { scroll-margin-top: 5rem; }
@@ -408,6 +524,83 @@ button:disabled { cursor: not-allowed; opacity: .55; }
   .upload-options { grid-template-columns: 1fr; }
   .upload-option { min-height: 88px; }
   .file-list-heading { align-items: flex-end; flex-direction: column; gap: .15rem; }
+}
+
+.form-header-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+  margin-bottom: 0.4rem;
+}
+
+.recipe-example-pills {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.35rem;
+}
+
+.example-label {
+  font-size: 0.72rem;
+  font-weight: 700;
+  color: var(--muted);
+}
+
+.example-pill-button {
+  padding: 0.2rem 0.55rem;
+  border-radius: 999px;
+  background: #edf0eb;
+  border: 1px solid transparent;
+  color: var(--green-dark);
+  font-size: 0.74rem;
+  font-weight: 650;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.example-pill-button:hover {
+  background: var(--lime);
+  border-color: #a3e635;
+  color: var(--green-dark);
+}
+
+.veganized-header-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 0.4rem;
+}
+
+.copy-recipe-button {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  padding: 0.3rem 0.65rem;
+  border-radius: 8px;
+  background: white;
+  border: 1px solid var(--line);
+  color: var(--green-dark);
+  font-size: 0.76rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.copy-recipe-button:hover {
+  background: var(--paper);
+  border-color: var(--green);
+  color: var(--green);
+}
+
+.copy-recipe-button svg {
+  width: 0.95rem;
+  height: 0.95rem;
+}
+
+.copy-recipe-button .copied-icon {
+  color: #16a34a;
 }
 
 @media (prefers-reduced-motion: reduce) {

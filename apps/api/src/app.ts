@@ -446,31 +446,28 @@ export async function buildApp(
         }
       }
 
-      const searchText = hasLocation
-        ? query
-        : [
-            query,
-            request.query.near?.trim() || inferredTextNear || defaultNear,
-          ].filter(Boolean).join(", ");
-      const url = new URL("https://nominatim.openstreetmap.org/search");
-      url.search = new URLSearchParams({
-        q: searchText,
-        format: "jsonv2",
-        limit: "25",
-        addressdetails: "1",
-        extratags: "1",
-        layer: "poi",
-        ...(hasLocation
-          ? {
-              viewbox: `${longitude - 0.08},${latitude + 0.06},${longitude + 0.08},${latitude - 0.06}`,
-              bounded: "1",
-            }
-          : {}),
-      }).toString();
+      const buildNominatimUrl = (withLocation: boolean) => {
+        const url = new URL("https://nominatim.openstreetmap.org/search");
+        url.search = new URLSearchParams({
+          q: withLocation ? query : [query, request.query.near?.trim() || inferredTextNear].filter(Boolean).join(", "),
+          format: "jsonv2",
+          limit: "35",
+          addressdetails: "1",
+          extratags: "1",
+          layer: "poi",
+          ...(withLocation && hasLocation
+            ? {
+                viewbox: `${longitude - 0.12},${latitude + 0.09},${longitude + 0.12},${latitude - 0.09}`,
+                bounded: "1",
+              }
+            : {}),
+        }).toString();
+        return url.toString();
+      };
 
       try {
         await waitForNominatim();
-        const response = await fetch(url, {
+        let response = await fetch(buildNominatimUrl(hasLocation), {
           headers: {
             "User-Agent":
               process.env.NOMINATIM_USER_AGENT ??
@@ -481,7 +478,7 @@ export async function buildApp(
           signal: AbortSignal.timeout(8_000),
         });
         if (!response.ok) throw new Error(`OpenStreetMap search failed (${response.status}).`);
-        const raw = await response.json() as Array<{
+        let raw = await response.json() as Array<{
           osm_id: number;
           osm_type: "node" | "way" | "relation";
           name?: string;
@@ -497,6 +494,25 @@ export async function buildApp(
             cuisine?: string;
           };
         }>;
+
+        // If local search yielded 0 results and we had a location bias, fallback to global search
+        if (raw.length === 0 && hasLocation) {
+          await waitForNominatim();
+          response = await fetch(buildNominatimUrl(false), {
+            headers: {
+              "User-Agent":
+                process.env.NOMINATIM_USER_AGENT ??
+                process.env.OFF_USER_AGENT ??
+                "VeganTools/0.1 (https://nilsduran.github.io)",
+              Accept: "application/json",
+            },
+            signal: AbortSignal.timeout(8_000),
+          });
+          if (response.ok) {
+            raw = await response.json() as typeof raw;
+          }
+        }
+
         const candidates: RestaurantCandidate[] = raw
           .filter((item) =>
             ["restaurant", "cafe", "fast_food", "bar", "pub", "bistro", "ice_cream", "bakery", "food_court"].includes(item.type ?? "") ||
