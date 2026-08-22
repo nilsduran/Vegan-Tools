@@ -108,6 +108,9 @@ Permetre a la comunitat valorar restaurants amb la mètrica pròpia de **5 Fulle
    - ✉️ **Correu Electrònic (Magic Link / Password)** (alternativa neutral sense dependència de grans tecnològiques).
 4. **Integritat de Dades**:
    - Polítiques Row-Level Security (RLS) a PostgreSQL que garanteixen que 1 usuari = 1 ressenya per local, i que només l'autor pot editar o esborrar el seu vot.
+5. **Característiques i Etiquetes Col·laboratives (Crowdsourcing de Filtres)**:
+   - Els usuaris podran afegir i votar característiques del restaurant durant la ressenya (`🌱 100% Vegà`, `🌾 Opcions sense gluten`, `☀️ Terrassa`, `🐾 Pet-friendly`, `☕ Llet vegetal sense suplement`, `♿ Accessible`).
+   - Això permet alimentar i verificar els filtres del mapa a través de l'experiència real de la comunitat sense dependre d'inferències automàtiques o dades de tercers incompletes.
 
 ---
 

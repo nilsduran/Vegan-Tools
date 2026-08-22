@@ -362,14 +362,7 @@ export async function buildApp(
       curatedMatch?.isVegan ??
       (veganLower === "yes" ||
         veganLower === "only" ||
-        allText.includes("vegan") ||
-        allText.includes("vegà") ||
-        allText.includes("vegano") ||
-        allText.includes("vegana") ||
-        allText.includes("veggie") ||
-        allText.includes("plant based") ||
-        allText.includes("plant-based") ||
-        allText.includes("100% vegetal") ||
+        cuisineLower === "vegan" ||
         cuisineLower.includes("vegan"));
 
     const isVegetarian =
@@ -377,10 +370,7 @@ export async function buildApp(
       (isVegan ||
         vegetarianLower === "yes" ||
         vegetarianLower === "only" ||
-        allText.includes("vegetarian") ||
-        allText.includes("vegetarià") ||
-        allText.includes("vegetariano") ||
-        allText.includes("vegetariana") ||
+        cuisineLower === "vegetarian" ||
         cuisineLower.includes("vegetarian"));
 
     if (curatedMatch?.tags) {
