@@ -1,53 +1,37 @@
-# Market research
+# Vegan Tools — Market Research & Ecosystem Landscape
 
-_Snapshot: July 2026. This is a product-landscape review, not an endorsement._
+_Snapshot: August 2026. A product and architectural landscape review of plant-based discovery tools._
 
-## Direct products
+---
 
-| Product | Main job | Useful pattern | Gap Vegan Tools should address |
-| --- | --- | --- | --- |
-| [Pick&Eat](https://pick-n-eat.app/) | Scan and translate restaurant menus with diet filters | Fast camera-first menu workflow | AI matching is presented without an auditable evidence model |
-| [Travel.Eat](https://apps.apple.com/us/app/travel-eat-menu-translator/id6504732837) | Menu translation, nearby venues and dietary filters | Saved menus and location context | Broad scope; dietary certainty is difficult to verify |
-| Yumi | AI menu extraction and filtering | Structured dish cards and live results | No visible correction or provenance workflow |
-| [V-Pal](https://v-pal.com/en/) | Barcode/ingredient scan plus vegan places | Combines several vegan daily-life tools | Coverage and verification methodology are not the primary interface |
-| [CodeCheck](https://codecheck-app.com/) | Food and cosmetics ingredient transparency | Ingredient-level explanations and alternatives | Wider consumer-health focus rather than conservative vegan verification |
-| [MyGredient](https://mygredient.com/) | Barcode plus ingredient-label checking | Does not rely on barcode data alone | Personalisation adds complexity before evidence quality is resolved |
-| Feny Verify | Labels, barcodes, menus and confidence | Explicitly exposes uncertainty and sources | Confidence must still be tied to reproducible evidence |
-| [Open Food Facts](https://world.openfoodfacts.org/) | Open product database and scanner | Scale, open data, contribution loop | Community data is explicitly not guaranteed accurate or complete |
+## 🧭 1. Direct Products & Competitive Gaps
 
-## Open-source inspiration
+| Product | Primary Purpose | Strengths | Gaps Addressed by Vegan Tools |
+| :--- | :--- | :--- | :--- |
+| **HappyCow** | Global vegan venue directory | Massive legacy venue catalog & community volume | Stale listings, no automated dish-level menu analysis, proprietary closed ecosystem, mandatory paid features. |
+| **Pick&Eat** | Camera-first restaurant menu scanner | Fast mobile-first scanning UX | Ephemeral results without permanent auditable evidence or community verification workflows. |
+| **Open Food Facts** | Open crowdsourced barcode database | Global scale, open ODbL database, strong community | Community data is not guaranteed 100% verified; lacks dedicated dish menus or recipe veganizers. |
+| **CodeCheck** | Ingredient and cosmetics transparency | Detailed chemical toxicity and ingredient insights | Broad health & eco focus rather than conservative dietary vegan verification. |
 
-- [Open Food Facts](https://github.com/openfoodfacts): Product Opener, its mobile app,
-  taxonomies and data-quality flags are the strongest reference for collaborative product data.
-- [Robotoff](https://github.com/openfoodfacts/robotoff): extraction should create reviewable
-  predictions rather than silently overwrite source data.
-- [MakeACopy](https://github.com/egdels/makeacopy): a strong interaction model for OCR
-  correction, confidence highlighting and multi-page source review.
-- [Organic Maps](https://github.com/organicmaps/organicmaps) and OpenStreetMap: useful future
-  references for an open, community-maintained vegan venue directory.
+---
 
-## Restaurant discovery providers
+## 🗺️ 2. Restaurant Discovery Providers Comparison
 
-| Provider | Coverage and menu usefulness | Cost/constraints | Decision |
-| --- | --- | --- | --- |
-| OpenStreetMap + Nominatim | Free and correctable, but independent venues may be missing or stale; website fields are inconsistent | Public Nominatim has a strict usage policy and is not a high-volume production search service | Keep as the no-key fallback |
-| [Foursquare Places](https://docs.foursquare.com/fsq-developers-places/reference/place-search) | Broader commercial POI coverage and may return the official website | 500 free Pro calls under the June 2026 pricing, then metered usage | Recommended optional primary provider for this personal project |
-| [Google Places](https://developers.google.com/maps/documentation/places/web-service/text-search) | Usually the strongest local-business coverage; can return website data | Billing account, field-sensitive pricing, caching restrictions, Google Maps attribution, public terms and privacy-policy requirements | Do not make it the default while the project has a near-zero budget |
-| Gemini grounding with Google Maps/Search | Can locate current places and official/menu pages using the existing Gemini key | Variable grounded output; citations must be shown, and paid usage starts beyond the free grounding allowance | Promising later fallback, but URLs must be fetched and validated before analysis |
+| Provider | Coverage & Menu Utility | Cost & Operational Constraints | Project Decision |
+| :--- | :--- | :--- | :--- |
+| **Geoapify Places API v2** | Broad commercial POI coverage, structured dietary tags (`diet.vegan`, `diet.vegetarian`), and direct official website URLs. | Generous free tier (3,000 daily credits), no credit card required, standard REST API. | **Primary Place Provider**: Fast, reliable, and cost-effective. |
+| **OpenStreetMap + Nominatim + Photon** | Free open data, correctable by community, universal coverage. | Public Nominatim enforces strict 1 req/sec rate limits; independent small venues can have missing websites. | **Zero-Key Fallback**: Always available when offline or when external quotas expire. |
+| **Overture Maps Foundation** | Massive open GeoParquet place dataset backed by Meta/Amazon/Microsoft/TomTom. | Requires batch ETL pipelines, spatial database indexing, and periodic deduplication maintenance. | **Mid-Term Strategic Candidate**: Promising for self-hosted local indexing once server scale requires it. |
+| **Google Places API** | Comprehensive local business directory. | High field-sensitive pricing, strict caching restrictions, mandatory Google Maps UI SDK, and attribution requirements. | **Avoided**: Does not fit zero-budget open-source principles. |
+| **Gemini with Google Search Grounding** | Real-time live web search and domain certification. | Consumes Gemini API quota; requires strict prompt constraints to filter out third-party aggregators. | **Official Website Resolver**: Invoked on-demand when place providers lack verified domains. |
 
-The current implementation uses Foursquare when `FOURSQUARE_API_KEY` is configured and
-falls back to OpenStreetMap. It then crawls only the selected official website, follows a
-small number of likely `menu`/`carta` links, prefers PDFs and validates every fetched URL
-against server-side request-forgery rules. Manual website entry and file upload remain
-necessary fallbacks.
+---
 
-## Product position
+## 🌟 3. Unique Value Proposition (UVP)
 
-The market already has many “AI scanner” products. Vegan Tools should not compete on a
-larger model or a more confident green badge. Its defensible position is:
+Vegan Tools does not aim to be a generic social network or another unverified AI aggregator. Its core defensible positioning rests on:
 
-1. one coherent menu and packaged-product toolkit;
-2. conservative verdicts with `unknown` as a normal outcome;
-3. visible source, date, recipe revision and reason;
-4. corrections that preserve history;
-5. a measurable precision target reported separately from coverage.
+1. **Auditable Primary Sources**: Extracting dishes directly from the restaurant's live website, downloadable PDF, or photographed menu rather than 3-year-old user comments.
+2. **Conservative Assurance**: Clear distinction between verified `VEGAN` and unprovenanced `PROBABLY_VEGAN` ingredients.
+3. **100% Open & Privacy-First**: Zero tracking cookies, zero tracking banners, and complete access without forced account creation.
+4. **All-in-One Plant-Based Toolkit**: Combining interactive map discovery, dish-level menu translation, packaged product barcode scanning, and intelligent recipe veganization.

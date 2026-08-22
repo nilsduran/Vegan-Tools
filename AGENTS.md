@@ -6,17 +6,23 @@ Aquest document estableix les directrius tècniques, els principis d'arquitectur
 
 ## 🧭 1. Documents de Referència Principals
 
+- 🏛️ **Guia d'Arquitectura i Descoberta de Cartes**: [`docs/architecture.md`](./docs/architecture.md)
+  - Diagrama de flux de descoberta, resolució de webs oficials amb IA, seguretat SSRF i referència completa de l'API.
 - 🗺️ **Full de Ruta (Roadmap)**: [`docs/roadmap.md`](./docs/roadmap.md)
   - Estat actual de cada fase de desenvolupament, funcionalitats pendents, llançament de la beta, disseny de la UI i plans d'arquitectura.
 - 🐛 **Registre d'Incidències i Bug Tracking**: [`docs/bugs.md`](./docs/bugs.md)
   - Llista exhaustiva de bugs coneguts, incidències d'UX, causes arrels i mesures de resolució per evitar regressions.
+- 🎯 **Metodologia de Fiabilitat**: [`docs/reliability.md`](./docs/reliability.md)
+  - Jerarquia d'evidències i estàndard del 99% de precisió en veredictes dietètics.
+- 🌐 **Anàlisi de Mercat i Proveïdors**: [`docs/market-research.md`](./docs/market-research.md)
+  - Comparativa de proveïdors de dades de llocs (Geoapify, OpenStreetMap, Overture, Google Places).
 
 ---
 
 ## 🏗️ 2. Arquitectura del Projecte (Monorepo)
 
 - **`packages/domain`**: Tipus TypeScript, esquemes Zod i lògica pura de domini (classificació d'ingredients, esquemes de restaurants, etc.).
-- **`apps/api`**: Servidor backend Fastify (Node.js/TypeScript) amb cerca de restaurants (Komoot Photon + Nominatim + Foursquare), resolució de dominis oficials, OCR d'ingredients i memòria cau de cartes.
+- **`apps/api`**: Servidor backend Fastify (Node.js/TypeScript) amb cerca de restaurants (Geoapify + Komoot Photon + Nominatim + Overpass), resolució de dominis oficials amb Gemini Search Grounding, OCR d'ingredients i memòria cau de cartes.
 - **`apps/web`**: Aplicació web React + Vite + Leaflet + PWA, internacionalitzada (català/anglès) i optimitzada per a mòbil i escriptori.
 
 ---

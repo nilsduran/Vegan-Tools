@@ -1,151 +1,117 @@
 # Vegan Tools — Project Roadmap & Vision
 
-Aquest document detalla l'estat actual del desenvolupament, les funcionalitats completades a la branca `feature/interactive-map` i la planificació estratègica de Vegan Tools.
+This document outlines the development status, completed milestones on the active feature branch, and strategic future vision for **Vegan Tools**.
 
 ---
 
-## 🗺️ 1. Mapa Interactiu & Exploració (`/map`)
+## 🗺️ 1. Interactive Map & Discovery (`/map`)
 
-Estat: **Fase 1 completada i optimitzada** (en desenvolupament a `feature/interactive-map`).
+Status: **Phase 1 to 4 Complete & Optimized** (Branch: `feature/interactive-map`).
 
-### 🌟 Funcionalitats implementades:
-- **Visualització d'alta precisió (Leaflet + OpenStreetMap + CARTO Voyager)**:
-  - Ancoratge mil·limètric de pins (`iconAnchor: [width/2, height]`) sense desplaçament en fer zoom.
-  - Títols dels restaurants visibles directament sobre el mapa a `zoom >= 14` i ocults en fer zoom out per mantenir el mapa net.
-  - Pins curats inicials de referència per a cada regió (amb resolució instantània).
-- **Cerca intel·ligent amb biaix de proximitat universal (Komoot Photon + Nominatim)**:
-  - Cerca per nom comercial o carrer ("Desoriente", "La Tagliatella", "Purezza") que prioritza automàticament la ubicació de l'usuari sense obligar a escriure la ciutat.
-- **Accions i Fitxa del Restaurant (`RestaurantDetailPane`)**:
-  - Distància exacta calculada (`350 m`, `1.4 km`) respecte la posició de l'usuari.
-  - Accions en una sola línia: `<Utensils /> Carta`, `<Globe /> Web`, `<Navigation /> Indicacions`.
-  - Enllaços adaptatius: protocol `geo:lat,lng` a mòbil i Google Maps Directions a desktop.
-- **Memòria cau instantània de cartes (`RestaurantMenuCache`)**:
-  - Resposta immediata (< 5ms) en tornar a obrir un restaurant ja consultat.
-- **Sincronització d'estat a la URL (`/map?place=id`) i compatibilitat amb el botó Enrere**.
+### 🌟 Completed Features:
+- **High-Precision Map Rendering (Leaflet + OpenStreetMap + CARTO Voyager)**:
+  - Pixel-perfect pin anchoring (`iconAnchor: [width/2, height]`) with zero drift on zooming.
+  - Contextual restaurant labels visible at `zoom >= 14` and smoothly hidden when zoomed out.
+  - Curated initial pins per geographic region for instant zero-latency discovery.
+- **Smart Universal Search & Soft Proximity (Geoapify Places API + Komoot Photon + Nominatim)**:
+  - Commercial name and street search ("Desoriente", "Teresa Carles", "Purezza") with proximity ranking.
+  - Automatic **420ms debounce** to prevent wasteful queries.
+- **Restaurant Details & Action Row (`RestaurantDetailPane`)**:
+  - Exact walking distance calculated (`350 m`, `1.4 km`) from current location.
+  - Clean action row: `<Utensils /> Menu`, `<Globe /> Website`, `<Navigation /> Directions`.
+  - Adaptive routing: `geo:lat,lng` protocol on mobile devices and Google Maps Directions on desktop.
+- **Instant Menu Caching (`RestaurantMenuCache`)**:
+  - Instant response (< 5ms) when reopening previously analyzed restaurant menus.
+- **URL Deep-Linking**: State synchronization via URL query parameters (`/map?place=id`) and full browser history back-button support.
+- **Marker Clustering**: Dynamic clustering for dense urban areas with smooth spiderfy animations.
+- **Responsive Mobile Bottom Sheet**: 3-position touch drawer (`collapsed`, `half`, `expanded`) with swipe gestures.
+- **Multi-Filter Bar**: Combined AND/OR filtering (`🍃 4+ leaves`, `🕒 Open now`, `🌱 100% Vegan`, `🍽️ Restaurant`, `☕ Cafe & Bakery`, `🍝 Italian`, `🥢 Asian`, `🍔 Burgers`, `🌾 Gluten-Free`, `🍦 Ice Cream`).
 
-### 🔜 Propers passos del Mapa:
-- [x] **Fase 2**: Autocomplete ràpid (*typeahead*) al camp de cerca i píndoles de filtre per tipus de cuina i dietètica amb combinació AND/OR (`🍃 4+ fulles`, `🕒 Obert ara`, `🌱 100% Vegà`, `🍽️ Restaurant`, `☕ Cafeteria i fleca`, `🍝 Italià`, `🥢 Asiàtic` + panell desplegable de més filtres).
-- [x] **Fase 3**: Panell inferior lliscant (*Bottom Sheet* responsive de 3 posicions: `collapsed` / `half` / `expanded` amb gestos tàctils de lliscament, tirador accessible i transicions suaus) per a dispositius mòbils.
-- [x] **Fase 4**: Agrupació de marcadors (*Marker Clustering*) dinàmica segons el nivell de zoom per a zones d'alta densitat urbana amb zoom intel·ligent en fer-hi clic.
-- [ ] **Expansió de Filtres i Categories**:
-  - Afegir categories d'interès ètic i educatiu: **Santuaris d'animals** i **Classes / Tallers de cuina vegana**.
-  - **Personalització i reordenació dels filtres**: Permetre a l'usuari triar i ordenar les píndoles preferides a la barra ràpida.
-
----
-
-## 🍳 2. Receptari Vegà & Veganitzador (`/recipes`)
-
-Estat: **Receptari bàsic i veganitzador actius; expansió a Hub de Receptes planificada**.
-
-### 🌟 Funcionalitats actuals:
-- **Veganitzador intel·ligent**: Substitució automàtica d'ous (inclosos rovells i clares específics), làctics, carns i gelatines amb concordança gramatical catalana.
-- **Porta-retalls ràpid** i selecció d'exemples tradicionals (Pancakes, Canelons, Crema Catalana, Pa de Pessic, Galetes).
-
-### 🚀 Plans d'expansió (El Gran Receptari Vegà per defecte):
-- [ ] **Mini Receptari Curat de les Millors Receptes Veganes**:
-  - Convertir `/recipes` en un hub culinari de referència amb receptes 100% veganes provades i garantides per defecte (no només adaptacions d'ingredients).
-  - Categories clau:
-    1. 🧀 **Formatges vegans casolans** (formatge fresc de nous de macadàmia, parmesà de festucs, mozzarella fondent de tapioca).
-    2. 🍲 **Plats de cullera i tradicionals** (escudella vegana, estofats de seitan, arrossos de muntanya amb bolets).
-    3. 🍰 **Pastisseria i postres sense ou ni llet** (mousse d'aquafaba, pastís de xocolata, crema pastissera).
-    4. 🥗 **Plats ràpids d'alt contingut proteic** (tofu marinat cruixent, tempeh glacejat, llegums especiats).
-- [ ] **Filtres per temps de preparació, nivell de dificultat i al·lèrgens (sense gluten, sense fruita seca)**.
-- [ ] **Mode cuina pas a pas** amb instruccions clares i temporitzadors.
+### 🔜 Upcoming Map Milestones:
+- [ ] **Community Crowdsourced Tags**: Allow users to vote on verified restaurant features (`🌱 100% Vegan`, `🌾 Gluten-Free options`, `☀️ Outdoor Terrace`, `🐾 Pet-friendly`, `☕ Plant milk without surcharge`, `♿ Wheelchair Accessible`).
+- [ ] **Expanded Ethical Categories**: Add dedicated map layers for **Animal Sanctuaries** and **Vegan Cooking Classes & Workshops**.
+- [ ] **Filter Customization**: Allow users to reorder and pin their favorite dietary pills to the quick-filter bar.
 
 ---
 
-## 📚 3. Recursos, Guies i Activisme Vegà (`/resources`)
+## 🍳 2. Recipe Veganizer & Hub (`/recipes`)
 
-Estat: **Nova secció en disseny (inspirada en VeganEasy.org i col·lectius de referència)**.
+Status: **Smart Veganizer active; Recipe Hub expansion planned**.
 
-### 🎯 Objectiu:
-Proporcionar una porta d'entrada accessible, positiva, ben documentada i sense judicis per a qualsevol persona interessada en el veganisme, la nutrició o la defensa dels animals.
+### 🌟 Current Capabilities:
+- **Rule-Based & AI Veganizer**: Automatic replacement of animal ingredients (including egg whites, yolks, dairy, meats, gelatins) with accurate culinary alternatives.
+- **One-Click Clipboard Export** and curated Catalan & International examples (Pancakes, Canelons, Crema Catalana, Sponge Cake, Cookies).
 
-### 📑 Continguts planificats:
-1. **Guia d'iniciació nutricional (Basada en evidències científiques)**:
-   - Suplementació de vitamina B12 (dosis recomanades i freqüència).
-   - Fonts de ferro, calci, proteïna vegetal i àcids grassos omega-3.
-   - Consells pràctics per fer la transició de manera saludable i sostenible.
-2. **Documentals i Llibres Recomanats**:
-   - Documentals sobre ètica, salut i medi ambient (*Earthlings*, *Dominion*, *Cowspiracy*, *The Game Changers*).
-   - Enllaços directes a plataformes de visualització oberta.
-3. **Respostes a Dubtes Freqüents i Arguments Ètics**:
-   - Explicacions clares i constructives a preguntes habituals ("I les proteïnes?", "I les tradicions?", "És més car ser vegà?").
-4. **Directori d'Activisme i Santuaris**:
-   - Mapa i directori de santuaris d'animals a Catalunya i l'Estat (per fer voluntariat o visites educatives).
-   - Associacions i grups de defensa dels drets dels animals.
+### 🚀 Expansion Plans (The Default Vegan Recipe Hub):
+- [ ] **Curated Plant-Based Master Recipes**:
+  - Transform `/recipes` into an authoritative culinary hub with tested staple recipes:
+    1. 🧀 **Artisanal Vegan Cheeses** (macadamia fresh cheese, fermented cashew parmesan, tapioca melting mozzarella).
+    2. 🍲 **Traditional Comfort Foods** (Catalan escudella, rich seitan stews, wild mushroom mountain rice).
+    3. 🍰 **Egg-free & Dairy-free Bakery** (aquafaba chocolate mousse, classic cakes, pastry cream).
+    4. 🥗 **High-Protein Fast Meals** (crispy marinated tofu, glazed tempeh, spiced grain bowls).
+- [ ] **Cooking Mode**: Step-by-step full-screen instructions with integrated timers.
+- [ ] **Dietary & Allergen Filtering**: Filter by preparation time, difficulty, nut-free, and gluten-free tags.
 
 ---
 
-## 🎨 4. Redisseny Global de la Interfície (UI/UX)
+## 📚 3. Resources, Guides & Advocacy (`/resources`)
 
-Estat: **Previst per a la Fase de Consolidació**.
+Status: **New Section in Design**.
 
-- [ ] **Nou sistema de disseny unificat**:
-  - Paleta de colors moderna i contrastada (verds botànics, fons càlids, tipografies netes).
-  - Micro-interaccions fluides (transicions suaus d'obertura de cartes, càrrega amb esquelets *skeleton loaders*).
-  - Disseny responsive d'alt nivell (adaptació òptima des de telèfons compactes fins a monitors panoràmics).
-- [ ] **Mode Fosc / Mode Clar** respectant les preferències del sistema operatiu.
+### 🎯 Goal:
+Provide an accessible, evidence-based, compassionate, and positive guide for anyone curious about plant-based nutrition, ethics, or animal advocacy.
 
----
-
-## 👥 5. Ressenyes Comunitàries & Autenticació d'Usuaris (Futur Llunyà)
-
-Estat: **Definit conceptualment (previst per a fases avançades de comunitat)**.
-
-### 🎯 Objectiu:
-Permetre a la comunitat valorar restaurants amb la mètrica pròpia de **5 Fulles (🍃 1 a 5)** per mesurar l'experiència global vegana (qualitat, varietat i adaptacions de la carta), garantint la màxima seguretat i privacitat.
-
-### 🔑 Principis d'Arquitectura i UX:
-1. **Navegació 100% Oberta i Anònima**:
-   - Cap persona necessita crear un compte per consultar el mapa, llegir cartes, escanejar codis de barres o veganitzar receptes.
-   - El compte només és requerit en el moment voluntari d'escriure o editar una valoració.
-2. **Seguretat Delegada (Supabase Auth)**:
-   - Zero emmagatzematge manual de contrasenyes o gestió de ciberseguretat criptogràfica; delegat 100% a la infraestructura de Supabase (xifrat Argon2id / bcrypt, protecció contra atacs de força bruta, compliment GDPR).
-3. **Mètodes d'Accés Minimalistes**:
-   - 🌐 **Google OAuth** (mètode majoritari en 1 clic per a Android, Chrome i Gmail).
-   - 🍏 **Apple Sign-In** (essencial per a usuaris iOS/Safari, amb opció de correu ocult per a màxima privacitat).
-   - ✉️ **Correu Electrònic (Magic Link / Password)** (alternativa neutral sense dependència de grans tecnològiques).
-4. **Integritat de Dades**:
-   - Polítiques Row-Level Security (RLS) a PostgreSQL que garanteixen que 1 usuari = 1 ressenya per local, i que només l'autor pot editar o esborrar el seu vot.
-5. **Característiques i Etiquetes Col·laboratives (Crowdsourcing de Filtres)**:
-   - Els usuaris podran afegir i votar característiques del restaurant durant la ressenya (`🌱 100% Vegà`, `🌾 Opcions sense gluten`, `☀️ Terrassa`, `🐾 Pet-friendly`, `☕ Llet vegetal sense suplement`, `♿ Accessible`).
-   - Això permet alimentar i verificar els filtres del mapa a través de l'experiència real de la comunitat sense dependre d'inferències automàtiques o dades de tercers incompletes.
+### 📑 Planned Content:
+1. **Evidence-Based Nutrition Guide**:
+   - Vitamin B12 supplementation guidelines (dosage and frequency).
+   - Key sources for iron, calcium, plant proteins, iodine, and omega-3 fatty acids.
+   - Practical transition strategies for sustainable long-term habits.
+2. **Documentaries & Books**:
+   - Curated media library (*Earthlings*, *Dominion*, *Cowspiracy*, *The Game Changers*) with direct streaming links.
+3. **Common Questions & Ethical FAQ**:
+   - Clear, constructive answers to frequent concerns ("Where do you get protein?", "What about cultural traditions?", "Is veganism expensive?").
+4. **Animal Sanctuaries Directory**:
+   - Verified map and directory of animal sanctuaries in Catalonia, Spain, and Europe for volunteering or educational visits.
 
 ---
 
-## 📢 6. Llançament de la Beta, Creixement i Difusió
+## 🎨 4. Design System & UX Polish
 
-Estat: **Planificació de sortida**.
+Status: **Continuous Iteration**.
 
-- [ ] **Llançament de la versió Beta pública**:
-  - Desplegament a producció amb domini propi i certificat SSL.
-  - Canals de feedback ràpid per a la comunitat (formulari de correcció de plats i suggeriments de millora).
-- [ ] **Estratègia de difusió comunitària**:
-  - Presentació en fòrums, comunitats veganes (Reddit r/vegan, grups de Telegram/Discord, comunitats locals de Catalunya).
-  - Presència i difusió en fires i esdeveniments vegans (Vegan Fest Catalunya, mercats ecològics).
-  - Contacte amb creadors de contingut gastronòmic i divulgadors d'estil de vida basat en plantes.
+- [ ] **Unified Botanical Design System**:
+  - Cohesive earthy color palette (deep forest greens, warm neutrals, crisp typography).
+  - Fluid micro-interactions (smooth skeleton loaders, tactile bottom sheets).
+- [ ] **Dark Mode / Light Mode**: Seamless theme switching honoring operating system preferences.
 
 ---
 
-## 🔒 7. Privacitat, GDPR i Filosofia "Zero Banners de Cookies"
+## 👥 5. Community Reviews & Social Verification
 
-Estat: **Arquitectura Privacy-First per disseny**.
+Status: **Architecturally Designed**.
 
-- **Sense Galetes de Tercers ni Rastrejadors**:
-  - Vegan Tools no utilitza cookies publicitàries, ni píxels de Meta, ni eines de seguiment intrusiu de Google.
-  - **Sense banner molest de cookies**: En no emmagatzemar dades personals per a finalitats de perfilat comercial, **no és legalment necessari mostrar el típic banner de consentiment de cookies**, oferint una experiència d'usuari immediata, neta i respectuosa.
-- **Emmagatzematge Local Estrictament Funcional**:
-  - L'emmagatzematge del navegador (`localStorage`) s'utilitza únicament per desar la preferència d'idioma de l'usuari (`ca`/`en`) i l'historial recent de codis de barres escanejats al mateix dispositiu.
-- **Geolocalització Transparent**:
-  - La ubicació GPS s'utilitza únicament en memòria per calcular distàncies locals i mai s'emmagatzema en cap base de dades.
+### 🎯 Core Principles:
+1. **100% Anonymous & Open Browsing**:
+   - No login is ever required to browse maps, inspect menus, scan barcodes, or read recipes.
+   - Authentication is strictly optional, required only when writing a review or submitting evidence.
+2. **Delegated Security (Supabase Auth)**:
+   - Zero password storage on custom servers; 100% managed via Argon2id encryption and PostgreSQL Row-Level Security (RLS).
+   - Frictionless 1-click login: Google OAuth, Apple Sign-In, and Magic Email Links.
+3. **5-Leaf Rating System (🍃 1 to 5)**:
+   - Dedicated vegan-specific rating measuring variety, staff dietary awareness, and kitchen cross-contamination protocols.
 
 ---
 
-## 🛡️ Polítiques d'Enginyeria & Workflow de Desenvolupament
-- **Guia d'Agents**: [`AGENTS.md`](../AGENTS.md)
-- **Registre de Bugs**: [`docs/bugs.md`](./bugs.md)
-- **Test Suite**: 119 tests automatitzats passant al 100%.
-- [ ] **Optimització del Cicle de Desenvolupament (Execució de Tests per Feature/Workflow)**:
-  - Durant el desenvolupament iteratiu i ràpid d'una subfuncionalitat, **limitar l'execució de tests exclusivament als fitxers i paquets afectats** (ex: `npx vitest run apps/web/src/pages/MenuReaderPage.test.tsx` o `npm run typecheck`) per no alentir el flux de treball.
-  - L'execució de la suite completa (`npm run check`, que inclou `pretypecheck` -> `typecheck` -> tots els 110 tests -> `build` de producció -> `check:secrets`) es reserva únicament per a moments clau: **abans de fer push, obrir una PR o fer merge a `main`**.
+## 🔒 6. Privacy, GDPR & "Zero Cookie Banners"
+
+- **Zero Third-Party Trackers**: No advertising pixels (Meta, TikTok), no invasive analytics scripts.
+- **No Cookie Banner Required**: Because we store zero commercial profiling data, no intrusive cookie banners are legally required under GDPR/ePrivacy directives.
+- **Ephemeral Geolocation**: User GPS coordinates are processed solely in client-side memory to calculate distances and are never recorded in databases.
+
+---
+
+## 🛡️ Reference Documentation
+- **Architecture Guide**: [`docs/architecture.md`](./architecture.md)
+- **Bug & Incident Tracker**: [`docs/bugs.md`](./bugs.md)
+- **Market Research**: [`docs/market-research.md`](./market-research.md)
+- **Reliability Methodology**: [`docs/reliability.md`](./reliability.md)

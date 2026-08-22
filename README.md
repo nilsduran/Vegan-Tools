@@ -14,9 +14,9 @@ Live website: [vegan-tools.onrender.com](https://vegan-tools.onrender.com)
 ## Features & Capabilities
 
 ### 🍽️ 1. Menu Reader
-- **Search & discovery**: Search food venues via Foursquare with OpenStreetMap fallback and automated official website/menu link discovery.
+- **Search & discovery**: Search food venues via Geoapify Places API with OpenStreetMap fallback and automated official website/menu link discovery.
 - **Upload any format**: Supports PDFs, multiple photo pages (PNG/JPEG/WebP), or live camera captures (up to 8 files).
-- **Intelligent dish classification**: AI-powered extraction (Gemini 3) classifies dishes (*Vegan*, *Probably vegan*, *Vegetarian*, *Non-vegetarian*) and proposes realistic adaptations.
+- **Intelligent dish classification**: AI-powered extraction (Gemini Flash-Lite) classifies dishes (*Vegan*, *Probably vegan*, *Vegetarian*, *Non-vegetarian*) and proposes realistic adaptations.
 - **Original source view**: Retains original PDFs or photos alongside the dish list for verification.
 - **Shared community cache**: Discovered menus are cached in Supabase for instant reuse by other users.
 
@@ -49,7 +49,7 @@ npm install
 ```bash
 cp .env.example .env
 ```
-*(Without API keys, barcode lookup, ingredient text classification and recipe veganization work completely offline and locally. Gemini and Foursquare keys are only needed for live place search and photo/PDF menu extraction).*
+*(Without API keys, barcode lookup, ingredient text classification and recipe veganization work completely offline and locally. Gemini and Geoapify keys are only needed for live place search and photo/PDF menu extraction).*
 
 ### 3. Start Development Server
 ```bash
@@ -67,7 +67,7 @@ npm run dev
 | --- | --- |
 | `npm run dev` | Start both frontend (`localhost:5173`) and API (`localhost:3001`) simultaneously |
 | `npm run check` | Run full verification: Typecheck + Tests + Production Build + Secret Scan |
-| `npm test` | Run all 83 Vitest automated tests (Unit, DB persistence, and Form UI) |
+| `npm test` | Run all 127 Vitest automated tests (Unit, DB persistence, and Form UI) |
 | `npm run typecheck` | Verify TypeScript compilation across all packages |
 
 ---
@@ -75,8 +75,11 @@ npm run dev
 ## Technical Documentation & Architecture
 
 For in-depth developer documentation, database schemas, and deployment instructions, see:
-- 📖 [Developer & Architecture Guide](docs/developer-guide.md) — API endpoints, Supabase configuration, deployment steps, and environment variables.
-- 🔬 [Reliability & Classification Methodology](docs/reliability-methodology.md) — Testing benchmarks and ingredient evaluation principles.
+- 🏛️ [Architecture & Engineering Guide](docs/architecture.md) — System architecture, menu discovery lifecycle flowchart, security/SSRF, API reference, and deployment.
+- 🗺️ [Project Roadmap](docs/roadmap.md) — Active development milestones, feature releases, and long-term vision.
+- 🎯 [Reliability & Classification Methodology](docs/reliability.md) — Testing benchmarks, evidence hierarchy, and ingredient evaluation principles.
+- 🐛 [Bug & Incident Tracking](docs/bugs.md) — Known issues, root causes, and regression prevention rules.
+- 🌐 [Market Research & Provider Landscape](docs/market-research.md) — Comparative analysis of places and discovery providers.
 
 ---
 
