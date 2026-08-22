@@ -24,9 +24,12 @@ Estat: **Fase 1 completada i optimitzada** (en desenvolupament a `feature/intera
 - **Sincronització d'estat a la URL (`/map?place=id`) i compatibilitat amb el botó Enrere**.
 
 ### 🔜 Propers passos del Mapa:
-- [ ] **Fase 2**: Autocomplete ràpid (*typeahead*) al camp de cerca i píndoles de filtre per tipus de cuina (`🌱 100% Vegà`, `🍕 Pizzeria`, `🍔 Burgers`, `🕒 Obert ara`).
-- [ ] **Fase 3**: Panell inferior lliscant (*Bottom Sheet* responsive de 3 posicions) per a dispositius mòbils.
-- [ ] **Fase 4**: Agrupació de marcadors (*Marker Clustering*) per a zones d'alta densitat urbana.
+- [x] **Fase 2**: Autocomplete ràpid (*typeahead*) al camp de cerca i píndoles de filtre per tipus de cuina i dietètica amb combinació AND/OR (`🍃 4+ fulles`, `🕒 Obert ara`, `🌱 100% Vegà`, `🍽️ Restaurant`, `☕ Cafeteria i fleca`, `🍝 Italià`, `🥢 Asiàtic` + panell desplegable de més filtres).
+- [x] **Fase 3**: Panell inferior lliscant (*Bottom Sheet* responsive de 3 posicions: `collapsed` / `half` / `expanded` amb gestos tàctils de lliscament, tirador accessible i transicions suaus) per a dispositius mòbils.
+- [x] **Fase 4**: Agrupació de marcadors (*Marker Clustering*) dinàmica segons el nivell de zoom per a zones d'alta densitat urbana amb zoom intel·ligent en fer-hi clic.
+- [ ] **Expansió de Filtres i Categories**:
+  - Afegir categories d'interès ètic i educatiu: **Santuaris d'animals** i **Classes / Tallers de cuina vegana**.
+  - **Personalització i reordenació dels filtres**: Permetre a l'usuari triar i ordenar les píndoles preferides a la barra ràpida.
 
 ---
 
@@ -86,7 +89,29 @@ Estat: **Previst per a la Fase de Consolidació**.
 
 ---
 
-## 📢 5. Llançament de la Beta, Creixement i Difusió
+## 👥 5. Ressenyes Comunitàries & Autenticació d'Usuaris (Futur Llunyà)
+
+Estat: **Definit conceptualment (previst per a fases avançades de comunitat)**.
+
+### 🎯 Objectiu:
+Permetre a la comunitat valorar restaurants amb la mètrica pròpia de **5 Fulles (🍃 1 a 5)** per mesurar l'experiència global vegana (qualitat, varietat i adaptacions de la carta), garantint la màxima seguretat i privacitat.
+
+### 🔑 Principis d'Arquitectura i UX:
+1. **Navegació 100% Oberta i Anònima**:
+   - Cap persona necessita crear un compte per consultar el mapa, llegir cartes, escanejar codis de barres o veganitzar receptes.
+   - El compte només és requerit en el moment voluntari d'escriure o editar una valoració.
+2. **Seguretat Delegada (Supabase Auth)**:
+   - Zero emmagatzematge manual de contrasenyes o gestió de ciberseguretat criptogràfica; delegat 100% a la infraestructura de Supabase (xifrat Argon2id / bcrypt, protecció contra atacs de força bruta, compliment GDPR).
+3. **Mètodes d'Accés Minimalistes**:
+   - 🌐 **Google OAuth** (mètode majoritari en 1 clic per a Android, Chrome i Gmail).
+   - 🍏 **Apple Sign-In** (essencial per a usuaris iOS/Safari, amb opció de correu ocult per a màxima privacitat).
+   - ✉️ **Correu Electrònic (Magic Link / Password)** (alternativa neutral sense dependència de grans tecnològiques).
+4. **Integritat de Dades**:
+   - Polítiques Row-Level Security (RLS) a PostgreSQL que garanteixen que 1 usuari = 1 ressenya per local, i que només l'autor pot editar o esborrar el seu vot.
+
+---
+
+## 📢 6. Llançament de la Beta, Creixement i Difusió
 
 Estat: **Planificació de sortida**.
 
@@ -100,7 +125,7 @@ Estat: **Planificació de sortida**.
 
 ---
 
-## 🔒 6. Privacitat, GDPR i Filosofia "Zero Banners de Cookies"
+## 🔒 7. Privacitat, GDPR i Filosofia "Zero Banners de Cookies"
 
 Estat: **Arquitectura Privacy-First per disseny**.
 
@@ -114,7 +139,10 @@ Estat: **Arquitectura Privacy-First per disseny**.
 
 ---
 
-## 🛡️ Polítiques d'Enginyeria
+## 🛡️ Polítiques d'Enginyeria & Workflow de Desenvolupament
 - **Guia d'Agents**: [`AGENTS.md`](../AGENTS.md)
 - **Registre de Bugs**: [`docs/bugs.md`](./bugs.md)
-- **Test Suite**: 98 tests automatitzats passant al 100%. Verificació amb `npm run check`.
+- **Test Suite**: 119 tests automatitzats passant al 100%.
+- [ ] **Optimització del Cicle de Desenvolupament (Execució de Tests per Feature/Workflow)**:
+  - Durant el desenvolupament iteratiu i ràpid d'una subfuncionalitat, **limitar l'execució de tests exclusivament als fitxers i paquets afectats** (ex: `npx vitest run apps/web/src/pages/MenuReaderPage.test.tsx` o `npm run typecheck`) per no alentir el flux de treball.
+  - L'execució de la suite completa (`npm run check`, que inclou `pretypecheck` -> `typecheck` -> tots els 110 tests -> `build` de producció -> `check:secrets`) es reserva únicament per a moments clau: **abans de fer push, obrir una PR o fer merge a `main`**.

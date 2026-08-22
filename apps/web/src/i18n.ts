@@ -123,9 +123,11 @@ const caPhrases = {
   "Open": "Obre",
   "Add the menu": "Afegeix la carta",
   "Take photos": "Fes fotos",
-  "Take one per page—you can add up to 8": "Fes-ne una per pàgina; en pots afegir fins a 8",
+  "Take one per page": "Fes-ne una per pàgina",
+  "Take one per page—you can add up to 8": "Fes-ne una per pàgina",
   "Choose files": "Tria fitxers",
-  "Photos or a PDF, up to 8 files": "Fotos o un PDF, fins a 8 fitxers",
+  "Photos or a PDF": "Fotos o un PDF",
+  "Photos or a PDF, up to 8 files": "Fotos o un PDF",
   "Photos are read in this order.": "Les fotos es llegeixen en aquest ordre.",
   "Extracting dishes…": "S'estan extraient els plats de la carta…",
   "Cancel analysis": "Cancel·la l'anàlisi",
@@ -252,6 +254,87 @@ const caPhrases = {
   "Take photo of ingredient label": "Fes foto a l'etiqueta d'ingredients",
   "Recent products": "Productes recents",
   "Clear history": "Neteja l'historial",
+  "100% Vegan": "100% Vegà",
+  "4+ leaves": "4+ fulles",
+  "Restaurant": "Restaurant",
+  "Cafe & Bakery": "Cafeteria i fleca",
+  "Italian": "Italià",
+  "Asian": "Asiàtic",
+  "Mediterranean": "Mediterrani",
+  "Ice cream": "Gelats",
+  "Burger": "Hamburguesa",
+  "Catalan cuisine": "Cuina catalana",
+  "Gluten-free": "Sense gluten",
+  "Halal": "Halal",
+  "Indian": "Indi",
+  "Fish and chips": "Fish and chips",
+  "Filters": "Filtres",
+  "Open now": "Obert ara",
+  "More filters": "Més filtres",
+  "Fewer filters": "Menys filtres",
+  "Filter by cuisine or feature": "Filtra per cuina o característica",
+  "All places": "Tots els locals",
+  "No suggestions found": "No s'han trobat suggeriments",
+  "Suggestions": "Suggeriments",
+  "Press Enter to search all results": "Prem Enter per cercar tots els resultats",
+  "Searching suggestions…": "Cercant suggeriments…",
+  "Matching places": "Locals coincidents",
+  "Collapse panel": "Redueix el panell",
+  "Expand panel": "Expandeix el panell",
+  "Open panel": "Obre el panell",
+  "Community reviews": "Ressenyes de la comunitat",
+  "Sign in to rate": "Inicia sessió per valorar",
+  "Share your vegan experience to help the community.":
+    "Comparteix la teva experiència vegana i ajuda a tota la comunitat.",
+  "Continue with Google": "Continua amb Google",
+  "Continue with Apple": "Continua amb Apple",
+  "or with email": "o bé amb correu",
+  "Magic link": "Enllaç al correu",
+  "Password": "Contrasenya",
+  "Create account": "Crear compte",
+  "Your name or alias": "El teu nom o àlies",
+  "Email address": "Correu electrònic",
+  "Send login link": "Enviar enllaç d'accés",
+  "Sign up": "Registrar-se",
+  "Sign in": "Entrar",
+  "No ratings yet": "Sense valoracions encara",
+  "1 community review": "1 valoració de la comunitat",
+  "community reviews": "valoracions de la comunitat",
+  "Rate with leaves": "Valorar amb fulles",
+  "Edit my review": "Editar la meva valoració",
+  "Rate the vegan experience": "Valora l'experiència vegana",
+  "Edit your review": "Edita la teva valoració",
+  "As": "Com a",
+  "Leaf rating": "Puntuació de fulles",
+  "Leaf": "Fulla",
+  "Leaves": "Fulles",
+  "Comment or tips about the menu (optional)":
+    "Comentari o consells sobre la carta (opcional)",
+  "Delete": "Eliminar",
+  "Publish": "Publicar",
+  "Update": "Actualitzar",
+  "Loading reviews…": "Carregant valoracions…",
+  "This place has no community reviews yet.":
+    "Aquest restaurant encara no té valoracions comunitàries.",
+  "Be the first person to rate it!":
+    "Sigues la primera persona a valorar-lo!",
+  "You": "Tu",
+  "Are you sure you want to delete your review?":
+    "Segur que vols eliminar la teva valoració?",
+  "Thank you! Your review has been published.":
+    "Gràcies! La teva valoració s'ha publicat.",
+  "Link sent!": "Enllaç enviat!",
+  "Account created successfully!": "Compte creat correctament!",
+  "Failed to save review": "Error en desar la ressenya",
+  "Failed to delete review": "Error en esborrar la ressenya",
+  "Delete review": "Eliminar valoració",
+  "Zero tracking cookies or ad trackers. Delegated security and strict privacy compliance.":
+    "Zero rastrejadors ni galetes publicitàries. Seguretat delegada i compliment estricte de la privacitat.",
+  "Or enter a website or menu link": "O bé introdueix l'enllaç de la carta o web",
+  "Website or menu link": "Enllaç de la carta o web",
+  "Maximum limit of 8 files reached.": "S'ha assolit el límit màxim de 8 fitxers.",
+  "Clear": "Neteja",
+  "Finding menu on website failed.": "No s'ha pogut obtenir la carta des del lloc web.",
 } as const;
 
 function getInitialLanguage(): Language {
@@ -304,13 +387,13 @@ export type CatalanPhraseKey = keyof typeof caPhrases;
 export const t = (key: TranslationKey): string =>
   language === "ca" ? ca[key] : en[key];
 
-export function tx(english: CatalanPhraseKey): string {
+export function tx(english: CatalanPhraseKey | (string & {})): string {
   if (language === "ca") {
-    const translated = caPhrases[english];
+    const translated = (caPhrases as Record<string, string>)[english];
     if (!translated && typeof process !== "undefined" && process.env?.NODE_ENV !== "production") {
       console.warn(`[i18n] Missing Catalan translation for: "${String(english)}"`);
     }
-    return (translated as string) ?? english;
+    return translated ?? english;
   }
   return english;
 }

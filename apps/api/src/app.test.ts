@@ -789,4 +789,111 @@ describe("API", () => {
 
     await app.close();
   });
+
+  it("handles restaurant reviews lifecycle: public get, authenticated post, and deletion", async () => {
+    const app = await buildApp(new MemoryRepository());
+    const restaurantId = "rest-testing-123";
+
+    // 1. Initial GET reviews should return empty list and zero stats
+    const initialGet = await app.inject({
+      method: "GET",
+      url: `/v1/restaurants/${restaurantId}/reviews`,
+    });
+    expect(initialGet.statusCode).toBe(200);
+    expect(initialGet.json()).toEqual({
+      reviews: [],
+      stats: {
+        averageLeaves: 0,
+        totalReviews: 0,
+        distribution: { 1: 0, 2: 0, 3: 0, 4: 0, 5: 0 },
+      },
+    });
+
+    // 2. POST without Auth header should return 401
+    const unauthPost = await app.inject({
+      method: "POST",
+      url: `/v1/restaurants/${restaurantId}/reviews`,
+      payload: {
+        leavesScore: 5,
+        comment: "Amazing food",
+      },
+    });
+    expect(unauthPost.statusCode).toBe(401);
+
+    // 3. POST with invalid score should return 400
+    const fakeToken = `eyJhbGciOiJIUzI1NiJ9.${Buffer.from(
+      JSON.stringify({
+        sub: "user-uuid-1",
+        email: "nils@example.com",
+        user_metadata: { full_name: "Nils D." },
+      }),
+    ).toString("base64url")}.fake_sig`;
+
+    const invalidPost = await app.inject({
+      method: "POST",
+      url: `/v1/restaurants/${restaurantId}/reviews`,
+      headers: {
+        authorization: `Bearer ${fakeToken}`,
+      },
+      payload: {
+        leavesScore: 6, // max is 5
+      },
+    });
+    expect(invalidPost.statusCode).toBe(400);
+
+    // 4. POST with valid score (5 leaves) and comment
+    const validPost = await app.inject({
+      method: "POST",
+      url: `/v1/restaurants/${restaurantId}/reviews`,
+      headers: {
+        authorization: `Bearer ${fakeToken}`,
+      },
+      payload: {
+        leavesScore: 5,
+        comment: "Tot 100% vegà i deliciós!",
+      },
+    });
+    expect(validPost.statusCode).toBe(200);
+    const postPayload = validPost.json();
+    expect(postPayload.review).toMatchObject({
+      restaurantId,
+      userId: "user-uuid-1",
+      userName: "Nils D.",
+      leavesScore: 5,
+      comment: "Tot 100% vegà i deliciós!",
+    });
+    expect(postPayload.stats).toEqual({
+      averageLeaves: 5,
+      totalReviews: 1,
+      distribution: { 1: 0, 2: 0, 3: 0, 4: 0, 5: 1 },
+    });
+
+    // 5. GET reviews should now show the newly added review
+    const afterPostGet = await app.inject({
+      method: "GET",
+      url: `/v1/restaurants/${restaurantId}/reviews`,
+    });
+    expect(afterPostGet.statusCode).toBe(200);
+    expect(afterPostGet.json().reviews).toHaveLength(1);
+
+    // 6. DELETE review by the author
+    const deleteRes = await app.inject({
+      method: "DELETE",
+      url: `/v1/restaurants/${restaurantId}/reviews`,
+      headers: {
+        authorization: `Bearer ${fakeToken}`,
+      },
+    });
+    expect(deleteRes.statusCode).toBe(200);
+    expect(deleteRes.json()).toMatchObject({
+      deleted: true,
+      stats: {
+        averageLeaves: 0,
+        totalReviews: 0,
+      },
+    });
+
+    await app.close();
+  });
 });
+

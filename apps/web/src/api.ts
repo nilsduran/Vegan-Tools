@@ -4,12 +4,17 @@ import {
   productResultSchema,
   recipeAnalysisSchema,
   restaurantCandidateSchema,
+  restaurantReviewSchema,
+  restaurantReviewStatsSchema,
+  type CreateReviewRequest,
   type IngredientAnalysis,
   type MenuDraft,
   type MenuPatch,
   type ProductResult,
   type RecipeAnalysis,
   type RestaurantCandidate,
+  type RestaurantReview,
+  type RestaurantReviewStats,
   classifyIngredients as classifyIngredientsLocally,
   veganizeRecipe as veganizeRecipeLocally,
 } from "@vegan-tools/domain";
@@ -121,6 +126,7 @@ export async function searchRestaurants(
     near?: string;
     latitude?: number;
     longitude?: number;
+    radius?: number;
     location?: { latitude: number; longitude: number };
     signal?: AbortSignal;
   } = {},
@@ -134,6 +140,9 @@ export async function searchRestaurants(
   if (typeof lat === "number" && typeof lng === "number") {
     params.set("latitude", String(lat));
     params.set("longitude", String(lng));
+  }
+  if (typeof options.radius === "number" && Number.isFinite(options.radius)) {
+    params.set("radius", String(Math.round(options.radius)));
   }
   const response = await checkedFetch(
     `/v1/restaurants/search?${params}`,
@@ -179,6 +188,21 @@ export async function discoverRestaurantMenu(
       restaurant,
       restaurantName: restaurant.name,
       websiteUrl,
+    }),
+  });
+  return menuDraftSchema.parse(await response.json());
+}
+
+export async function discoverMenuByUrl(
+  websiteUrl: string,
+  restaurantName?: string,
+): Promise<MenuDraft> {
+  const response = await checkedFetch("/v1/menus/discover", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      websiteUrl,
+      restaurantName: restaurantName || "",
     }),
   });
   return menuDraftSchema.parse(await response.json());
@@ -307,5 +331,79 @@ export async function getCuratedRestaurants(coords?: {
   return Array.isArray(data)
     ? data.map((item) => restaurantCandidateSchema.parse(item))
     : [];
+}
+
+export async function getRestaurantReviews(restaurantId: string): Promise<{
+  reviews: RestaurantReview[];
+  stats: RestaurantReviewStats;
+}> {
+  const response = await checkedFetch(
+    `/v1/restaurants/${encodeURIComponent(restaurantId)}/reviews`,
+  );
+  const json = (await response.json()) as {
+    reviews: unknown[];
+    stats: unknown;
+  };
+  return {
+    reviews: Array.isArray(json.reviews)
+      ? json.reviews.map((r) => restaurantReviewSchema.parse(r))
+      : [],
+    stats: restaurantReviewStatsSchema.parse(json.stats),
+  };
+}
+
+export async function submitRestaurantReview(
+  restaurantId: string,
+  review: CreateReviewRequest,
+  token: string,
+): Promise<{
+  review: RestaurantReview;
+  stats: RestaurantReviewStats;
+}> {
+  const response = await checkedFetch(
+    `/v1/restaurants/${encodeURIComponent(restaurantId)}/reviews`,
+    {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${token}`,
+      },
+      body: JSON.stringify(review),
+    },
+  );
+  const json = (await response.json()) as {
+    review: unknown;
+    stats: unknown;
+  };
+  return {
+    review: restaurantReviewSchema.parse(json.review),
+    stats: restaurantReviewStatsSchema.parse(json.stats),
+  };
+}
+
+export async function deleteRestaurantReview(
+  restaurantId: string,
+  token: string,
+): Promise<{
+  deleted: boolean;
+  stats: RestaurantReviewStats;
+}> {
+  const response = await checkedFetch(
+    `/v1/restaurants/${encodeURIComponent(restaurantId)}/reviews`,
+    {
+      method: "DELETE",
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+    },
+  );
+  const json = (await response.json()) as {
+    deleted: boolean;
+    stats: unknown;
+  };
+  return {
+    deleted: Boolean(json.deleted),
+    stats: restaurantReviewStatsSchema.parse(json.stats),
+  };
 }
 

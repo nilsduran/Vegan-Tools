@@ -6,6 +6,7 @@ import swaggerUi from "@fastify/swagger-ui";
 import {
   classifyIngredients,
   CLASSIFIER_VERSION,
+  createReviewRequestSchema,
   dishFeedbackRequestSchema,
   restaurantNotesRequestSchema,
   isValidGtin,
@@ -15,6 +16,7 @@ import {
   type Evidence,
   type ProductResult,
   type RestaurantCandidate,
+  type RestaurantReview,
   restaurantCandidateSchema,
 } from "@vegan-tools/domain";
 import { CURATED_RESTAURANTS } from "./curated-restaurants.js";
@@ -46,6 +48,10 @@ import {
   GeminiDishFeedbackPolisher,
   type DishFeedbackPolisher,
 } from "./dish-feedback-polisher.js";
+import {
+  createRestaurantReviewStore,
+  type RestaurantReviewStore,
+} from "./restaurant-review-store.js";
 
 const FOURSQUARE_RESTAURANT_CATEGORY = "4d4b7105d754a06374d81259";
 
@@ -92,6 +98,7 @@ export async function buildApp(
   restaurantMenuCache: RestaurantMenuCache = new MemoryRestaurantMenuCache(),
   menuSourceStore: MenuSourceStore = new MemoryMenuSourceStore(),
   dishFeedbackPolisher: DishFeedbackPolisher = new GeminiDishFeedbackPolisher(),
+  restaurantReviewStore: RestaurantReviewStore = createRestaurantReviewStore(),
 ) {
   const app = Fastify({ logger: true, bodyLimit: 15 * 1024 * 1024 });
   const restaurantSearchCache = new Map<
@@ -334,53 +341,316 @@ export async function buildApp(
     osm_key?: string;
     osm_value?: string;
     type?: string;
+    vegan?: string;
+    vegetarian?: string;
   }) {
     const tags = new Set<string>();
     const nameLower = input.name.toLowerCase();
     const cuisineLower = (input.cuisine ?? "").toLowerCase();
     const typeLower = (input.osm_value ?? input.type ?? "").toLowerCase();
-    const allText = `${nameLower} ${cuisineLower} ${typeLower}`;
+    const veganLower = (input.vegan ?? "").toLowerCase();
+    const vegetarianLower = (input.vegetarian ?? "").toLowerCase();
+    const allText = `${nameLower} ${cuisineLower} ${typeLower} ${veganLower} ${vegetarianLower}`;
 
-    const isVegan = allText.includes("vegan") || allText.includes("vegà") || allText.includes("vegano") || cuisineLower.includes("vegan");
-    const isVegetarian = isVegan || allText.includes("vegetarian") || allText.includes("vegetarià") || allText.includes("vegetariano") || cuisineLower.includes("vegetarian");
+    // Cross-match against curated catalog for rich metadata inheritance
+    const curatedMatch = CURATED_RESTAURANTS.find((cr) => {
+      const crName = cr.name.toLowerCase();
+      return nameLower.includes(crName) || crName.includes(nameLower);
+    });
+
+    const isVegan =
+      curatedMatch?.isVegan ??
+      (veganLower === "yes" ||
+        veganLower === "only" ||
+        allText.includes("vegan") ||
+        allText.includes("vegà") ||
+        allText.includes("vegano") ||
+        allText.includes("vegana") ||
+        allText.includes("veggie") ||
+        allText.includes("plant based") ||
+        allText.includes("plant-based") ||
+        allText.includes("100% vegetal") ||
+        cuisineLower.includes("vegan"));
+
+    const isVegetarian =
+      curatedMatch?.isVegetarian ??
+      (isVegan ||
+        vegetarianLower === "yes" ||
+        vegetarianLower === "only" ||
+        allText.includes("vegetarian") ||
+        allText.includes("vegetarià") ||
+        allText.includes("vegetariano") ||
+        allText.includes("vegetariana") ||
+        cuisineLower.includes("vegetarian"));
+
+    if (curatedMatch?.tags) {
+      for (const t of curatedMatch.tags) tags.add(t);
+    }
 
     if (isVegan) tags.add("vegan");
     if (isVegetarian) tags.add("vegetarian");
 
-    if (allText.includes("pizza") || allText.includes("pizzeria") || cuisineLower.includes("pizza") || cuisineLower.includes("italian")) {
-      tags.add("pizza");
+    if (
+      typeLower === "restaurant" ||
+      typeLower === "fast_food" ||
+      typeLower === "food_court" ||
+      allText.includes("restaurant") ||
+      allText.includes("restaurante") ||
+      allText.includes("bistrot") ||
+      allText.includes("bistro") ||
+      allText.includes("menjar") ||
+      input.osm_key === "amenity"
+    ) {
+      tags.add("restaurant");
     }
-    if (allText.includes("burger") || allText.includes("hamburgues") || cuisineLower.includes("burger")) {
-      tags.add("burger");
+    if (
+      allText.includes("cafe") ||
+      allText.includes("cafeteria") ||
+      allText.includes("coffee") ||
+      allText.includes("bakery") ||
+      allText.includes("pastisseria") ||
+      allText.includes("pasteleria") ||
+      allText.includes("panaderia") ||
+      allText.includes("forn") ||
+      allText.includes("donut") ||
+      typeLower === "cafe" ||
+      typeLower === "coffee_shop" ||
+      typeLower === "bakery" ||
+      typeLower === "pastry"
+    ) {
+      tags.add("cafe_bakery");
     }
-    if (allText.includes("cafe") || allText.includes("cafeteria") || allText.includes("coffee") || typeLower === "cafe" || typeLower === "coffee_shop") {
-      tags.add("cafe");
+    if (
+      allText.includes("italian") ||
+      allText.includes("italia") ||
+      allText.includes("italiano") ||
+      allText.includes("pizza") ||
+      allText.includes("pizzeria") ||
+      allText.includes("pasta") ||
+      allText.includes("trattoria") ||
+      cuisineLower.includes("pizza") ||
+      cuisineLower.includes("italian")
+    ) {
+      tags.add("italian");
     }
-    if (allText.includes("bakery") || allText.includes("pastisseria") || allText.includes("pasteleria") || allText.includes("panaderia") || allText.includes("donut") || typeLower === "bakery" || typeLower === "pastry") {
-      tags.add("bakery");
-    }
-    if (allText.includes("salad") || allText.includes("bowl") || allText.includes("organic") || allText.includes("bio") || allText.includes("healthy") || allText.includes("saludable")) {
-      tags.add("healthy");
-    }
-    if (allText.includes("sushi") || allText.includes("ramen") || allText.includes("asian") || allText.includes("asiatic") || allText.includes("asiatico") || allText.includes("japanese") || allText.includes("japones") || allText.includes("chinese")) {
+    if (
+      allText.includes("asian") ||
+      allText.includes("asiatic") ||
+      allText.includes("asiatico") ||
+      allText.includes("japanese") ||
+      allText.includes("japones") ||
+      allText.includes("sushi") ||
+      allText.includes("ramen") ||
+      allText.includes("chinese") ||
+      allText.includes("chines") ||
+      allText.includes("thai") ||
+      allText.includes("vietnam") ||
+      allText.includes("korean") ||
+      allText.includes("oriental") ||
+      allText.includes("wok")
+    ) {
       tags.add("asian");
     }
-    if (allText.includes("mexic") || allText.includes("taco") || allText.includes("burrito")) {
-      tags.add("mexican");
+    if (
+      allText.includes("mediterranean") ||
+      allText.includes("mediterrani") ||
+      allText.includes("mediterraneo") ||
+      allText.includes("tapas") ||
+      allText.includes("tapes") ||
+      allText.includes("paella") ||
+      allText.includes("arros") ||
+      allText.includes("platets")
+    ) {
+      tags.add("mediterranean");
     }
-    if (allText.includes("tapas") || allText.includes("tapes") || allText.includes("platets") || allText.includes("bar")) {
-      tags.add("tapas");
+    if (
+      allText.includes("gelat") ||
+      allText.includes("gelats") ||
+      allText.includes("ice cream") ||
+      allText.includes("ice_cream") ||
+      allText.includes("helado") ||
+      allText.includes("heladeria") ||
+      allText.includes("gelateria") ||
+      typeLower === "ice_cream"
+    ) {
+      tags.add("ice_cream");
     }
-    if (allText.includes("gluten") || allText.includes("celiac") || allText.includes("sense gluten") || allText.includes("sin gluten")) {
+    if (
+      allText.includes("burger") ||
+      allText.includes("hamburgues") ||
+      allText.includes("junk food") ||
+      cuisineLower.includes("burger")
+    ) {
+      tags.add("burger");
+    }
+    if (
+      allText.includes("catalan") ||
+      allText.includes("catalana") ||
+      allText.includes("catalunya") ||
+      allText.includes("cuina catalana") ||
+      allText.includes("masia") ||
+      allText.includes("calçots") ||
+      allText.includes("brasa") ||
+      allText.includes("can ") ||
+      allText.includes("cal ")
+    ) {
+      tags.add("catalan");
+    }
+    if (
+      allText.includes("gluten") ||
+      allText.includes("celiac") ||
+      allText.includes("celíac") ||
+      allText.includes("sense gluten") ||
+      allText.includes("sin gluten") ||
+      allText.includes("gluten_free") ||
+      allText.includes("gluten-free")
+    ) {
       tags.add("gluten_free");
+    }
+    if (allText.includes("halal")) {
+      tags.add("halal");
+    }
+    if (
+      allText.includes("indian") ||
+      allText.includes("indi") ||
+      allText.includes("curry") ||
+      allText.includes("tandoori") ||
+      allText.includes("india") ||
+      allText.includes("masala")
+    ) {
+      tags.add("indian");
+    }
+    if (
+      allText.includes("fish and chips") ||
+      allText.includes("fish & chips") ||
+      allText.includes("chippy")
+    ) {
+      tags.add("fish_and_chips");
+    }
+
+    let inferredCuisine = curatedMatch?.cuisine ?? input.cuisine;
+    if (!inferredCuisine) {
+      if (tags.has("italian")) inferredCuisine = "italian";
+      else if (tags.has("asian")) inferredCuisine = "asian";
+      else if (tags.has("mediterranean")) inferredCuisine = "mediterranean";
+      else if (tags.has("burger")) inferredCuisine = "burger";
+      else if (tags.has("catalan")) inferredCuisine = "catalan";
+      else if (tags.has("indian")) inferredCuisine = "indian";
+      else if (tags.has("ice_cream")) inferredCuisine = "ice_cream";
+      else if (tags.has("cafe_bakery")) inferredCuisine = "cafe_bakery";
+      else if (tags.has("fish_and_chips")) inferredCuisine = "fish_and_chips";
+      else if (tags.has("restaurant")) inferredCuisine = "restaurant";
     }
 
     return {
       tags: Array.from(tags),
       isVegan: isVegan || undefined,
       isVegetarian: isVegetarian || undefined,
-      cuisine: input.cuisine || (tags.has("pizza") ? "pizza" : tags.has("burger") ? "burger" : tags.has("cafe") ? "cafe" : tags.has("bakery") ? "bakery" : tags.has("asian") ? "asian" : tags.has("mexican") ? "mexican" : tags.has("healthy") ? "healthy" : undefined),
+      cuisine: inferredCuisine,
+      rating: curatedMatch?.rating,
     };
+  }
+
+  async function fetchOverpassRestaurants(
+    lat: number,
+    lon: number,
+    radiusMeters: number,
+    signal?: AbortSignal,
+  ): Promise<RestaurantCandidate[]> {
+    const radius = Math.min(Math.max(radiusMeters, 500), 10_000);
+    const query = `[out:json][timeout:6];(node["amenity"~"restaurant|cafe|fast_food|bar|bistro|pub|ice_cream|bakery"](around:${radius},${lat},${lon});way["amenity"~"restaurant|cafe|fast_food|bar|bistro|pub|ice_cream|bakery"](around:${radius},${lat},${lon});node["diet:vegan"](around:${radius},${lat},${lon});node["diet:vegetarian"](around:${radius},${lat},${lon}););out center 50;`;
+
+    const endpoints = [
+      "https://overpass-api.de/api/interpreter",
+      "https://overpass.kumi.systems/api/interpreter",
+    ];
+
+    for (const endpoint of endpoints) {
+      try {
+        const response = await fetch(endpoint, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/x-www-form-urlencoded",
+            "User-Agent":
+              process.env.NOMINATIM_USER_AGENT ??
+              process.env.OFF_USER_AGENT ??
+              "VeganTools/0.1 (https://nilsduran.github.io)",
+          },
+          body: `data=${encodeURIComponent(query)}`,
+          signal: signal || AbortSignal.timeout(6_000),
+        });
+
+        if (!response.ok) continue;
+        const data = (await response.json()) as {
+          elements?: Array<{
+            type: "node" | "way" | "relation";
+            id: number;
+            lat?: number;
+            lon?: number;
+            center?: { lat: number; lon: number };
+            tags?: Record<string, string>;
+          }>;
+        };
+
+        const results: RestaurantCandidate[] = [];
+        for (const el of data.elements ?? []) {
+          const tags = el.tags;
+          if (!tags || !tags.name) continue;
+          const elemLat = el.lat ?? el.center?.lat;
+          const elemLon = el.lon ?? el.center?.lon;
+          if (typeof elemLat !== "number" || typeof elemLon !== "number") continue;
+
+          const streetAddress = [tags["addr:street"], tags["addr:housenumber"]].filter(Boolean).join(" ");
+          const locality = tags["addr:city"] || tags["addr:town"] || tags["addr:village"] || "";
+          const fullAddress = [streetAddress, locality, tags["addr:postcode"], tags["addr:country"]].filter(Boolean).join(", ");
+
+          const website = tags.website || tags["contact:website"] || tags.url;
+          let websiteUrl: string | undefined;
+          try {
+            if (website) {
+              const parsed = new URL(website.startsWith("http") ? website : `https://${website}`);
+              if (["http:", "https:"].includes(parsed.protocol)) {
+                websiteUrl = parsed.toString();
+              }
+            }
+          } catch {
+            websiteUrl = undefined;
+          }
+
+          const inferred = inferTagsAndVegan({
+            name: tags.name,
+            cuisine: tags.cuisine,
+            vegan: tags["diet:vegan"],
+            vegetarian: tags["diet:vegetarian"],
+            osm_key: "amenity",
+            osm_value: tags.amenity || tags.shop,
+          });
+
+          results.push({
+            id: `osm-${el.type.charAt(0).toUpperCase()}-${el.id}`,
+            name: tags.name,
+            address: fullAddress || locality || tags["addr:country"] || "",
+            latitude: elemLat,
+            longitude: elemLon,
+            websiteUrl,
+            mapUrl: `https://www.openstreetmap.org/?mlat=${elemLat}&mlon=${elemLon}#map=17/${elemLat}/${elemLon}`,
+            provider: "openstreetmap" as const,
+            cuisine: inferred.cuisine,
+            tags: inferred.tags,
+            isVegan: inferred.isVegan,
+            isVegetarian: inferred.isVegetarian,
+            rating: inferred.rating,
+          });
+        }
+
+        if (results.length > 0) {
+          return results;
+        }
+      } catch {
+        // try next endpoint
+      }
+    }
+    return [];
   }
 
   app.get<{
@@ -391,6 +661,7 @@ export async function buildApp(
       sessionToken?: string;
       latitude?: string;
       longitude?: string;
+      radius?: string;
     };
   }>(
     "/v1/restaurants/search",
@@ -411,12 +682,19 @@ export async function buildApp(
       const hasLocation =
         Number.isFinite(latitude) && latitude >= -90 && latitude <= 90 &&
         Number.isFinite(longitude) && longitude >= -180 && longitude <= 180;
+      const requestedRadius = Number(request.query.radius);
+      const radiusMeters =
+        Number.isFinite(requestedRadius) && requestedRadius >= 100 && requestedRadius <= 100_000
+          ? requestedRadius
+          : 5_000;
+      const radiusKm = radiusMeters / 1_000;
       const cacheKey = [
         foursquareKey ? "foursquare" : "openstreetmap",
         request.query.autocomplete === "true" ? "autocomplete" : "search",
         query.toLocaleLowerCase(),
         request.query.near?.trim().toLocaleLowerCase() ?? "",
         hasLocation ? `${latitude},${longitude}` : "",
+        hasLocation ? String(radiusMeters) : "",
       ].join("|");
       const cachedSearch = restaurantSearchCache.get(cacheKey);
       if (cachedSearch && cachedSearch.expiresAt > Date.now()) {
@@ -480,14 +758,30 @@ export async function buildApp(
       }
       const isGenericQuery = ["vegan", "vegà", "restaurant", "restaurants", "bar", "cafe", "food", "menjar"].includes(query.trim().toLowerCase());
       const commaParts = query.split(",").map((part) => part.trim()).filter(Boolean);
+      const hasExplicitCity = Boolean(request.query.near?.trim() || commaParts.length > 1 || inferredTextNear);
       
       let inferredNear: string | undefined = request.query.near?.trim() || undefined;
       let foursquareQuery = query;
 
-      if (hasLocation) {
+      const distanceKm = (lat: number, lng: number) => {
+        const dLat = ((lat - latitude) * Math.PI) / 180;
+        const dLng = ((lng - longitude) * Math.PI) / 180;
+        const a =
+          Math.sin(dLat / 2) ** 2 +
+          Math.cos((latitude * Math.PI) / 180) *
+            Math.cos((lat * Math.PI) / 180) *
+            Math.sin(dLng / 2) ** 2;
+        return 6371 * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+      };
+      const isWithinLocation = (lat: number, lng: number) =>
+        !hasLocation || hasExplicitCity || distanceKm(lat, lng) <= (isGenericQuery ? radiusKm : 120);
+
+      if (hasLocation && !hasExplicitCity) {
         // Strict location search (e.g. from map or Search This Area)
         inferredNear = undefined;
-        foursquareQuery = query;
+        // Generic area searches should use the restaurant category, not match
+        // the literal word "restaurants" in place names.
+        foursquareQuery = isGenericQuery ? "" : query;
       } else if (commaParts.length > 1) {
         foursquareQuery = commaParts[0] ?? query;
         inferredNear = commaParts.slice(1).join(", ");
@@ -526,7 +820,7 @@ export async function buildApp(
             ...(inferredNear
               ? { near: inferredNear }
               : hasLocation
-              ? { ll: `${latitude},${longitude}`, radius: "5000", sort: "DISTANCE" }
+              ? { ll: `${latitude},${longitude}`, radius: String(radiusMeters), sort: "DISTANCE" }
               : {}),
           }).toString();
           try {
@@ -600,17 +894,18 @@ export async function buildApp(
 
         const buildFoursquareUrl = (useLocation: boolean, customNear?: string) => {
           const url = new URL("https://places-api.foursquare.com/places/search");
-          url.search = new URLSearchParams({
-            query: foursquareQuery,
+          const params = new URLSearchParams({
             fsq_category_ids: FOURSQUARE_RESTAURANT_CATEGORY,
             ...(customNear
               ? { near: customNear }
               : useLocation && hasLocation
-              ? { ll: `${latitude},${longitude}`, radius: "5000", sort: "DISTANCE" }
+              ? { ll: `${latitude},${longitude}`, radius: String(radiusMeters), sort: "DISTANCE" }
               : {}),
-            limit: "25",
+            limit: "50",
             fields: "fsq_place_id,name,location,latitude,longitude,website",
-          }).toString();
+          });
+          if (foursquareQuery) params.set("query", foursquareQuery);
+          url.search = params.toString();
           return url.toString();
         };
 
@@ -642,7 +937,7 @@ export async function buildApp(
           };
 
           // If local search with coordinates gave 0 results, retry with global search
-          if ((payload.results ?? []).length === 0 && hasLocation) {
+          if ((payload.results ?? []).length === 0 && hasLocation && !request.query.radius) {
             response = await fetch(buildFoursquareUrl(false, undefined), {
               headers: {
                 Authorization: `Bearer ${foursquareKey}`,
@@ -659,7 +954,8 @@ export async function buildApp(
           const candidates: RestaurantCandidate[] = (payload.results ?? [])
             .filter((item) =>
               item.fsq_place_id && item.name &&
-              Number.isFinite(item.latitude) && Number.isFinite(item.longitude)
+              Number.isFinite(item.latitude) && Number.isFinite(item.longitude) &&
+              isWithinLocation(item.latitude ?? 0, item.longitude ?? 0)
             )
             .map((item) => {
               let websiteUrl: string | undefined;
@@ -716,26 +1012,64 @@ export async function buildApp(
       const queryParts = query.split(",").map((p) => p.trim()).filter(Boolean);
       const searchHead = normalizeText(queryParts[0] ?? query);
 
-      // 1. Check curated catalog for instant high-confidence matches
+      // 1. Check curated catalog for instant high-confidence matches and local proximity
       const curatedMatches = CURATED_RESTAURANTS.filter((r) => {
         const rName = normalizeText(r.name);
         const rAddr = normalizeText(r.address);
-        return (
+
+        if (isGenericQuery && hasLocation && !hasExplicitCity) {
+          const dLat = (r.latitude - latitude) * (Math.PI / 180);
+          const dLon = (r.longitude - longitude) * (Math.PI / 180);
+          const a =
+            Math.sin(dLat / 2) ** 2 +
+            Math.cos(latitude * (Math.PI / 180)) *
+              Math.cos(r.latitude * (Math.PI / 180)) *
+              Math.sin(dLon / 2) ** 2;
+          const distKm = 6371 * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+          return distKm <= radiusKm;
+        }
+
+        const nameMatch = (
           rName.includes(normQuery) ||
           normQuery.includes(rName) ||
           rName.includes(searchHead) ||
           searchHead.includes(rName) ||
           (rAddr.includes(normQuery) && rName.length > 2)
         );
+        return nameMatch;
       });
 
-      // 2. Query Photon (Komoot OSM POI engine with universal coverage and soft proximity ranking)
+      // 2. Spatial Overpass API query for generic area discovery
+      if (isGenericQuery && hasLocation && !hasExplicitCity) {
+        try {
+          const overpassResults = await fetchOverpassRestaurants(latitude, longitude, radiusMeters);
+          if (overpassResults.length > 0 || curatedMatches.length > 0) {
+            const combined = [...curatedMatches, ...overpassResults];
+            const deduplicated = deduplicateRestaurants(combined);
+            restaurantSearchCache.set(cacheKey, {
+              expiresAt: Date.now() + 15 * 60_000,
+              results: deduplicated,
+            });
+            return deduplicated;
+          }
+        } catch (overpassErr) {
+          request.log.warn({ overpassErr }, "Overpass spatial search failed, falling back to Photon");
+        }
+      }
+
+      // 3. Query Photon (Komoot OSM POI engine with universal coverage and soft proximity ranking)
       const photonResults: RestaurantCandidate[] = [];
       try {
         const photonUrl = new URL("https://photon.komoot.io/api/");
-        photonUrl.searchParams.set("q", query);
-        photonUrl.searchParams.set("limit", "25");
-        if (hasLocation && queryParts.length === 1) {
+        const cleanQuery = isGenericQuery && !hasExplicitCity
+          ? "restaurant"
+          : query.replaceAll(",", " ").replace(/\s+/g, " ").trim();
+        photonUrl.searchParams.set("q", cleanQuery);
+        photonUrl.searchParams.set("limit", "50");
+        if (isGenericQuery && !hasExplicitCity) {
+          photonUrl.searchParams.set("osm_tag", "amenity:restaurant");
+        }
+        if (hasLocation && !hasExplicitCity) {
           photonUrl.searchParams.set("lat", String(latitude));
           photonUrl.searchParams.set("lon", String(longitude));
         }
@@ -783,6 +1117,7 @@ export async function buildApp(
             const pNorm = normalizeText(p.name);
             const nameMatches = pNorm.includes(searchHead) || searchHead.includes(pNorm) || pNorm.includes(normQuery);
             if (!isDining && !nameMatches && p.osm_key !== "amenity") continue;
+            if (!isWithinLocation(lat, lon)) continue;
 
             const streetAddress = [p.street, p.housenumber].filter(Boolean).join(" ");
             const locality = p.city || p.town || p.village;
@@ -790,7 +1125,7 @@ export async function buildApp(
               .filter(Boolean)
               .join(", ");
 
-            const { tags, isVegan, isVegetarian, cuisine } = inferTagsAndVegan({
+            const { tags, isVegan, isVegetarian, cuisine, rating } = inferTagsAndVegan({
               name: p.name,
               osm_key: p.osm_key,
               osm_value: p.osm_value,
@@ -808,6 +1143,7 @@ export async function buildApp(
               tags,
               isVegan,
               isVegetarian,
+              rating,
             });
           }
         }
@@ -826,22 +1162,27 @@ export async function buildApp(
         return deduplicated;
       }
 
-      // 3. Fallback to OpenStreetMap Nominatim
+      // 4. Fallback to OpenStreetMap Nominatim
       const buildNominatimUrl = (withLocation: boolean) => {
         const url = new URL("https://nominatim.openstreetmap.org/search");
-        url.search = new URLSearchParams({
-          q: query,
+        const params: Record<string, string> = {
           format: "jsonv2",
           limit: "30",
           addressdetails: "1",
           extratags: "1",
-          ...(withLocation && hasLocation
-            ? {
-                viewbox: `${longitude - 0.25},${latitude + 0.2},${longitude + 0.25},${latitude - 0.2}`,
-                bounded: "0",
-              }
-            : {}),
-        }).toString();
+        };
+        if (isGenericQuery && withLocation && hasLocation) {
+          params.amenity = "restaurant";
+          params.viewbox = `${longitude - 0.08},${latitude + 0.06},${longitude + 0.08},${latitude - 0.06}`;
+          params.bounded = "1";
+        } else {
+          params.q = isGenericQuery ? "restaurant" : query;
+          if (withLocation && hasLocation) {
+            params.viewbox = `${longitude - 0.25},${latitude + 0.2},${longitude + 0.25},${latitude - 0.2}`;
+            params.bounded = "0";
+          }
+        }
+        url.search = new URLSearchParams(params).toString();
         return url.toString();
       };
 
@@ -876,7 +1217,7 @@ export async function buildApp(
         }>;
 
         // If local search yielded 0 results and we had a location bias, fallback to global search
-        if (raw.length === 0 && hasLocation) {
+        if (raw.length === 0 && hasLocation && !request.query.radius) {
           await waitForNominatim();
           response = await fetch(buildNominatimUrl(false), {
             headers: {
@@ -938,7 +1279,8 @@ export async function buildApp(
             };
           });
 
-        const allResults = [...curatedMatches, ...photonResults, ...nominatimCandidates];
+        const allResults = [...curatedMatches, ...photonResults, ...nominatimCandidates]
+          .filter((item) => isWithinLocation(item.latitude, item.longitude));
         const finalResults = deduplicateRestaurants(allResults);
 
         restaurantSearchCache.set(cacheKey, {
@@ -1140,6 +1482,154 @@ export async function buildApp(
     }
   });
 
+  interface AuthUser {
+    id: string;
+    name: string;
+    avatarUrl?: string;
+  }
+
+  function extractUserFromAuthHeader(authHeader?: string): AuthUser | undefined {
+    if (!authHeader || !authHeader.startsWith("Bearer ")) return undefined;
+    const token = authHeader.slice(7).trim();
+    if (!token) return undefined;
+
+    try {
+      const parts = token.split(".");
+      if (parts.length < 2) return undefined;
+      const payloadJson = Buffer.from(parts[1]!, "base64url").toString("utf8");
+      const payload = JSON.parse(payloadJson);
+      if (!payload.sub) return undefined;
+
+      const name =
+        payload.user_metadata?.name ||
+        payload.user_metadata?.full_name ||
+        payload.user_metadata?.user_name ||
+        (payload.email ? payload.email.split("@")[0] : undefined) ||
+        "Anònim";
+
+      const avatarUrl =
+        payload.user_metadata?.avatar_url ||
+        payload.user_metadata?.picture ||
+        undefined;
+
+      return {
+        id: String(payload.sub),
+        name: String(name),
+        avatarUrl: avatarUrl ? String(avatarUrl) : undefined,
+      };
+    } catch {
+      return undefined;
+    }
+  }
+
+  // 1. Get Reviews and Stats for a Restaurant (Public)
+  app.get<{ Params: { id: string } }>(
+    "/v1/restaurants/:id/reviews",
+    async (request, reply) => {
+      const restaurantId = request.params.id;
+      if (!restaurantId) {
+        return reply.code(400).send({
+          code: "INVALID_REQUEST",
+          message: "Restaurant ID is required.",
+        });
+      }
+      try {
+        const result = await restaurantReviewStore.getReviews(restaurantId);
+        return result;
+      } catch (error) {
+        request.log.error({ error, restaurantId }, "Failed to fetch restaurant reviews");
+        return reply.code(500).send({
+          code: "STORE_ERROR",
+          message: "Failed to load reviews.",
+        });
+      }
+    },
+  );
+
+  // 2. Submit / Update Review for a Restaurant (Authenticated)
+  app.post<{ Params: { id: string }; Body: unknown }>(
+    "/v1/restaurants/:id/reviews",
+    async (request, reply) => {
+      const user = extractUserFromAuthHeader(request.headers.authorization);
+      if (!user) {
+        return reply.code(401).send({
+          code: "UNAUTHORIZED",
+          message: "Authentication required to submit a review.",
+        });
+      }
+
+      const restaurantId = request.params.id;
+      const parsed = createReviewRequestSchema.safeParse(request.body);
+      if (!parsed.success) {
+        return reply.code(400).send({
+          code: "INVALID_REVIEW",
+          message: "Invalid review content. Leaves score must be 1 to 5.",
+          errors: parsed.error.format(),
+        });
+      }
+
+      const { leavesScore, comment, userName } = parsed.data;
+      const now = new Date().toISOString();
+
+      const review: RestaurantReview = {
+        id: randomUUID(),
+        restaurantId,
+        userId: user.id,
+        userName: userName?.trim() || user.name,
+        userAvatarUrl: user.avatarUrl,
+        leavesScore,
+        comment: comment?.trim() || "",
+        createdAt: now,
+        updatedAt: now,
+      };
+
+      try {
+        const saved = await restaurantReviewStore.saveReview(review);
+        const all = await restaurantReviewStore.getReviews(restaurantId);
+        return {
+          review: saved,
+          stats: all.stats,
+        };
+      } catch (error) {
+        request.log.error({ error, restaurantId, userId: user.id }, "Failed to save restaurant review");
+        return reply.code(500).send({
+          code: "STORE_ERROR",
+          message: "Failed to save review.",
+        });
+      }
+    },
+  );
+
+  // 3. Delete Review for a Restaurant (Authenticated)
+  app.delete<{ Params: { id: string } }>(
+    "/v1/restaurants/:id/reviews",
+    async (request, reply) => {
+      const user = extractUserFromAuthHeader(request.headers.authorization);
+      if (!user) {
+        return reply.code(401).send({
+          code: "UNAUTHORIZED",
+          message: "Authentication required to delete a review.",
+        });
+      }
+
+      const restaurantId = request.params.id;
+      try {
+        const deleted = await restaurantReviewStore.deleteReview(restaurantId, user.id);
+        const all = await restaurantReviewStore.getReviews(restaurantId);
+        return {
+          deleted,
+          stats: all.stats,
+        };
+      } catch (error) {
+        request.log.error({ error, restaurantId, userId: user.id }, "Failed to delete restaurant review");
+        return reply.code(500).send({
+          code: "STORE_ERROR",
+          message: "Failed to delete review.",
+        });
+      }
+    },
+  );
+
   app.post<{
     Body: {
       restaurantName?: string;
@@ -1150,29 +1640,36 @@ export async function buildApp(
     const parsedRestaurant = restaurantCandidateSchema.safeParse(
       request.body?.restaurant,
     );
-    const restaurant = parsedRestaurant.success
-      ? parsedRestaurant.data
-      : undefined;
-    const restaurantName =
-      restaurant?.name ?? request.body?.restaurantName?.trim();
     const websiteUrl = request.body?.websiteUrl?.trim();
-    if (!restaurantName || !websiteUrl) {
+    if (!websiteUrl) {
       return reply.code(400).send({
         code: "RESTAURANT_WEBSITE_REQUIRED",
-        message: "Select a restaurant with a website or enter its official website.",
+        message: "Enter a valid website or menu link.",
       });
     }
     let normalizedWebsite: string;
+    let fallbackName = "";
     try {
       const parsed = new URL(websiteUrl);
       if (!["http:", "https:"].includes(parsed.protocol)) throw new Error();
       normalizedWebsite = parsed.toString();
+      fallbackName = parsed.hostname.replace(/^www\./i, "").split(".")[0] ?? "Restaurant";
+      if (fallbackName) {
+        fallbackName = fallbackName.charAt(0).toUpperCase() + fallbackName.slice(1);
+      }
     } catch {
       return reply.code(400).send({
         code: "INVALID_WEBSITE",
         message: "Enter a valid public restaurant website.",
       });
     }
+
+    const restaurant = parsedRestaurant.success
+      ? parsedRestaurant.data
+      : undefined;
+
+    const restaurantName =
+      restaurant?.name ?? (request.body?.restaurantName?.trim() || fallbackName || "Restaurant");
 
     const draft = await repo.createMenu();
 

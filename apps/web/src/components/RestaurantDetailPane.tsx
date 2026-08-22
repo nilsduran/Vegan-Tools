@@ -18,6 +18,8 @@ import { t, tx, useLanguage } from "../i18n";
 import { getTransitEstimate, type TransitEstimate } from "../utils/transit";
 import { getDirectionsUrl } from "../utils/navigation";
 
+import { RestaurantReviews } from "./RestaurantReviews";
+
 // Helper to determine the vegan status badge of the restaurant
 function getVeganBadge(restaurant: RestaurantCandidate): {
   type: "all_vegan" | "vegetarian" | "vegan_options" | "general";
@@ -130,41 +132,14 @@ export function RestaurantDetailPane({
           type="button"
           className="detail-pane-close"
           onClick={onClose}
-          aria-label={t("remove")}
+          aria-label={tx("Close")}
+          title={tx("Close")}
         >
-          <X />
+          <X size={18} aria-hidden="true" />
         </button>
       </header>
 
       <div className="detail-pane-body">
-        {/* Community Ratings section */}
-        <div className="detail-rating-card">
-          <div className="rating-leaves-wrapper">
-            <div className="community-rating-status">
-              <span className="reviews-label">{tx("Ressenyes de la comunitat")}</span>
-              <span className="reviews-hint">{tx("Properament · Sistema de valoracions verificat")}</span>
-            </div>
-            <button
-              type="button"
-              className="rating-info-toggle"
-              onClick={() => setShowRatingInfo(!showRatingInfo)}
-              title={t("why")}
-              aria-label={t("why")}
-            >
-              <Info />
-            </button>
-          </div>
-
-          {showRatingInfo && (
-            <div className="rating-info-popover">
-              <p>
-                <strong>{tx("Opcions veganes")}:</strong>{" "}
-                {tx("Valoració vegana general: qualitat del menjar, servei i atenció a les opcions veganes.")}
-              </p>
-            </div>
-          )}
-        </div>
-
         {/* Transit estimate badge if GPS is enabled */}
         {transit && (
           <div className={`detail-transit-banner ${transit.mode}`}>
@@ -177,6 +152,9 @@ export function RestaurantDetailPane({
             </div>
           </div>
         )}
+
+        {/* Community Reviews & Leaf Ratings Section */}
+        <RestaurantReviews restaurant={restaurant} />
 
         {/* Address */}
         {restaurant.address && (

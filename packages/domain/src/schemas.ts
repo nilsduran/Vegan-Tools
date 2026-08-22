@@ -217,5 +217,44 @@ export const restaurantCandidateSchema = z.object({
   provider: z.enum(["openstreetmap", "foursquare", "curated"]).default("openstreetmap"),
   openingHours: z.string().optional(),
   cuisine: z.string().optional(),
+  tags: z.array(z.string()).optional(),
+  isVegan: z.boolean().optional(),
+  isVegetarian: z.boolean().optional(),
+  isOpenNow: z.boolean().optional(),
+  rating: z.number().optional(),
 });
 export type RestaurantCandidate = z.infer<typeof restaurantCandidateSchema>;
+
+export const restaurantReviewSchema = z.object({
+  id: z.string(),
+  restaurantId: z.string(),
+  userId: z.string(),
+  userName: z.string(),
+  userAvatarUrl: z.string().url().optional(),
+  leavesScore: z.number().int().min(1).max(5),
+  comment: z.string().max(500).default(""),
+  createdAt: z.string(),
+  updatedAt: z.string(),
+});
+export type RestaurantReview = z.infer<typeof restaurantReviewSchema>;
+
+export const restaurantReviewStatsSchema = z.object({
+  averageLeaves: z.number(),
+  totalReviews: z.number().int().nonnegative(),
+  distribution: z.object({
+    1: z.number().int().nonnegative(),
+    2: z.number().int().nonnegative(),
+    3: z.number().int().nonnegative(),
+    4: z.number().int().nonnegative(),
+    5: z.number().int().nonnegative(),
+  }),
+});
+export type RestaurantReviewStats = z.infer<typeof restaurantReviewStatsSchema>;
+
+export const createReviewRequestSchema = z.object({
+  leavesScore: z.number().int().min(1).max(5),
+  comment: z.string().max(500).optional().default(""),
+  userName: z.string().min(1).max(60).optional(),
+});
+export type CreateReviewRequest = z.infer<typeof createReviewRequestSchema>;
+

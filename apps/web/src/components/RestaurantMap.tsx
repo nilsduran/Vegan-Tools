@@ -1,23 +1,40 @@
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import L from "leaflet";
 import "leaflet/dist/leaflet.css";
-import { Crosshair, Maximize2, MapPin, Search } from "lucide-react";
+import { Crosshair, Maximize2, Search } from "lucide-react";
 import type { RestaurantCandidate } from "@vegan-tools/domain";
 import { getApproximateLocation } from "../api";
+import { clusterPoints } from "../utils/cluster";
 import { tx, useLanguage } from "../i18n";
+
+function distanceInMeters(left: L.LatLng, right: L.LatLng): number {
+  const earthRadius = 6_371_000;
+  const latDelta = ((right.lat - left.lat) * Math.PI) / 180;
+  const lngDelta = ((right.lng - left.lng) * Math.PI) / 180;
+  const a =
+    Math.sin(latDelta / 2) ** 2 +
+    Math.cos((left.lat * Math.PI) / 180) *
+      Math.cos((right.lat * Math.PI) / 180) *
+      Math.sin(lngDelta / 2) ** 2;
+  return earthRadius * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+}
 
 // Custom modern SVG marker for Vegan Tools restaurants
 function createRestaurantIcon(isSelected: boolean) {
-  const pinColor = isSelected ? "#064e3b" : "#0f5c45";
-  const strokeColor = isSelected ? "#a7f3d0" : "#ffffff";
-  const width = isSelected ? 36 : 28;
-  const height = isSelected ? 46 : 36;
+  const pinColor = isSelected ? "#064e3b" : "#047857";
+  const strokeColor = isSelected ? "#34d399" : "#ffffff";
+  const strokeWidth = isSelected ? 2.4 : 1.8;
+  const width = isSelected ? 42 : 34;
+  const height = isSelected ? 54 : 44;
+  const dotRadius = isSelected ? 5 : 4.2;
+  const dotColor = isSelected ? "#bef264" : "#d9f99d";
 
   const svgHtml = `
     <div style="width: ${width}px; height: ${height}px; margin: 0; padding: 0; display: block; line-height: 0;">
-      <svg viewBox="0 0 24 30" width="${width}" height="${height}" fill="${pinColor}" stroke="${strokeColor}" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" style="filter: drop-shadow(0 3px 5px rgba(0,0,0,0.32));">
-        <path d="M12 2C7.03 2 3 6.03 3 11c0 6.75 9 17 9 17s9-10.25 9-17c0-4.97-4.03-9-9-9z"/>
-        <circle cx="12" cy="11" r="3.6" fill="#d9f99d" stroke="none"/>
+      <svg viewBox="0 0 24 32" width="${width}" height="${height}" fill="${pinColor}" stroke="${strokeColor}" stroke-width="${strokeWidth}" stroke-linecap="round" stroke-linejoin="round" style="filter: drop-shadow(0 4px 8px rgba(0,0,0,0.36));">
+        <path d="M12 2C7.03 2 3 6.03 3 11c0 7.2 9 19 9 19s9-11.8 9-19c0-4.97-4.03-9-9-9z"/>
+        <circle cx="12" cy="11" r="${dotRadius}" fill="${dotColor}" stroke="none"/>
+        <circle cx="12" cy="11" r="${dotRadius * 0.45}" fill="${isSelected ? "#064e3b" : "#065f46"}" stroke="none"/>
       </svg>
     </div>
   `;
@@ -28,6 +45,27 @@ function createRestaurantIcon(isSelected: boolean) {
     iconSize: [width, height],
     iconAnchor: [width / 2, height],
     popupAnchor: [0, -height],
+  });
+}
+
+// Custom modern circular cluster badge with count
+function createClusterIcon(count: number, hasSelected: boolean) {
+  const size = count < 10 ? 38 : count < 50 ? 44 : 50;
+  const bgColor = hasSelected ? "#064e3b" : "#047857";
+  const borderColor = hasSelected ? "#a7f3d0" : "#d9f99d";
+  const borderWidth = hasSelected ? 3 : 2.5;
+
+  const html = `
+    <div class="vegan-tools-map-cluster ${hasSelected ? "selected" : ""}" style="width: ${size}px; height: ${size}px; line-height: ${size}px; background: ${bgColor}; border: ${borderWidth}px solid ${borderColor};">
+      <span>${count}</span>
+    </div>
+  `;
+
+  return L.divIcon({
+    html,
+    className: "vegan-tools-map-cluster-container",
+    iconSize: [size, size],
+    iconAnchor: [size / 2, size / 2],
   });
 }
 
@@ -59,7 +97,7 @@ export function RestaurantMap({
   selectedRestaurant?: RestaurantCandidate;
   onSelectRestaurant: (restaurant: RestaurantCandidate) => void;
   onOpenMenu: (restaurant: RestaurantCandidate) => void;
-  onSearchArea?: (center: { lat: number; lng: number }) => void;
+  onSearchArea?: (center: { lat: number; lng: number }, radius: number) => void;
   onUserCoordsChange?: (coords: { lat: number; lng: number }) => void;
 }) {
   const language = useLanguage();
@@ -70,6 +108,99 @@ export function RestaurantMap({
   const [userCoords, setUserCoords] = useState<{ lat: number; lng: number }>();
   const [isLocating, setIsLocating] = useState(false);
   const [showSearchAreaBtn, setShowSearchAreaBtn] = useState(false);
+
+  const renderClustersAndMarkers = useCallback(() => {
+    const map = mapInstanceRef.current;
+    const markersGroup = markersGroupRef.current;
+    if (!map || !markersGroup) return;
+
+    markersGroup.clearLayers();
+
+    const zoom = map.getZoom();
+    // Progressive zoom-dependent clustering:
+    // zoom >= 15: completely unclustered (0px radius) so every restaurant pin is visible
+    // zoom === 14: minimal 18px radius (only overlaps in same building cluster)
+    // zoom === 13: 28px radius
+    // zoom < 13: 40px radius
+    const clusterRadius = zoom >= 15 ? 0 : zoom === 14 ? 18 : zoom === 13 ? 28 : 40;
+
+    const clusterResults =
+      clusterRadius > 0
+        ? clusterPoints(
+            restaurants,
+            (lat, lng) => map.latLngToLayerPoint([lat, lng]),
+            clusterRadius
+          )
+        : restaurants
+            .filter(
+              (r) =>
+                typeof r.latitude === "number" &&
+                typeof r.longitude === "number" &&
+                Number.isFinite(r.latitude) &&
+                Number.isFinite(r.longitude) &&
+                !(r.latitude === 0 && r.longitude === 0)
+            )
+            .map((item) => ({
+              type: "single" as const,
+              item,
+              latitude: item.latitude,
+              longitude: item.longitude,
+            }));
+
+    for (const result of clusterResults) {
+      if (result.type === "single") {
+        const restaurant = result.item;
+        const isSelected = selectedRestaurant?.id === restaurant.id;
+        const marker = L.marker([restaurant.latitude, restaurant.longitude], {
+          icon: createRestaurantIcon(isSelected),
+          zIndexOffset: isSelected ? 1000 : 0,
+        });
+
+        marker.bindTooltip(restaurant.name, {
+          permanent: true,
+          direction: "bottom",
+          offset: [0, 2],
+          className: isSelected ? "map-pin-name-tooltip selected" : "map-pin-name-tooltip",
+        });
+
+        marker.on("click", (e) => {
+          L.DomEvent.stopPropagation(e);
+          onSelectRestaurant(restaurant);
+        });
+
+        markersGroup.addLayer(marker);
+      } else {
+        const hasSelected = selectedRestaurant
+          ? result.items.some((r) => r.id === selectedRestaurant.id)
+          : false;
+
+        const clusterMarker = L.marker([result.latitude, result.longitude], {
+          icon: createClusterIcon(result.count, hasSelected),
+          zIndexOffset: hasSelected ? 800 : 100,
+        });
+
+        clusterMarker.on("click", (e) => {
+          L.DomEvent.stopPropagation(e);
+          const bounds = L.latLngBounds(
+            [result.bounds.minLat, result.bounds.minLng],
+            [result.bounds.maxLat, result.bounds.maxLng]
+          );
+          map.fitBounds(bounds, { padding: [50, 50], maxZoom: 18 });
+        });
+
+        markersGroup.addLayer(clusterMarker);
+      }
+    }
+  }, [restaurants, selectedRestaurant, onSelectRestaurant]);
+
+  // Keep the Leaflet instance stable while React updates the map data.
+  // The callbacks are refreshed through refs so map events still see current state.
+  const renderClustersRef = useRef(renderClustersAndMarkers);
+  const onSearchAreaRef = useRef(onSearchArea);
+  useEffect(() => {
+    renderClustersRef.current = renderClustersAndMarkers;
+    onSearchAreaRef.current = onSearchArea;
+  }, [renderClustersAndMarkers, onSearchArea]);
 
   // Initialize Map
   useEffect(() => {
@@ -111,11 +242,13 @@ export function RestaurantMap({
       }
     };
     map.on("zoomend", updateZoomClass);
+    map.on("zoomend", () => renderClustersRef.current());
+    map.on("moveend", () => renderClustersRef.current());
     updateZoomClass();
 
     // Detect user pan/drag to show "Search this area" button
     map.on("dragend", () => {
-      if (onSearchArea) {
+      if (onSearchAreaRef.current) {
         setShowSearchAreaBtn(true);
       }
     });
@@ -188,45 +321,12 @@ export function RestaurantMap({
     };
   }, [selectedRestaurant, onUserCoordsChange]);
 
-  // Update Markers when restaurants or selectedRestaurant changes
+  // Update Markers when renderClustersAndMarkers changes
   useEffect(() => {
     const map = mapInstanceRef.current;
-    const markersGroup = markersGroupRef.current;
-    if (!map || !markersGroup) return;
+    if (!map) return;
 
-    markersGroup.clearLayers();
-
-    const validRestaurants = restaurants.filter(
-      (r) =>
-        typeof r.latitude === "number" &&
-        typeof r.longitude === "number" &&
-        Number.isFinite(r.latitude) &&
-        Number.isFinite(r.longitude) &&
-        !(r.latitude === 0 && r.longitude === 0),
-    );
-
-    for (const restaurant of validRestaurants) {
-      const isSelected = selectedRestaurant?.id === restaurant.id;
-      const marker = L.marker([restaurant.latitude, restaurant.longitude], {
-        icon: createRestaurantIcon(isSelected),
-        zIndexOffset: isSelected ? 1000 : 0,
-      });
-
-      // Bind persistent name tooltip displayed under the pin
-      marker.bindTooltip(restaurant.name, {
-        permanent: true,
-        direction: "bottom",
-        offset: [0, 4],
-        className: isSelected ? "map-pin-name-tooltip selected" : "map-pin-name-tooltip",
-      });
-
-      marker.on("click", (e) => {
-        L.DomEvent.stopPropagation(e);
-        onSelectRestaurant(restaurant);
-      });
-
-      markersGroup.addLayer(marker);
-    }
+    renderClustersAndMarkers();
 
     // If selectedRestaurant is provided, center and fly smoothly to it
     if (
@@ -241,7 +341,7 @@ export function RestaurantMap({
         duration: 0.8,
       });
     }
-  }, [restaurants, selectedRestaurant, onSelectRestaurant]);
+  }, [renderClustersAndMarkers, selectedRestaurant]);
 
   // Handle user geolocation strictly on demand
   const handleLocateMe = () => {
@@ -307,8 +407,18 @@ export function RestaurantMap({
               const map = mapInstanceRef.current;
               if (!map) return;
               const center = map.getCenter();
+              const bounds = map.getBounds();
+              const radius = Math.max(
+                500,
+                Math.ceil(
+                  Math.max(
+                    distanceInMeters(center, bounds.getNorthEast()),
+                    distanceInMeters(center, bounds.getSouthWest()),
+                  ),
+                ),
+              );
               setShowSearchAreaBtn(false);
-              onSearchArea({ lat: center.lat, lng: center.lng });
+              onSearchArea({ lat: center.lat, lng: center.lng }, radius);
             }}
           >
             <Search aria-hidden="true" />

@@ -1,10 +1,11 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, type FormEvent } from "react";
 import { useSearchParams } from "react-router-dom";
 import {
   type MenuDraft,
   type RestaurantCandidate,
 } from "@vegan-tools/domain";
 import {
+  AlertCircle,
   ArrowLeft,
   Camera,
   ExternalLink,
@@ -13,14 +14,15 @@ import {
   Globe,
   Images,
   LoaderCircle,
-  MapPin,
   Navigation,
+  Sparkles,
   Upload,
   Utensils,
   X,
 } from "lucide-react";
 import {
   createRestaurantMenuAnalysis,
+  discoverMenuByUrl,
   discoverRestaurantMenu,
   getApproximateLocation,
   getCuratedRestaurants,
@@ -33,6 +35,7 @@ import { RestaurantDetailPane } from "../components/RestaurantDetailPane";
 import { RestaurantMap } from "../components/RestaurantMap";
 import { SearchTypeahead } from "../components/SearchTypeahead";
 import { FilterPills, filterRestaurants } from "../components/FilterPills";
+import { BottomSheet, type SnapPoint } from "../components/BottomSheet";
 import { t, tx, useLanguage } from "../i18n";
 import { getDirectionsUrl } from "../utils/navigation";
 import { formatDistance } from "../utils/distance";
@@ -57,8 +60,6 @@ export function MenuReaderPage() {
   const uploadSectionRef = useRef<HTMLElement>(null);
   const [restaurantQuery, setRestaurantQuery] = useState("");
   const [restaurantResults, setRestaurantResults] = useState<RestaurantCandidate[]>([]);
-  const [typeaheadSuggestions, setTypeaheadSuggestions] = useState<RestaurantCandidate[]>([]);
-  const [searchingTypeahead, setSearchingTypeahead] = useState(false);
   const [curatedPins, setCuratedPins] = useState<RestaurantCandidate[]>([]);
   const [selectedRestaurant, setSelectedRestaurant] = useState<RestaurantCandidate>();
   const [searchingRestaurants, setSearchingRestaurants] = useState(false);
@@ -68,9 +69,7 @@ export function MenuReaderPage() {
     const filterParam = searchParams.get("filter");
     return filterParam ? filterParam.split(",").filter(Boolean) : [];
   });
-  const [searchSessionToken, setSearchSessionToken] = useState(
-    newSearchSessionToken,
-  );
+  const [, setSearchSessionToken] = useState(newSearchSessionToken);
   const [approximateLocation, setApproximateLocation] = useState<{
     latitude: number;
     longitude: number;
@@ -80,12 +79,20 @@ export function MenuReaderPage() {
     lng: number;
   }>();
   const [loadedFromCache, setLoadedFromCache] = useState(false);
+  const [websiteUrlInput, setWebsiteUrlInput] = useState("");
+  const [submittingUrl, setSubmittingUrl] = useState(false);
+  const [fileLimitWarning, setFileLimitWarning] = useState(false);
+
   const draftId = draft?.id;
   const editToken = draft?.editToken;
   const draftStatus = draft?.status;
+  const [sheetSnapPoint, setSheetSnapPoint] = useState<SnapPoint>("half");
 
   const handleSelectRestaurant = (restaurant?: RestaurantCandidate) => {
     setSelectedRestaurant(restaurant);
+    if (restaurant) {
+      setSheetSnapPoint((prev) => (prev === "collapsed" ? "half" : prev));
+    }
     setSearchParams((prev) => {
       const next = new URLSearchParams(prev);
       if (restaurant) {
@@ -156,16 +163,19 @@ export function MenuReaderPage() {
     }
   }, [searchParams]);
 
-  // Debounced typeahead search
+  // Debounced unified real-time search
   useEffect(() => {
     const query = restaurantQuery.trim();
     if (query.length < 2 || selectedRestaurant) {
-      setTypeaheadSuggestions([]);
+      if (query.length === 0 && !searchSubmitted) {
+        setRestaurantResults([]);
+        setRestaurantError("");
+      }
       return;
     }
     const controller = new AbortController();
     const timeout = window.setTimeout(async () => {
-      setSearchingTypeahead(true);
+      setSearchingRestaurants(true);
       try {
         const results = await searchRestaurants(query, {
           latitude: userCoords?.lat ?? approximateLocation?.latitude,
@@ -173,18 +183,24 @@ export function MenuReaderPage() {
           signal: controller.signal,
         });
         if (!controller.signal.aborted) {
-          setTypeaheadSuggestions(Array.isArray(results) ? results : []);
+          const safe = Array.isArray(results) ? results : [];
+          setRestaurantResults(safe);
+          if (safe.length === 0) {
+            setRestaurantError(tx("No matching restaurant was found. Try adding a city or area."));
+          } else {
+            setRestaurantError("");
+          }
         }
       } catch {
         if (!controller.signal.aborted) {
-          setTypeaheadSuggestions([]);
+          setRestaurantResults([]);
         }
       } finally {
         if (!controller.signal.aborted) {
-          setSearchingTypeahead(false);
+          setSearchingRestaurants(false);
         }
       }
-    }, 180);
+    }, 220);
     return () => {
       window.clearTimeout(timeout);
       controller.abort();
@@ -194,6 +210,7 @@ export function MenuReaderPage() {
     selectedRestaurant,
     userCoords,
     approximateLocation,
+    searchSubmitted,
   ]);
 
   const executeSearch = async (queryToSearch: string) => {
@@ -324,7 +341,7 @@ export function MenuReaderPage() {
     );
   }
 
-  const handleSearchArea = async (center: { lat: number; lng: number }) => {
+  const handleSearchArea = async (center: { lat: number; lng: number }, radius: number) => {
     setSearchingRestaurants(true);
     setRestaurantError("");
     setSelectedRestaurant(undefined);
@@ -332,6 +349,7 @@ export function MenuReaderPage() {
       const results = await searchRestaurants("restaurants", {
         latitude: center.lat,
         longitude: center.lng,
+        radius,
         near: "",
       });
       const safeResults = Array.isArray(results) ? results : [];
@@ -348,6 +366,34 @@ export function MenuReaderPage() {
     }
   };
 
+  const handleAddFiles = (newFiles: File[]) => {
+    setFiles((current) => {
+      const combined = [...current, ...newFiles];
+      if (combined.length > 8) {
+        setFileLimitWarning(true);
+        setTimeout(() => setFileLimitWarning(false), 4000);
+      }
+      return combined.slice(0, 8);
+    });
+  };
+
+  const handleUrlSubmit = async (e: FormEvent) => {
+    e.preventDefault();
+    const url = websiteUrlInput.trim();
+    if (!url) return;
+    setError("");
+    setSubmittingUrl(true);
+    try {
+      setLoadedFromCache(false);
+      const nextDraft = await discoverMenuByUrl(url, selectedRestaurant?.name);
+      setDraft(nextDraft);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : tx("Finding menu on website failed."));
+    } finally {
+      setSubmittingUrl(false);
+    }
+  };
+
   const filteredResults = filterRestaurants(restaurantResults, activeFilters);
   const filteredCurated = filterRestaurants(curatedPins, activeFilters);
   const baseDisplayedRestaurants = restaurantResults.length > 0 ? filteredResults : filteredCurated;
@@ -356,132 +402,138 @@ export function MenuReaderPage() {
       ? [selectedRestaurant, ...baseDisplayedRestaurants]
       : baseDisplayedRestaurants;
 
+  const canClearSearch = Boolean(
+    restaurantQuery.length > 0 ||
+      restaurantResults.length > 0 ||
+      selectedRestaurant !== undefined ||
+      activeFilters.length > 0,
+  );
+
   return (
     <div className="page fullscreen-map-page">
       <div className="map-view-hero">
-        <aside className={`map-floating-sidebar ${!selectedRestaurant && filteredResults.length === 0 ? "compact-sidebar" : ""}`} aria-label={tx("Search restaurants")}>
-          <div className="sidebar-search-header">
-            <SearchTypeahead
-              query={restaurantQuery}
-              onQueryChange={(val) => {
-                setRestaurantQuery(val);
-                if (selectedRestaurant) {
+        <BottomSheet
+          snapPoint={sheetSnapPoint}
+          onSnapChange={setSheetSnapPoint}
+          isCompact={!selectedRestaurant && filteredResults.length === 0}
+          ariaLabel={tx("Search restaurants")}
+          header={
+            <div className="sidebar-search-header">
+              <SearchTypeahead
+                query={restaurantQuery}
+                onQueryChange={(val) => {
+                  setRestaurantQuery(val);
+                  if (selectedRestaurant) {
+                    handleSelectRestaurant(undefined);
+                  }
+                  setSearchSubmitted(false);
+                }}
+                loading={searchingRestaurants}
+                canClear={canClearSearch}
+                onSubmitSearch={(q) => {
+                  setSheetSnapPoint("half");
+                  void executeSearch(q);
+                }}
+                onClear={() => {
+                  setRestaurantQuery("");
+                  setRestaurantResults([]);
                   handleSelectRestaurant(undefined);
-                }
-                setSearchSubmitted(false);
-              }}
-              suggestions={typeaheadSuggestions}
-              loading={searchingTypeahead || searchingRestaurants}
-              userCoords={userCoords || (approximateLocation ? { lat: approximateLocation.latitude, lng: approximateLocation.longitude } : undefined)}
-              onSelectSuggestion={(restaurant) => {
-                setRestaurantQuery(restaurant.name);
-                setRestaurantResults((prev) =>
-                  prev.some((r) => r.id === restaurant.id) ? prev : [restaurant, ...prev],
-                );
-                handleSelectRestaurant(restaurant);
-              }}
-              onSubmitSearch={(q) => void executeSearch(q)}
-              onClear={() => {
-                setRestaurantQuery("");
-                setRestaurantResults([]);
-                setTypeaheadSuggestions([]);
-                handleSelectRestaurant(undefined);
-                setSearchSubmitted(false);
-                setRestaurantError("");
-              }}
-            />
-
-            <FilterPills
-              activeFilters={activeFilters}
-              onToggleFilter={(filterId) => {
-                setActiveFilters((current) =>
-                  current.includes(filterId)
-                    ? current.filter((id) => id !== filterId)
-                    : [...current, filterId],
-                );
-              }}
-              onClearFilters={() => setActiveFilters([])}
-            />
-
-            {restaurantError && <div className="sidebar-error error-banner">{restaurantError}</div>}
-          </div>
-
-          <div className="sidebar-content-area">
-            {selectedRestaurant ? (
-              <RestaurantDetailPane
-                restaurant={selectedRestaurant}
-                userCoords={userCoords}
-                onClose={() => handleSelectRestaurant(undefined)}
-                onOpenMenu={(r) => void selectRestaurant(r)}
-                onUploadMenu={(r) => {
-                  handleSelectRestaurant(r);
-                  uploadSectionRef.current?.scrollIntoView({ behavior: "smooth" });
+                  setSearchSubmitted(false);
+                  setRestaurantError("");
                 }}
               />
-            ) : (
-              <div className="sidebar-results-list">
-                {filteredResults.length > 0 ? (
-                  <ul className="restaurant-results">
-                    {filteredResults.map((restaurant) => {
-                      const directionsUrl = getDirectionsUrl(restaurant);
-                      const distanceStr = formatDistance(
-                        userCoords || (approximateLocation ? { lat: approximateLocation.latitude, lng: approximateLocation.longitude } : undefined),
-                        { lat: restaurant.latitude, lng: restaurant.longitude },
-                      );
 
-                      return (
-                        <li
-                          key={restaurant.id}
-                          className={sameRestaurant(restaurant, selectedRestaurant ?? restaurant) ? "active clickable" : "clickable"}
-                          onClick={() => handleSelectRestaurant(restaurant)}
-                        >
-                          <div>
-                            <strong>{restaurant.name}</strong>
-                            <span>{distanceStr ? `${distanceStr} · ${restaurant.address}` : restaurant.address}</span>
-                            <div className="restaurant-links">
-                              <button
-                                type="button"
-                                className="restaurant-link-btn"
-                                disabled={searchingRestaurants}
-                                onClick={(e) => {
-                                  e.stopPropagation();
-                                  void selectRestaurant(restaurant);
-                                }}
-                              >
-                                <Utensils aria-hidden="true" />
-                                <span>{tx("Menu")}</span>
-                              </button>
-                              {restaurant.websiteUrl && (
-                                <a
-                                  href={restaurant.websiteUrl}
-                                  target="_blank"
-                                  rel="noreferrer"
-                                  onClick={(e) => e.stopPropagation()}
-                                >
-                                  <Globe aria-hidden="true" />
-                                  <span>{tx("Website")}</span>
-                                </a>
-                              )}
+              <FilterPills
+                activeFilters={activeFilters}
+                onToggleFilter={(filterId) => {
+                  setSheetSnapPoint((prev) => (prev === "collapsed" ? "half" : prev));
+                  setActiveFilters((current) =>
+                    current.includes(filterId)
+                      ? current.filter((id) => id !== filterId)
+                      : [...current, filterId],
+                  );
+                }}
+                onClearFilters={() => setActiveFilters([])}
+              />
+
+              {restaurantError && <div className="sidebar-error error-banner">{restaurantError}</div>}
+            </div>
+          }
+        >
+          {selectedRestaurant ? (
+            <RestaurantDetailPane
+              restaurant={selectedRestaurant}
+              userCoords={userCoords}
+              onClose={() => handleSelectRestaurant(undefined)}
+              onOpenMenu={(r) => void selectRestaurant(r)}
+              onUploadMenu={(r) => {
+                handleSelectRestaurant(r);
+                uploadSectionRef.current?.scrollIntoView({ behavior: "smooth" });
+              }}
+            />
+          ) : (
+            <div className="sidebar-results-list">
+              {filteredResults.length > 0 ? (
+                <ul className="restaurant-results">
+                  {filteredResults.map((restaurant) => {
+                    const directionsUrl = getDirectionsUrl(restaurant);
+                    const distanceStr = formatDistance(
+                      userCoords || (approximateLocation ? { lat: approximateLocation.latitude, lng: approximateLocation.longitude } : undefined),
+                      { lat: restaurant.latitude, lng: restaurant.longitude },
+                    );
+
+                    return (
+                      <li
+                        key={restaurant.id}
+                        className={sameRestaurant(restaurant, selectedRestaurant ?? restaurant) ? "active clickable" : "clickable"}
+                        onClick={() => handleSelectRestaurant(restaurant)}
+                      >
+                        <div>
+                          <strong>{restaurant.name}</strong>
+                          <span>{distanceStr ? `${distanceStr} · ${restaurant.address}` : restaurant.address}</span>
+                          <div className="restaurant-links">
+                            <button
+                              type="button"
+                              className="restaurant-link-btn"
+                              disabled={searchingRestaurants}
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                void selectRestaurant(restaurant);
+                              }}
+                            >
+                              <Utensils aria-hidden="true" />
+                              <span>{tx("Menu")}</span>
+                            </button>
+                            {restaurant.websiteUrl && (
                               <a
-                                href={directionsUrl}
+                                href={restaurant.websiteUrl}
                                 target="_blank"
                                 rel="noreferrer"
                                 onClick={(e) => e.stopPropagation()}
                               >
-                                <Navigation aria-hidden="true" />
-                                <span>{tx("Directions")}</span>
+                                <Globe aria-hidden="true" />
+                                <span>{tx("Website")}</span>
                               </a>
-                            </div>
+                            )}
+                            <a
+                              href={directionsUrl}
+                              target="_blank"
+                              rel="noreferrer"
+                              onClick={(e) => e.stopPropagation()}
+                            >
+                              <Navigation aria-hidden="true" />
+                              <span>{tx("Directions")}</span>
+                            </a>
                           </div>
-                        </li>
-                      );
-                    })}
-                  </ul>
-                ) : null}
-              </div>
-            )}
-          </div>
-        </aside>
+                        </div>
+                      </li>
+                    );
+                  })}
+                </ul>
+              ) : null}
+            </div>
+          )}
+        </BottomSheet>
 
         <div className="map-fullscreen-canvas">
           <RestaurantMap
@@ -505,12 +557,14 @@ export function MenuReaderPage() {
           <h2>{tx("Add the menu")}</h2>
           <p>{tx("Upload a menu (photos or PDF) to analyze its dishes.")}</p>
         </div>
+
+        {/* 1. Camera and File Options */}
         <div className="upload-options">
           <label className="upload-option camera-option">
             <Camera aria-hidden="true" />
             <span>
               <strong>{tx("Take photos")}</strong>
-              <small>{tx("Take one per page—you can add up to 8")}</small>
+              <small>{tx("Take one per page")}</small>
             </span>
             <input
               type="file"
@@ -518,7 +572,7 @@ export function MenuReaderPage() {
               capture="environment"
               onChange={(event) => {
                 const captured = [...(event.target.files ?? [])];
-                setFiles((current) => [...current, ...captured].slice(0, 8));
+                handleAddFiles(captured);
                 event.target.value = "";
               }}
             />
@@ -527,7 +581,7 @@ export function MenuReaderPage() {
             <Images aria-hidden="true" />
             <span>
               <strong>{tx("Choose files")}</strong>
-              <small>{tx("Photos or a PDF, up to 8 files")}</small>
+              <small>{tx("Photos or a PDF")}</small>
             </span>
             <input
               type="file"
@@ -535,12 +589,20 @@ export function MenuReaderPage() {
               multiple
               onChange={(event) => {
                 const chosen = [...(event.target.files ?? [])];
-                setFiles((current) => [...current, ...chosen].slice(0, 8));
+                handleAddFiles(chosen);
                 event.target.value = "";
               }}
             />
           </label>
         </div>
+
+        {/* File limit alert if user attempts more than 8 */}
+        {fileLimitWarning && (
+          <div className="file-limit-warning" role="alert">
+            <AlertCircle aria-hidden="true" />
+            <span>{tx("Maximum limit of 8 files reached.")}</span>
+          </div>
+        )}
 
         {files.length > 0 && (
           <>
@@ -572,22 +634,51 @@ export function MenuReaderPage() {
           </>
         )}
 
-        <button
-          className="primary-button large-button"
-          disabled={files.length === 0 || draft?.status === "processing"}
-          onClick={async () => {
-            setError("");
-            try {
-              setLoadedFromCache(false);
-              setDraft(await createRestaurantMenuAnalysis(files, selectedRestaurant));
-            } catch (analysisError) {
-              setError(analysisError instanceof Error ? analysisError.message : tx("Analysis failed."));
-            }
-          }}
-        >
-          {draft?.status === "processing" ? <LoaderCircle className="spin" /> : <Upload />}
-          {draft?.status === "processing" ? tx("Extracting dishes…") : t("analyze")}
-        </button>
+        {files.length > 0 && (
+          <button
+            type="button"
+            className="primary-button large-button"
+            disabled={draft?.status === "processing"}
+            onClick={async () => {
+              setError("");
+              try {
+                setLoadedFromCache(false);
+                setDraft(await createRestaurantMenuAnalysis(files, selectedRestaurant));
+              } catch (analysisError) {
+                setError(analysisError instanceof Error ? analysisError.message : tx("Analysis failed."));
+              }
+            }}
+          >
+            {draft?.status === "processing" ? <LoaderCircle className="spin" /> : <Upload />}
+            {draft?.status === "processing" ? tx("Extracting dishes…") : t("analyze")}
+          </button>
+        )}
+
+        {/* 2. Direct Website or Menu Link input */}
+        <div className="menu-url-section-card">
+          <div className="menu-url-header">
+            <Globe aria-hidden="true" />
+            <h3>{tx("Or enter a website or menu link")}</h3>
+          </div>
+          <form onSubmit={(e) => void handleUrlSubmit(e)} className="menu-url-form">
+            <input
+              type="url"
+              value={websiteUrlInput}
+              onChange={(e) => setWebsiteUrlInput(e.target.value)}
+              placeholder="https://www.restaurantgreta.com/..."
+              aria-label={tx("Website or menu link")}
+              required
+            />
+            <button
+              type="submit"
+              className="secondary-button submit-url-btn"
+              disabled={submittingUrl || !websiteUrlInput.trim()}
+            >
+              {submittingUrl ? <LoaderCircle className="spin" /> : <Sparkles aria-hidden="true" />}
+              <span>{tx("Find menu")}</span>
+            </button>
+          </form>
+        </div>
       </section>
 
       {(error || draft?.error) && <div className="error-banner">{error || draft?.error}</div>}

@@ -12,6 +12,7 @@
   },
   "dependencies": {
     "@capacitor/core": "^7.4.1",
+    "@supabase/supabase-js": "^2.112.3",
     "@tanstack/react-query": "^5.81.5",
     "@undecaf/barcode-detector-polyfill": "^0.9.23",
     "@vegan-tools/domain": "*",
