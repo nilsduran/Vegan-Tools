@@ -105,4 +105,4 @@ For in-depth developer documentation, database schemas, and deployment instructi
 
 Vegan Tools is free and open-source software released under the [GNU GPL v3.0](LICENSE).
 Product data is powered by [Open Food Facts](https://world.openfoodfacts.org/) under the ODbL license.
-Restaurant map data is provided by [OpenStreetMap](https://www.openstreetmap.org/) and [Foursquare](https://foursquare.com/).
+Restaurant map data is provided by [OpenStreetMap](https://www.openstreetmap.org/) and [Geoapify](https://www.geoapify.com/).

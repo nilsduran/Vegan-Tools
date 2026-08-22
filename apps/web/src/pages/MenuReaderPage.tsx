@@ -240,6 +240,18 @@ export function MenuReaderPage() {
     }
   };
 
+  useEffect(() => {
+    const trimmed = restaurantQuery.trim();
+    if (trimmed.length < 3 || selectedRestaurant || searchSubmitted) {
+      return;
+    }
+    const timer = setTimeout(() => {
+      void executeSearch(trimmed);
+    }, 420);
+
+    return () => clearTimeout(timer);
+  }, [restaurantQuery, selectedRestaurant, searchSubmitted]);
+
   const selectRestaurant = async (restaurant: RestaurantCandidate) => {
     setSearchingRestaurants(true);
     setRestaurantError("");

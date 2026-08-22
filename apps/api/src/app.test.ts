@@ -108,16 +108,21 @@ describe("API", () => {
     await app.close();
   });
 
-  it("uses Foursquare restaurant search when its API key is configured", async () => {
-    vi.stubEnv("FOURSQUARE_API_KEY", "test-key");
+  it("searches restaurants from Geoapify when configured", async () => {
+    vi.stubEnv("GEOAPIFY_API_KEY", "test-key");
     vi.stubGlobal("fetch", vi.fn(async () => new Response(JSON.stringify({
-      results: [{
-        fsq_place_id: "fsq-42",
-        name: "El Pa Torrat",
-        latitude: 41.39,
-        longitude: 2.16,
-        website: "https://example.com/",
-        location: { formatted_address: "Barcelona" },
+      type: "FeatureCollection",
+      features: [{
+        properties: {
+          place_id: "geo-42",
+          name: "El Pa Torrat",
+          formatted: "Barcelona",
+          website: "https://example.com/",
+        },
+        geometry: {
+          type: "Point",
+          coordinates: [2.16, 41.39],
+        },
       }],
     }), { status: 200, headers: { "Content-Type": "application/json" } })));
     const app = await buildApp(new MemoryRepository());
@@ -128,21 +133,26 @@ describe("API", () => {
     expect(response.statusCode).toBe(200);
     expect(response.json()[0]).toMatchObject({
       name: "El Pa Torrat",
-      provider: "foursquare",
+      provider: "geoapify",
       websiteUrl: "https://example.com/",
     });
     await app.close();
   });
 
-  it("restricts Foursquare suggestions to dining venues near the chosen area", async () => {
-    vi.stubEnv("FOURSQUARE_API_KEY", "test-key");
+  it("restricts Geoapify suggestions to dining venues near the chosen area", async () => {
+    vi.stubEnv("GEOAPIFY_API_KEY", "test-key");
     const fetchMock = vi.fn(async (_input: string | URL | Request) => new Response(JSON.stringify({
-      results: [{
-        fsq_place_id: "fsq-42",
-        name: "El Pa Torrat",
-        latitude: 41.39,
-        longitude: 2.16,
-        location: { formatted_address: "Carrer de Santaló, Barcelona" },
+      type: "FeatureCollection",
+      features: [{
+        properties: {
+          place_id: "geo-42",
+          name: "El Pa Torrat",
+          formatted: "Carrer de Santaló, Barcelona",
+        },
+        geometry: {
+          type: "Point",
+          coordinates: [2.16, 41.39],
+        },
       }],
     }), { status: 200, headers: { "Content-Type": "application/json" } }));
     vi.stubGlobal("fetch", fetchMock);
@@ -156,21 +166,19 @@ describe("API", () => {
     });
     expect(response.statusCode).toBe(200);
     expect(response.json()[0]).toMatchObject({
-      id: "foursquare-fsq-42",
+      id: "geoapify-geo-42",
       name: "El Pa Torrat",
-      provider: "foursquare",
+      provider: "geoapify",
     });
     const requestedUrl = new URL(String(fetchMock.mock.calls[0]?.[0]));
-    expect(requestedUrl.pathname).toBe("/places/search");
-    expect(requestedUrl.searchParams.get("fsq_category_ids")).toBe(
-      "4d4b7105d754a06374d81259",
-    );
-    expect(requestedUrl.searchParams.get("near")).toBe("Barcelona");
+    expect(requestedUrl.pathname).toBe("/v2/places");
+    expect(requestedUrl.searchParams.get("categories")).toContain("catering.restaurant");
+    expect(requestedUrl.searchParams.get("text")).toBe("El Pa Barcelona");
     await app.close();
   });
 
   it("infers a typed city from the same restaurant query", async () => {
-    vi.stubEnv("FOURSQUARE_API_KEY", "test-key");
+    vi.stubEnv("GEOAPIFY_API_KEY", "test-key");
     const fetchMock = vi.fn(async (input: string | URL | Request) => {
       const url = new URL(String(input));
       if (url.hostname === "nominatim.openstreetmap.org") {
@@ -180,12 +188,17 @@ describe("API", () => {
         );
       }
       return new Response(JSON.stringify({
-        results: [{
-          fsq_place_id: "fsq-ny",
-          name: "Cafe Example",
-          latitude: 40.71,
-          longitude: -74,
-          location: { formatted_address: "New York, NY" },
+        type: "FeatureCollection",
+        features: [{
+          properties: {
+            place_id: "geo-ny",
+            name: "Cafe Example",
+            formatted: "New York, NY",
+          },
+          geometry: {
+            type: "Point",
+            coordinates: [-74, 40.71],
+          },
         }],
       }), { status: 200, headers: { "Content-Type": "application/json" } });
     });
@@ -197,54 +210,47 @@ describe("API", () => {
     });
     expect(response.statusCode).toBe(200);
     expect(response.json()[0]?.name).toBe("Cafe Example");
-    const foursquareCall = fetchMock.mock.calls.find(([input]) =>
-      new URL(String(input)).hostname === "places-api.foursquare.com"
+    const geoapifyCall = fetchMock.mock.calls.find(([input]) =>
+      new URL(String(input)).hostname === "api.geoapify.com"
     );
-    const requestedUrl = new URL(String(foursquareCall?.[0]));
-    expect(requestedUrl.searchParams.get("query")).toBe("Cafe Example");
-    expect(requestedUrl.searchParams.get("near")).toBe("New York");
+    const requestedUrl = new URL(String(geoapifyCall?.[0]));
+    expect(requestedUrl.searchParams.get("text")).toBe("Cafe Example New York");
     await app.close();
   });
 
-  it("resolves a Foursquare suggestion and enriches a missing website from nearby OSM data", async () => {
-    vi.stubEnv("FOURSQUARE_API_KEY", "test-key");
+  it("resolves a Geoapify place details when website is missing", async () => {
+    vi.stubEnv("GEOAPIFY_API_KEY", "test-key");
     vi.stubGlobal("fetch", vi.fn(async (input: string | URL | Request) => {
       const url = new URL(String(input));
-      if (url.hostname === "places-api.foursquare.com") {
+      if (url.hostname === "api.geoapify.com") {
         return new Response(JSON.stringify({
-          results: [{
-            fsq_place_id: "fsq-42",
-            name: "El Pa Torrat",
-            latitude: 41.39,
-            longitude: 2.16,
-            location: { formatted_address: "Carrer de Santaló, Barcelona" },
+          features: [{
+            properties: {
+              website: "https://example.com/menu",
+            },
           }],
         }), { status: 200, headers: { "Content-Type": "application/json" } });
       }
-      return new Response(JSON.stringify([{
-        lat: "41.3901",
-        lon: "2.1601",
-        extratags: { website: "https://example.com/menu" },
-      }]), { status: 200, headers: { "Content-Type": "application/json" } });
+      return new Response(JSON.stringify([]), { status: 200, headers: { "Content-Type": "application/json" } });
     }));
     const app = await buildApp(new MemoryRepository());
     const response = await app.inject({
       method: "POST",
       url: "/v1/restaurants/resolve",
       payload: {
-        id: "foursquare-fsq-42",
+        id: "geoapify-geo-42",
         name: "El Pa Torrat",
         address: "Barcelona",
         latitude: 41.39,
         longitude: 2.16,
-        mapUrl: "https://foursquare.com/v/fsq-42",
-        provider: "foursquare",
+        mapUrl: "https://www.openstreetmap.org/#map=17/41.39/2.16",
+        provider: "geoapify",
       },
     });
     expect(response.statusCode).toBe(200);
     expect(response.json()).toMatchObject({
       websiteUrl: "https://example.com/menu",
-      provider: "foursquare",
+      provider: "geoapify",
     });
     await app.close();
   });
@@ -283,17 +289,22 @@ describe("API", () => {
   });
 
   it("searches restaurants by coordinates without forced territorial bias", async () => {
-    vi.stubEnv("FOURSQUARE_API_KEY", "test-key");
+    vi.stubEnv("GEOAPIFY_API_KEY", "test-key");
     const fetchMock = vi.fn(async (input: string | URL | Request) => {
       const url = new URL(String(input));
-      if (url.hostname === "places-api.foursquare.com") {
+      if (url.hostname === "api.geoapify.com") {
         return new Response(JSON.stringify({
-          results: [{
-            fsq_place_id: "fsq-london-1",
-            name: "Purezza Camden",
-            latitude: 51.538,
-            longitude: -0.144,
-            location: { formatted_address: "43 Parkway, London NW1 7PN" },
+          type: "FeatureCollection",
+          features: [{
+            properties: {
+              place_id: "geo-london-1",
+              name: "Purezza Camden",
+              formatted: "43 Parkway, London NW1 7PN",
+            },
+            geometry: {
+              type: "Point",
+              coordinates: [-0.144, 51.538],
+            },
           }],
         }), { status: 200, headers: { "Content-Type": "application/json" } });
       }
@@ -311,13 +322,13 @@ describe("API", () => {
     expect(results).toHaveLength(1);
     expect(results[0]?.name).toBe("Purezza Camden");
 
-    const foursquareCall = fetchMock.mock.calls.find(([input]) =>
-      new URL(String(input)).hostname === "places-api.foursquare.com"
+    const geoapifyCall = fetchMock.mock.calls.find(([input]) =>
+      new URL(String(input)).hostname === "api.geoapify.com"
     );
-    const requestedUrl = new URL(String(foursquareCall?.[0]));
-    // Strictly coordinates-based; should NOT impose near=Barcelona
-    expect(requestedUrl.searchParams.get("ll")).toBe("51.538,-0.144");
-    expect(requestedUrl.searchParams.get("near")).toBeNull();
+    const requestedUrl = new URL(String(geoapifyCall?.[0]));
+    // Strictly coordinates-based; uses circle filter
+    expect(requestedUrl.searchParams.get("filter")).toBe("circle:-0.144,51.538,5000");
+    expect(requestedUrl.searchParams.get("text")).toBeNull();
     await app.close();
   });
 
@@ -646,14 +657,14 @@ describe("API", () => {
       sharedCache,
     );
     const restaurant = {
-      id: "foursquare-il-mulino",
+      id: "geoapify-il-mulino",
       name: "Il Mulino",
       address: "Barcelona",
       latitude: 41.39,
       longitude: 2.16,
       websiteUrl: "https://www.ilmulinopizzabakery.com/",
-      mapUrl: "https://foursquare.com/v/il-mulino",
-      provider: "foursquare",
+      mapUrl: "https://www.openstreetmap.org/#map=17/41.39/2.16",
+      provider: "geoapify",
     };
     const created = await app.inject({
       method: "POST",

@@ -642,8 +642,7 @@ export async function buildApp(
     }
     return [];
   }
-
-  let foursquareDisabledUntil = 0;
+  let geoapifyDisabledUntil = 0;
 
   app.get<{
     Querystring: {
@@ -666,7 +665,7 @@ export async function buildApp(
         });
       }
 
-      const foursquareKey = process.env.FOURSQUARE_API_KEY?.trim();
+      const geoapifyKey = process.env.GEOAPIFY_API_KEY?.trim();
       const defaultNear =
         process.env.DEFAULT_RESTAURANT_NEAR?.trim() || "Barcelona";
       const latitude = Number(request.query.latitude);
@@ -681,7 +680,7 @@ export async function buildApp(
           : 5_000;
       const radiusKm = radiusMeters / 1_000;
       const cacheKey = [
-        foursquareKey ? "foursquare" : "openstreetmap",
+        geoapifyKey ? "geoapify" : "openstreetmap",
         request.query.autocomplete === "true" ? "autocomplete" : "search",
         query.toLocaleLowerCase(),
         request.query.near?.trim().toLocaleLowerCase() ?? "",
@@ -751,256 +750,218 @@ export async function buildApp(
       const commaParts = query.split(",").map((part) => part.trim()).filter(Boolean);
       const hasExplicitCity = Boolean(request.query.near?.trim() || commaParts.length > 1 || inferredTextNear);
       
-      let inferredNear: string | undefined = request.query.near?.trim() || undefined;
-      let foursquareQuery = query;
-
-      const distanceKm = (lat: number, lng: number) => {
-        const dLat = ((lat - latitude) * Math.PI) / 180;
-        const dLng = ((lng - longitude) * Math.PI) / 180;
+      const isWithinLocation = (candLat: number, candLon: number): boolean => {
+        if (!hasLocation || hasExplicitCity) return true;
+        const dLat = (candLat - latitude) * (Math.PI / 180);
+        const dLon = (candLon - longitude) * (Math.PI / 180);
         const a =
           Math.sin(dLat / 2) ** 2 +
-          Math.cos((latitude * Math.PI) / 180) *
-            Math.cos((lat * Math.PI) / 180) *
-            Math.sin(dLng / 2) ** 2;
-        return 6371 * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+          Math.cos(latitude * (Math.PI / 180)) *
+            Math.cos(candLat * (Math.PI / 180)) *
+            Math.sin(dLon / 2) ** 2;
+        const distKm = 6371 * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+        return isGenericQuery ? distKm <= radiusKm : distKm <= 150;
       };
-      const isWithinLocation = (lat: number, lng: number) =>
-        !hasLocation || hasExplicitCity || distanceKm(lat, lng) <= (isGenericQuery ? radiusKm : 120);
 
-      if (hasLocation && !hasExplicitCity) {
-        // Strict location search (e.g. from map or Search This Area)
-        inferredNear = undefined;
-        // Generic area searches should use the restaurant category, not match
-        // the literal word "restaurants" in place names.
-        foursquareQuery = isGenericQuery ? "" : query;
-      } else if (commaParts.length > 1) {
-        foursquareQuery = commaParts[0] ?? query;
+      let inferredNear: string | undefined;
+      let geoapifyQuery = query;
+      if (commaParts.length > 1) {
+        geoapifyQuery = commaParts[0] ?? query;
         inferredNear = commaParts.slice(1).join(", ");
       } else if (inferredTextNear) {
-        foursquareQuery = inferredRestaurantQuery;
+        geoapifyQuery = inferredRestaurantQuery;
         inferredNear = inferredTextNear;
       } else if (isGenericQuery) {
         inferredNear = request.query.near?.trim() || defaultNear;
       } else {
         inferredNear = request.query.near?.trim() || undefined;
-        foursquareQuery = query;
+        geoapifyQuery = query;
       }
 
-      if (!foursquareKey && request.query.autocomplete === "true") {
+      if (!geoapifyKey && request.query.autocomplete === "true") {
         return reply.code(503).send({
           code: "AUTOCOMPLETE_PROVIDER_REQUIRED",
           message:
-            "Live suggestions require Foursquare. Press Enter to search OpenStreetMap instead.",
+            "Live suggestions require Geoapify. Press Enter to search OpenStreetMap instead.",
         });
       }
-      if (foursquareKey && Date.now() > foursquareDisabledUntil) {
-        if (request.query.autocomplete === "true") {
-          const sessionToken = request.query.sessionToken?.trim();
-          if (!sessionToken || !/^[a-zA-Z0-9]{32}$/.test(sessionToken)) {
-            return reply.code(400).send({
-              code: "INVALID_SESSION_TOKEN",
-              message: "A valid autocomplete session token is required.",
-            });
+
+      if (geoapifyKey && Date.now() > geoapifyDisabledUntil) {
+        const url = new URL("https://api.geoapify.com/v2/places");
+        url.searchParams.set(
+          "categories",
+          "catering.restaurant,catering.cafe,catering.fast_food,catering.ice_cream,catering.bakery",
+        );
+        url.searchParams.set("apiKey", geoapifyKey);
+        url.searchParams.set(
+          "limit",
+          request.query.autocomplete === "true" ? "8" : "50",
+        );
+
+        if (!isGenericQuery && geoapifyQuery) {
+          url.searchParams.set("name", geoapifyQuery);
+        }
+
+        if (hasLocation) {
+          url.searchParams.set(
+            "filter",
+            `circle:${longitude},${latitude},${radiusMeters}`,
+          );
+          url.searchParams.set("bias", `proximity:${longitude},${latitude}`);
+        } else if (inferredNear) {
+          url.searchParams.set("text", `${geoapifyQuery} ${inferredNear}`);
+        } else {
+          url.searchParams.set("text", geoapifyQuery);
+        }
+
+        try {
+          const response = await fetch(url.toString(), {
+            headers: {
+              Accept: "application/json",
+            },
+            signal: AbortSignal.timeout(3_000),
+          });
+
+          if (
+            response.status === 429 ||
+            response.status === 401 ||
+            response.status === 403
+          ) {
+            geoapifyDisabledUntil = Date.now() + 60 * 60_000;
+            request.log.warn(
+              { status: response.status },
+              "Geoapify quota exceeded or key invalid; disabling for 1h",
+            );
           }
-          const url = new URL("https://places-api.foursquare.com/places/search");
-          url.search = new URLSearchParams({
-            query: foursquareQuery,
-            fsq_category_ids: FOURSQUARE_RESTAURANT_CATEGORY,
-            limit: "8",
-            fields: "fsq_place_id,name,location,latitude,longitude,website",
-            ...(inferredNear
-              ? { near: inferredNear }
-              : hasLocation
-              ? { ll: `${latitude},${longitude}`, radius: String(radiusMeters), sort: "DISTANCE" }
-              : {}),
-          }).toString();
-          try {
-            const response = await fetch(url, {
-              headers: {
-                Authorization: `Bearer ${foursquareKey}`,
-                "X-Places-Api-Version": "2025-06-17",
-                Accept: "application/json",
-              },
-              signal: AbortSignal.timeout(2_500),
-            });
-            if (response.status === 429 || response.status === 401) {
-              foursquareDisabledUntil = Date.now() + 60 * 60_000;
-              request.log.warn({ status: response.status }, "Foursquare quota exceeded or key invalid; disabling for 1h");
-            }
-            if (!response.ok) {
-              throw new Error(`Foursquare suggestion search failed (${response.status}).`);
-            }
-            const payload = await response.json() as {
-              results?: Array<{
-                fsq_place_id?: string;
-                name?: string;
-                latitude?: number;
-                longitude?: number;
-                website?: string;
-                location?: { formatted_address?: string };
+
+          if (response.ok) {
+            const payload = (await response.json()) as {
+              features?: Array<{
+                properties?: {
+                  place_id?: string;
+                  name?: string;
+                  formatted?: string;
+                  address_line1?: string;
+                  address_line2?: string;
+                  city?: string;
+                  street?: string;
+                  housenumber?: string;
+                  postcode?: string;
+                  country?: string;
+                  website?: string;
+                  contact?: { phone?: string; website?: string };
+                  opening_hours?: string;
+                  categories?: string[];
+                  catering?: {
+                    cuisine?: string;
+                    diet?: {
+                      vegan?: boolean;
+                      vegetarian?: boolean;
+                      gluten_free?: boolean;
+                    };
+                  };
+                };
+                geometry?: {
+                  type: "Point";
+                  coordinates: [number, number]; // [lon, lat]
+                };
               }>;
             };
-            const candidates = (payload.results ?? [])
-              .map((item): RestaurantCandidate | undefined => {
-                const id = item.fsq_place_id;
-                const name = item.name;
-                if (!id || !name) return undefined;
+
+            const candidates: RestaurantCandidate[] = (payload.features ?? [])
+              .filter((f) => {
+                const props = f.properties;
+                const coords = f.geometry?.coordinates;
+                return (
+                  props?.name &&
+                  coords &&
+                  coords.length >= 2 &&
+                  Number.isFinite(coords[1]) &&
+                  Number.isFinite(coords[0]) &&
+                  isWithinLocation(coords[1], coords[0])
+                );
+              })
+              .map((f) => {
+                const props = f.properties!;
+                const lon = f.geometry!.coordinates[0];
+                const lat = f.geometry!.coordinates[1];
+                const placeId = props.place_id || `${lat}-${lon}`;
+                const website = props.website || props.contact?.website;
                 let websiteUrl: string | undefined;
                 try {
-                  const website = item.website ? new URL(item.website) : undefined;
-                  if (website && ["http:", "https:"].includes(website.protocol)) {
-                    websiteUrl = website.toString();
+                  if (website) {
+                    const parsed = new URL(
+                      website.startsWith("http") ? website : `https://${website}`,
+                    );
+                    if (["http:", "https:"].includes(parsed.protocol)) {
+                      websiteUrl = parsed.toString();
+                    }
                   }
                 } catch {
                   websiteUrl = undefined;
                 }
-                const { tags, isVegan, isVegetarian, cuisine } = inferTagsAndVegan({
-                  name,
-                });
+
+                const categories = Array.isArray(props.categories)
+                  ? props.categories
+                  : [];
+                const isVegan =
+                  props.catering?.diet?.vegan === true ||
+                  categories.includes("diet.vegan");
+                const isVegetarian =
+                  isVegan ||
+                  props.catering?.diet?.vegetarian === true ||
+                  categories.includes("diet.vegetarian");
+
+                const tags = new Set<string>();
+                if (isVegan) tags.add("vegan");
+                if (isVegetarian) tags.add("vegetarian");
+                for (const cat of categories) {
+                  if (cat.includes("restaurant")) tags.add("restaurant");
+                  if (cat.includes("cafe") || cat.includes("bakery")) tags.add("cafe_bakery");
+                  if (cat.includes("italian") || cat.includes("pizza")) tags.add("italian");
+                  if (cat.includes("asian") || cat.includes("japanese") || cat.includes("chinese")) tags.add("asian");
+                  if (cat.includes("mediterranean") || cat.includes("tapas")) tags.add("mediterranean");
+                  if (cat.includes("burger") || cat.includes("fast_food")) tags.add("burger");
+                  if (cat.includes("ice_cream")) tags.add("ice_cream");
+                  if (cat.includes("indian")) tags.add("indian");
+                  if (cat.includes("gluten_free")) tags.add("gluten_free");
+                }
+
                 return {
-                  id: `foursquare-${id}`,
-                  name,
-                  address: item.location?.formatted_address ?? "",
-                  latitude: Number(item.latitude ?? 0),
-                  longitude: Number(item.longitude ?? 0),
+                  id: `geoapify-${placeId}`,
+                  name: props.name!,
+                  address:
+                    props.formatted ||
+                    props.address_line2 ||
+                    [props.street, props.city, props.postcode, props.country]
+                      .filter(Boolean)
+                      .join(", "),
+                  latitude: lat,
+                  longitude: lon,
                   websiteUrl,
-                  mapUrl: `https://foursquare.com/v/${id}`,
-                  provider: "foursquare" as const,
-                  cuisine,
-                  tags,
-                  isVegan,
-                  isVegetarian,
+                  mapUrl: `https://www.openstreetmap.org/?mlat=${lat}&mlon=${lon}#map=17/${lat}/${lon}`,
+                  provider: "geoapify" as const,
+                  cuisine: props.catering?.cuisine,
+                  tags: Array.from(tags),
+                  isVegan: isVegan || undefined,
+                  isVegetarian: isVegetarian || undefined,
+                  openingHours: props.opening_hours,
                 };
-              })
-              .filter((item): item is RestaurantCandidate => item !== undefined);
-            restaurantSearchCache.set(cacheKey, {
-              expiresAt: Date.now() + 2 * 60_000,
-              results: candidates,
-            });
-            return candidates;
-          } catch (error) {
-            request.log.warn({ error }, "Foursquare autocomplete failed");
-            return reply.code(503).send({
-              code: "AUTOCOMPLETE_UNAVAILABLE",
-              message: "Live restaurant suggestions are temporarily unavailable.",
-            });
-          }
-        }
+              });
 
-        const buildFoursquareUrl = (useLocation: boolean, customNear?: string) => {
-          const url = new URL("https://places-api.foursquare.com/places/search");
-          const params = new URLSearchParams({
-            fsq_category_ids: FOURSQUARE_RESTAURANT_CATEGORY,
-            ...(customNear
-              ? { near: customNear }
-              : useLocation && hasLocation
-              ? { ll: `${latitude},${longitude}`, radius: String(radiusMeters), sort: "DISTANCE" }
-              : {}),
-            limit: "50",
-            fields: "fsq_place_id,name,location,latitude,longitude,website",
-          });
-          if (foursquareQuery) params.set("query", foursquareQuery);
-          url.search = params.toString();
-          return url.toString();
-        };
-
-        try {
-          let response = await fetch(buildFoursquareUrl(hasLocation, inferredNear), {
-            headers: {
-              Authorization: `Bearer ${foursquareKey}`,
-              "X-Places-Api-Version": "2025-06-17",
-              Accept: "application/json",
-            },
-            signal: AbortSignal.timeout(2_500),
-          });
-          if (response.status === 429 || response.status === 401) {
-            foursquareDisabledUntil = Date.now() + 60 * 60_000;
-            request.log.warn({ status: response.status }, "Foursquare quota exceeded or key invalid; disabling for 1h");
-          }
-          if (!response.ok) throw new Error(`Foursquare search failed (${response.status}).`);
-          let payload = await response.json() as {
-            results?: Array<{
-              fsq_place_id?: string;
-              name?: string;
-              latitude?: number;
-              longitude?: number;
-              website?: string;
-              location?: {
-                formatted_address?: string;
-                address?: string;
-                locality?: string;
-                region?: string;
-                country?: string;
-              };
-            }>;
-          };
-
-          // If local search with coordinates gave 0 results, retry with global search
-          if ((payload.results ?? []).length === 0 && hasLocation && !request.query.radius) {
-            response = await fetch(buildFoursquareUrl(false, undefined), {
-              headers: {
-                Authorization: `Bearer ${foursquareKey}`,
-                "X-Places-Api-Version": "2025-06-17",
-                Accept: "application/json",
-              },
-              signal: AbortSignal.timeout(2_500),
-            });
-            if (response.ok) {
-              payload = await response.json() as typeof payload;
+            if (candidates.length > 0) {
+              restaurantSearchCache.set(cacheKey, {
+                expiresAt: Date.now() + 15 * 60_000,
+                results: candidates,
+              });
+              return candidates;
             }
           }
-
-          const candidates: RestaurantCandidate[] = (payload.results ?? [])
-            .filter((item) =>
-              item.fsq_place_id && item.name &&
-              Number.isFinite(item.latitude) && Number.isFinite(item.longitude) &&
-              isWithinLocation(item.latitude ?? 0, item.longitude ?? 0)
-            )
-            .map((item) => {
-              let websiteUrl: string | undefined;
-              try {
-                const parsed = item.website ? new URL(item.website) : undefined;
-                if (parsed && ["http:", "https:"].includes(parsed.protocol)) {
-                  websiteUrl = parsed.toString();
-                }
-              } catch {
-                websiteUrl = undefined;
-              }
-              const location = item.location;
-              const address = location?.formatted_address ?? [
-                location?.address,
-                location?.locality,
-                location?.region,
-                location?.country,
-              ].filter(Boolean).join(", ");
-              const candName = item.name ?? query;
-              const { tags, isVegan, isVegetarian, cuisine } = inferTagsAndVegan({
-                name: candName,
-              });
-              return {
-                id: `foursquare-${item.fsq_place_id}`,
-                name: candName,
-                address: address || request.query.near?.trim() || "",
-                latitude: item.latitude ?? 0,
-                longitude: item.longitude ?? 0,
-                websiteUrl,
-                mapUrl: `https://foursquare.com/v/${item.fsq_place_id}`,
-                provider: "foursquare" as const,
-                cuisine,
-                tags,
-                isVegan,
-                isVegetarian,
-              };
-            });
-          if (candidates.length > 0) {
-            restaurantSearchCache.set(cacheKey, {
-              expiresAt: Date.now() + 15 * 60_000,
-              results: candidates,
-            });
-            return candidates;
-          }
         } catch (error) {
-          request.log.warn({ error }, "Foursquare restaurant search failed; using OpenStreetMap");
+          request.log.warn(
+            { error },
+            "Geoapify restaurant search failed; using OpenStreetMap",
+          );
         }
       }
 
@@ -1313,171 +1274,55 @@ export async function buildApp(
     if (candidate.provider === "curated" || candidate.id.startsWith("curated-")) {
       return candidate;
     }
-    if (candidate.provider !== "foursquare") {
-      if (candidate.websiteUrl) return candidate;
+    if (candidate.websiteUrl) return candidate;
+
+    const geoapifyKey = process.env.GEOAPIFY_API_KEY?.trim();
+    if (candidate.provider === "geoapify" && geoapifyKey) {
+      const placeId = candidate.id.replace(/^geoapify-/, "");
       try {
-        const websiteUrl = await restaurantWebsiteFinder.find(candidate);
-        return websiteUrl ? { ...candidate, websiteUrl } : candidate;
-      } catch (error) {
-        request.log.warn({ error }, "Official website search failed");
-        return candidate;
+        const url = new URL("https://api.geoapify.com/v2/place-details");
+        url.searchParams.set("id", placeId);
+        url.searchParams.set("apiKey", geoapifyKey);
+        const res = await fetch(url.toString(), {
+          headers: { Accept: "application/json" },
+          signal: AbortSignal.timeout(3_000),
+        });
+        if (res.ok) {
+          const data = (await res.json()) as {
+            features?: Array<{
+              properties?: {
+                website?: string;
+                contact?: { website?: string; phone?: string };
+              };
+            }>;
+          };
+          const site =
+            data.features?.[0]?.properties?.website ||
+            data.features?.[0]?.properties?.contact?.website;
+          if (site) {
+            try {
+              const parsedUrl = new URL(
+                site.startsWith("http") ? site : `https://${site}`,
+              );
+              if (["http:", "https:"].includes(parsedUrl.protocol)) {
+                return { ...candidate, websiteUrl: parsedUrl.toString() };
+              }
+            } catch {
+              // ignore invalid url
+            }
+          }
+        }
+      } catch (err) {
+        request.log.warn({ err }, "Geoapify place details lookup failed");
       }
     }
 
-    const foursquareKey = process.env.FOURSQUARE_API_KEY?.trim();
-    if (!foursquareKey) {
-      return reply.code(503).send({
-        code: "FOURSQUARE_NOT_CONFIGURED",
-        message: "Foursquare is not configured on the API server.",
-      });
-    }
-    const fsqPlaceId = candidate.id.replace(/^foursquare-/, "");
-    const url = new URL("https://places-api.foursquare.com/places/search");
-    url.search = new URLSearchParams({
-      query: candidate.name,
-      ...(candidate.latitude || candidate.longitude
-        ? { ll: `${candidate.latitude},${candidate.longitude}`, radius: "1500" }
-        : {}),
-      limit: "8",
-      fields: "fsq_place_id,name,location,latitude,longitude,website",
-    }).toString();
     try {
-      const response = await fetch(url, {
-        headers: {
-          Authorization: `Bearer ${foursquareKey}`,
-          "X-Places-Api-Version": "2025-06-17",
-          Accept: "application/json",
-        },
-        signal: AbortSignal.timeout(8_000),
-      });
-      if (!response.ok) throw new Error(`Foursquare place lookup failed (${response.status}).`);
-      const payload = await response.json() as {
-        results?: Array<{
-          fsq_place_id?: string;
-          name?: string;
-          latitude?: number;
-          longitude?: number;
-          website?: string;
-          location?: {
-            formatted_address?: string;
-            address?: string;
-            locality?: string;
-            region?: string;
-            country?: string;
-          };
-        }>;
-      };
-      const match = (payload.results ?? []).find(
-        (item) => item.fsq_place_id === fsqPlaceId,
-      ) ?? payload.results?.[0];
-      if (!match?.fsq_place_id || !match.name) {
-        return reply.code(404).send({
-          code: "RESTAURANT_NOT_FOUND",
-          message: "The selected restaurant could not be resolved.",
-        });
-      }
-      let websiteUrl: string | undefined;
-      try {
-        const website = match.website ? new URL(match.website) : undefined;
-        if (website && ["http:", "https:"].includes(website.protocol)) {
-          websiteUrl = website.toString();
-        }
-      } catch {
-        websiteUrl = undefined;
-      }
-      const location = match.location;
-      if (!websiteUrl && Number.isFinite(match.latitude) && Number.isFinite(match.longitude)) {
-        try {
-          const latitude = Number(match.latitude);
-          const longitude = Number(match.longitude);
-          const osmUrl = new URL("https://nominatim.openstreetmap.org/search");
-          osmUrl.search = new URLSearchParams({
-            q: match.name,
-            format: "jsonv2",
-            limit: "5",
-            addressdetails: "1",
-            extratags: "1",
-            layer: "poi",
-            viewbox: `${longitude - 0.08},${latitude + 0.06},${longitude + 0.08},${latitude - 0.06}`,
-            bounded: "1",
-          }).toString();
-          await waitForNominatim();
-          const osmResponse = await fetch(osmUrl, {
-            headers: {
-              "User-Agent":
-                process.env.NOMINATIM_USER_AGENT ??
-                process.env.OFF_USER_AGENT ??
-                "VeganTools/0.1 (https://nilsduran.github.io)",
-              Accept: "application/json",
-            },
-            signal: AbortSignal.timeout(8_000),
-          });
-          if (osmResponse.ok) {
-            const osmResults = await osmResponse.json() as Array<{
-              lat?: string;
-              lon?: string;
-              extratags?: { website?: string; "contact:website"?: string };
-            }>;
-            const closestWithWebsite = osmResults
-              .map((item) => ({
-                item,
-                distance:
-                  Math.abs(Number(item.lat) - latitude) +
-                  Math.abs(Number(item.lon) - longitude),
-              }))
-              .filter(({ item, distance }) =>
-                distance < 0.04 &&
-                Boolean(item.extratags?.website ?? item.extratags?.["contact:website"])
-              )
-              .sort((left, right) => left.distance - right.distance)[0]?.item;
-            const osmWebsite =
-              closestWithWebsite?.extratags?.website ??
-              closestWithWebsite?.extratags?.["contact:website"];
-            if (osmWebsite) {
-              const parsedWebsite = new URL(osmWebsite);
-              if (["http:", "https:"].includes(parsedWebsite.protocol)) {
-                websiteUrl = parsedWebsite.toString();
-              }
-            }
-          }
-        } catch (error) {
-          request.log.debug({ error }, "OpenStreetMap website enrichment failed");
-        }
-      }
-      if (!websiteUrl) {
-        try {
-          websiteUrl = await restaurantWebsiteFinder.find({
-            ...candidate,
-            name: match.name,
-            address: location?.formatted_address ?? candidate.address,
-            latitude: Number(match.latitude ?? candidate.latitude),
-            longitude: Number(match.longitude ?? candidate.longitude),
-          });
-        } catch (error) {
-          request.log.warn({ error }, "Official website search failed");
-        }
-      }
-      return {
-        id: `foursquare-${match.fsq_place_id}`,
-        name: match.name,
-        address: location?.formatted_address ?? [
-          location?.address,
-          location?.locality,
-          location?.region,
-          location?.country,
-        ].filter(Boolean).join(", "),
-        latitude: Number(match.latitude ?? candidate.latitude),
-        longitude: Number(match.longitude ?? candidate.longitude),
-        websiteUrl,
-        mapUrl: `https://foursquare.com/v/${match.fsq_place_id}`,
-        provider: "foursquare",
-      } satisfies RestaurantCandidate;
+      const websiteUrl = await restaurantWebsiteFinder.find(candidate);
+      return websiteUrl ? { ...candidate, websiteUrl } : candidate;
     } catch (error) {
-      request.log.warn({ error }, "Foursquare restaurant resolution failed");
-      return reply.code(503).send({
-        code: "RESTAURANT_RESOLUTION_UNAVAILABLE",
-        message: "The selected restaurant could not be loaded. Try again.",
-      });
+      request.log.warn({ error }, "Official website search failed");
+      return candidate;
     }
   });
 
