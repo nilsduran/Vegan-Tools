@@ -275,6 +275,26 @@ export async function buildApp(
     });
   });
 
+  function cleanShortAddress(
+    formattedAddress?: string,
+    street?: string,
+    housenumber?: string,
+    city?: string,
+  ): string {
+    if (street && city) {
+      const st = housenumber ? `${street}, ${housenumber}` : street;
+      return `${st}, ${city}`;
+    }
+    if (!formattedAddress) return city || "";
+    const clean = formattedAddress
+      .replace(/,\s*(?:Spain|España|Espanya|Catalunya|Catalonia|United Kingdom|France|Deutschland|Italy|Italia)$/i, "")
+      .replace(/,\s*\d{4,5}\s+([^,]+)/, ", $1")
+      .replace(/,\s*\d{4,5}/, "")
+      .replace(/,\s*(?:Catalunya|Catalonia|Comunitat de Madrid|Andalucía|Valencia)$/i, "")
+      .trim();
+    return clean || formattedAddress;
+  }
+
   function deduplicateRestaurants(candidates: RestaurantCandidate[]): RestaurantCandidate[] {
     const seen = new Set<string>();
     const result: RestaurantCandidate[] = [];
@@ -798,15 +818,14 @@ export async function buildApp(
           request.query.autocomplete === "true" ? "8" : "50",
         );
 
-        if (!isGenericQuery && geoapifyQuery) {
-          url.searchParams.set("name", geoapifyQuery);
-        }
-
-        if (hasLocation) {
+        if (hasLocation && (isGenericQuery || request.query.radius)) {
           url.searchParams.set(
             "filter",
             `circle:${longitude},${latitude},${radiusMeters}`,
           );
+          url.searchParams.set("bias", `proximity:${longitude},${latitude}`);
+        } else if (hasLocation) {
+          url.searchParams.set("text", inferredNear ? `${geoapifyQuery} ${inferredNear}` : geoapifyQuery);
           url.searchParams.set("bias", `proximity:${longitude},${latitude}`);
         } else if (inferredNear) {
           url.searchParams.set("text", `${geoapifyQuery} ${inferredNear}`);
@@ -930,12 +949,12 @@ export async function buildApp(
                 return {
                   id: `geoapify-${placeId}`,
                   name: props.name!,
-                  address:
-                    props.formatted ||
-                    props.address_line2 ||
-                    [props.street, props.city, props.postcode, props.country]
-                      .filter(Boolean)
-                      .join(", "),
+                  address: cleanShortAddress(
+                    props.formatted || props.address_line2,
+                    props.street,
+                    props.housenumber,
+                    props.city,
+                  ),
                   latitude: lat,
                   longitude: lon,
                   websiteUrl,
@@ -1094,7 +1113,7 @@ export async function buildApp(
             photonResults.push({
               id: `osm-${p.osm_type ?? "N"}-${p.osm_id ?? Math.floor(Math.random() * 1e8)}`,
               name: p.name,
-              address: fullAddress || locality || p.country || "",
+              address: cleanShortAddress(fullAddress, p.street, p.housenumber, locality),
               latitude: lat,
               longitude: lon,
               mapUrl: `https://www.openstreetmap.org/?mlat=${lat}&mlon=${lon}#map=17/${lat}/${lon}`,
@@ -1225,7 +1244,7 @@ export async function buildApp(
             return {
               id: `${item.osm_type}-${item.osm_id}`,
               name: item.name?.trim() || item.display_name.split(",")[0]?.trim() || query,
-              address: item.display_name,
+              address: cleanShortAddress(item.display_name),
               latitude: Number(item.lat),
               longitude: Number(item.lon),
               websiteUrl,

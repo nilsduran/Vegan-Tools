@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import L from "leaflet";
 import "leaflet/dist/leaflet.css";
-import { Crosshair, Maximize2, Search } from "lucide-react";
+import { Crosshair, LoaderCircle, Maximize2, Search } from "lucide-react";
 import type { RestaurantCandidate } from "@vegan-tools/domain";
 import { getApproximateLocation } from "../api";
 import { clusterPoints } from "../utils/cluster";
@@ -24,9 +24,9 @@ function createRestaurantIcon(isSelected: boolean) {
   const pinColor = isSelected ? "#064e3b" : "#047857";
   const strokeColor = isSelected ? "#34d399" : "#ffffff";
   const strokeWidth = isSelected ? 2.4 : 1.8;
-  const width = isSelected ? 42 : 34;
-  const height = isSelected ? 54 : 44;
-  const dotRadius = isSelected ? 5 : 4.2;
+  const width = isSelected ? 46 : 38;
+  const height = isSelected ? 60 : 50;
+  const dotRadius = isSelected ? 5.6 : 4.8;
   const dotColor = isSelected ? "#bef264" : "#d9f99d";
 
   const svgHtml = `
@@ -435,8 +435,9 @@ export function RestaurantMap({
           onClick={handleLocateMe}
           title={tx("Locate me")}
           aria-label={tx("Locate me")}
+          disabled={isLocating}
         >
-          <Crosshair />
+          {isLocating ? <LoaderCircle size={18} className="spin" /> : <Crosshair size={18} />}
         </button>
         {restaurants.length > 1 && (
           <button

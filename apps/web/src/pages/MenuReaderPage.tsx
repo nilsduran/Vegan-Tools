@@ -289,6 +289,8 @@ export function MenuReaderPage() {
         setDraft(next);
         if (next.status === "processing") {
           timeout = window.setTimeout(() => void poll(), 1200);
+        } else if (next.status === "failed" && next.error) {
+          setRestaurantError(next.error);
         }
       } catch (pollError) {
         if (cancelled) return;
@@ -468,7 +470,7 @@ export function MenuReaderPage() {
                 onClearFilters={() => setActiveFilters([])}
               />
 
-              {restaurantError && <div className="sidebar-error error-banner">{restaurantError}</div>}
+              {restaurantError && <div className="sidebar-error error-banner">{tx(restaurantError)}</div>}
             </div>
           }
         >

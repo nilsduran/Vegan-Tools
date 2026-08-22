@@ -56,6 +56,16 @@ function getVeganBadge(restaurant: RestaurantCandidate): {
   };
 }
 
+function formatDisplayAddress(address: string): string {
+  if (!address) return "";
+  return address
+    .replace(/,\s*(?:Spain|España|Espanya|Catalunya|Catalonia|United Kingdom|France|Deutschland|Italy|Italia)$/i, "")
+    .replace(/,\s*\d{4,5}\s+([^,]+)/, ", $1")
+    .replace(/,\s*\d{4,5}/, "")
+    .replace(/,\s*(?:Catalunya|Catalonia|Comunitat de Madrid|Andalucía|Valencia)$/i, "")
+    .trim();
+}
+
 // Extract cuisine tags from restaurant name or address if apparent
 function getCuisineTag(restaurant: RestaurantCandidate): string | undefined {
   const name = restaurant.name.toLowerCase();
@@ -160,7 +170,7 @@ export function RestaurantDetailPane({
         {restaurant.address && (
           <div className="detail-info-row">
             <MapPin aria-hidden="true" />
-            <span>{restaurant.address}</span>
+            <span>{formatDisplayAddress(restaurant.address)}</span>
           </div>
         )}
 

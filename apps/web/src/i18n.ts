@@ -248,6 +248,18 @@ const caPhrases = {
   "Maps": "Indicacions",
   "Copy": "Copia",
   "Copied!": "Copiat!",
+  "The website menu was found, but no dishes could be extracted. Upload the PDF or menu photos instead.":
+    "S'ha trobat la web de la carta, però no s'han pogut extreure plats. Pots pujar el PDF o fotos de la carta a continuació.",
+  "The restaurant website did not return an HTML page or PDF menu.":
+    "La web del restaurant no ha retornat cap pàgina HTML ni PDF de la carta.",
+  "No readable menu page or PDF was found on the restaurant website. Upload the menu instead.":
+    "No s'ha trobat cap carta o PDF llegible a la web del restaurant. Pots pujar la carta directament.",
+  "We couldn’t verify an official website automatically. Add menu photos or a PDF below.":
+    "No hem pogut verificar una web oficial automàticament. Pots afegir fotos de la carta o un PDF a continuació.",
+  "The selected restaurant could not be loaded.":
+    "No s'ha pogut carregar el restaurant seleccionat.",
+  "The selected restaurant could not be loaded. Try again.":
+    "No s'ha pogut carregar el restaurant seleccionat. Torna-ho a provar.",
   "Copy to clipboard": "Copia al porta-retalls",
   "Examples": "Exemples",
   "Product not found in Open Food Facts database.": "No s'ha trobat el producte a la base de dades.",
