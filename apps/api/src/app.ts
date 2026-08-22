@@ -653,6 +653,8 @@ export async function buildApp(
     return [];
   }
 
+  let foursquareDisabledUntil = 0;
+
   app.get<{
     Querystring: {
       q?: string;
@@ -801,7 +803,7 @@ export async function buildApp(
             "Live suggestions require Foursquare. Press Enter to search OpenStreetMap instead.",
         });
       }
-      if (foursquareKey) {
+      if (foursquareKey && Date.now() > foursquareDisabledUntil) {
         if (request.query.autocomplete === "true") {
           const sessionToken = request.query.sessionToken?.trim();
           if (!sessionToken || !/^[a-zA-Z0-9]{32}$/.test(sessionToken)) {
@@ -831,6 +833,10 @@ export async function buildApp(
               },
               signal: AbortSignal.timeout(2_500),
             });
+            if (response.status === 429 || response.status === 401) {
+              foursquareDisabledUntil = Date.now() + 60 * 60_000;
+              request.log.warn({ status: response.status }, "Foursquare quota exceeded or key invalid; disabling for 1h");
+            }
             if (!response.ok) {
               throw new Error(`Foursquare suggestion search failed (${response.status}).`);
             }
@@ -917,6 +923,10 @@ export async function buildApp(
             },
             signal: AbortSignal.timeout(2_500),
           });
+          if (response.status === 429 || response.status === 401) {
+            foursquareDisabledUntil = Date.now() + 60 * 60_000;
+            request.log.warn({ status: response.status }, "Foursquare quota exceeded or key invalid; disabling for 1h");
+          }
           if (!response.ok) throw new Error(`Foursquare search failed (${response.status}).`);
           let payload = await response.json() as {
             results?: Array<{
@@ -943,7 +953,7 @@ export async function buildApp(
                 "X-Places-Api-Version": "2025-06-17",
                 Accept: "application/json",
               },
-              signal: AbortSignal.timeout(8_000),
+              signal: AbortSignal.timeout(2_500),
             });
             if (response.ok) {
               payload = await response.json() as typeof payload;
