@@ -6,8 +6,12 @@ import { createRepositoryFromEnvironment } from "./store.js";
 import { createRestaurantMenuCacheFromEnvironment } from "./restaurant-menu-cache.js";
 import { createMenuSourceStoreFromEnvironment } from "./menu-source-store.js";
 
+config();
 config({
-  path: resolve(dirname(fileURLToPath(import.meta.url)), "../../../.env"),
+  path: resolve(dirname(fileURLToPath(import.meta.url)), "../../.env"),
+});
+config({
+  path: resolve(dirname(fileURLToPath(import.meta.url)), "../.env"),
 });
 
 const app = await buildApp(

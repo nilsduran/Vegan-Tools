@@ -724,7 +724,6 @@ export async function buildApp(
                 addressdetails: "0",
                 layer: "address",
               }).toString();
-              await waitForNominatim();
               const localityResponse = await fetch(localityUrl, {
                 headers: {
                   "User-Agent":
@@ -733,10 +732,10 @@ export async function buildApp(
                     "VeganTools/0.1 (https://nilsduran.github.io)",
                   Accept: "application/json",
                 },
-                signal: AbortSignal.timeout(5_000),
+                signal: AbortSignal.timeout(1_500),
               });
               if (!localityResponse.ok) continue;
-              const localities = await localityResponse.json() as Array<{
+              const localities = (await localityResponse.json()) as Array<{
                 addresstype?: string;
                 type?: string;
               }>;
@@ -830,7 +829,7 @@ export async function buildApp(
                 "X-Places-Api-Version": "2025-06-17",
                 Accept: "application/json",
               },
-              signal: AbortSignal.timeout(8_000),
+              signal: AbortSignal.timeout(2_500),
             });
             if (!response.ok) {
               throw new Error(`Foursquare suggestion search failed (${response.status}).`);
@@ -916,7 +915,7 @@ export async function buildApp(
               "X-Places-Api-Version": "2025-06-17",
               Accept: "application/json",
             },
-            signal: AbortSignal.timeout(8_000),
+            signal: AbortSignal.timeout(2_500),
           });
           if (!response.ok) throw new Error(`Foursquare search failed (${response.status}).`);
           let payload = await response.json() as {
