@@ -167,3 +167,26 @@ export function createMenuSourceStoreFromEnvironment() {
     resolve(process.env.MENU_SOURCE_DIR?.trim() || "data/menu-sources"),
   );
 }
+
+export async function loadSourcesFromStore(
+  store: MenuSourceStore,
+  menuId: string,
+  sourceFiles: MenuSourceFile[],
+): Promise<Upload[]> {
+  const uploads: Upload[] = [];
+  for (const sf of sourceFiles) {
+    const parts = sf.url.split("/");
+    const storedName = parts[parts.length - 1];
+    if (storedName) {
+      const stored = await store.read(menuId, storedName);
+      if (stored) {
+        uploads.push({
+          filename: sf.name,
+          mimetype: stored.mimeType,
+          buffer: stored.buffer,
+        });
+      }
+    }
+  }
+  return uploads;
+}

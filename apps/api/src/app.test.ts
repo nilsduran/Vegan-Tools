@@ -905,5 +905,48 @@ describe("API", () => {
 
     await app.close();
   });
+
+  it("reanalyzes an existing menu draft using high accuracy", async () => {
+    const memoryRepo = new MemoryRepository();
+    const mockAnalyzer: MenuAnalyzer = {
+      analyze: vi.fn().mockImplementation(async (draft) => ({
+        ...draft,
+        status: "ready" as const,
+        sections: [
+          {
+            id: "sec-reanalyzed",
+            name: "Mains",
+            nameCa: "Principals",
+            items: [],
+          },
+        ],
+      })),
+    };
+    const app = await buildApp(memoryRepo, mockAnalyzer);
+    const form = new FormData();
+    form.append("files", new Blob(["Mock menu text"], { type: "text/plain" }), "menu.txt");
+    const createRes = await app.inject({
+      method: "POST",
+      url: "/v1/menus/analyses",
+      payload: form,
+    });
+    expect([200, 202]).toContain(createRes.statusCode);
+    const created = createRes.json() as { id: string; editToken: string };
+
+    const reanalyzeRes = await app.inject({
+      method: "POST",
+      url: `/v1/menus/${created.id}/reanalyze?token=${created.editToken}&highAccuracy=true`,
+    });
+    expect(reanalyzeRes.statusCode).toBe(200);
+    const reanalyzed = reanalyzeRes.json() as { status: string; sections: unknown[] };
+    expect(reanalyzed.status).toBe("ready");
+    expect(mockAnalyzer.analyze).toHaveBeenCalledWith(
+      expect.anything(),
+      expect.anything(),
+      { highAccuracy: true },
+    );
+
+    await app.close();
+  });
 });
 

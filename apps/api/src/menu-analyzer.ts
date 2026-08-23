@@ -15,11 +15,19 @@ interface Upload {
 }
 
 export interface MenuAnalyzer {
-  analyze(menu: MenuDraft, uploads: Upload[]): Promise<MenuDraft>;
+  analyze(
+    menu: MenuDraft,
+    uploads: Upload[],
+    options?: { highAccuracy?: boolean },
+  ): Promise<MenuDraft>;
 }
 
 export class GeminiMenuAnalyzer implements MenuAnalyzer {
-  async analyze(menu: MenuDraft, uploads: Upload[]): Promise<MenuDraft> {
+  async analyze(
+    menu: MenuDraft,
+    uploads: Upload[],
+    options?: { highAccuracy?: boolean },
+  ): Promise<MenuDraft> {
     if (!process.env.GEMINI_API_KEY) {
       return demoMenu(menu, uploads);
     }
@@ -52,7 +60,7 @@ When one menu line contains selectable variants with different dietary implicati
 Allowed verdicts: vegan, probably_vegan, vegetarian, probably_vegetarian, non_vegetarian, unknown.
 For PDFs, include the 1-based PDF page number where each dish appears as sourcePage.
 For multiple uploaded images, use the 1-based image position as sourcePage.
-Return JSON matching the supplied schema.`,
+Return JSON matching the supplied schema.${options?.highAccuracy ? "\nExtract with maximum thoroughness. Perform a meticulous, comprehensive scan of all columns, sections, footers, and small print." : ""}`,
       },
     ];
 
@@ -106,7 +114,9 @@ Return JSON matching the supplied schema.`,
     });
 
     const configuredModel = process.env.GEMINI_MODEL ?? "gemini-3.1-flash-lite";
-    const models = [...new Set([configuredModel, "gemini-3.0-flash", "gemini-2.5-flash"])];
+    const models = options?.highAccuracy
+      ? [...new Set(["gemini-2.5-pro", "gemini-3.0-flash", configuredModel])]
+      : [...new Set([configuredModel, "gemini-3.0-flash", "gemini-2.5-flash"])];
     let response: Awaited<ReturnType<typeof generate>> | undefined;
     let lastError: unknown;
     let selectedModel = configuredModel;

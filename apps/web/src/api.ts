@@ -258,6 +258,21 @@ export async function publishMenu(id: string, token: string): Promise<MenuDraft>
   return menuDraftSchema.parse(await response.json());
 }
 
+export async function reanalyzeMenuDraft(
+  id: string,
+  token?: string,
+  options?: { highAccuracy?: boolean },
+): Promise<MenuDraft> {
+  const params = new URLSearchParams();
+  if (token) params.set("token", token);
+  if (options?.highAccuracy !== false) params.set("highAccuracy", "true");
+  const query = params.toString() ? `?${params.toString()}` : "";
+  const response = await checkedFetch(`/v1/menus/${id}/reanalyze${query}`, {
+    method: "POST",
+  });
+  return normalizeMenuError(menuDraftSchema.parse(await response.json()));
+}
+
 export async function getPublicMenu(slug: string): Promise<MenuDraft> {
   const response = await checkedFetch(`/v1/public/menus/${encodeURIComponent(slug)}`);
   return menuDraftSchema.parse({

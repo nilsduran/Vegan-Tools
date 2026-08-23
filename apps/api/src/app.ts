@@ -42,6 +42,7 @@ import {
 } from "./restaurant-menu-cache.js";
 import {
   MemoryMenuSourceStore,
+  loadSourcesFromStore,
   type MenuSourceStore,
 } from "./menu-source-store.js";
 import {
@@ -2040,6 +2041,65 @@ export async function buildApp(
       return reply.code(409).send({ code: "NOT_READY", message: "Review the menu before publishing." });
     }
     return menu;
+  });
+
+  app.post<{
+    Params: { id: string };
+    Querystring: { token?: string; highAccuracy?: string };
+  }>("/v1/menus/:id/reanalyze", async (request, reply) => {
+    let menu = await repo.getMenu(request.params.id, request.query.token ?? "");
+    if (!menu) {
+      menu = await repo.getPublicMenu(request.params.id);
+    }
+    if (!menu) {
+      return reply.code(404).send({ code: "NOT_FOUND", message: "Menu not found." });
+    }
+
+    const sourceFiles = menu.sourceFiles || [];
+    const uploads = await loadSourcesFromStore(menuSourceStore, menu.id, sourceFiles);
+    if (uploads.length === 0) {
+      return reply.code(400).send({
+        code: "NO_SOURCES",
+        message: "No original source files available to reanalyze. Please upload the menu photos or PDF.",
+      });
+    }
+
+    const processingDraft = { ...menu, status: "processing" as const, error: undefined };
+    await repo.setMenu(processingDraft);
+
+    try {
+      const highAccuracy = request.query.highAccuracy !== "false";
+      const analyzed = await withTimeout(
+        menuAnalyzer.analyze(processingDraft, uploads, { highAccuracy }),
+        180_000,
+        "Menu reanalysis took too long. Please try again.",
+      );
+      await repo.setMenu(analyzed);
+      if (menu.restaurantName) {
+        try {
+          await restaurantMenuCache.save(
+            {
+              id: menu.id,
+              name: menu.restaurantName,
+              address: menu.sourceLabel || "",
+              latitude: 0,
+              longitude: 0,
+              mapUrl: `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(menu.restaurantName)}`,
+              provider: "curated",
+            },
+            analyzed,
+          );
+        } catch (cacheError) {
+          request.log.warn({ cacheError }, "Shared menu cache reanalysis write failed");
+        }
+      }
+      return reply.send(analyzed);
+    } catch (reanalysisError) {
+      const errorMsg = reanalysisError instanceof Error ? reanalysisError.message : "Reanalysis failed.";
+      const failedDraft = { ...menu, status: "failed" as const, error: errorMsg };
+      await repo.setMenu(failedDraft);
+      return reply.code(500).send({ code: "ANALYSIS_FAILED", message: errorMsg });
+    }
   });
 
   app.get<{ Params: { slug: string } }>("/v1/public/menus/:slug", async (request, reply) => {

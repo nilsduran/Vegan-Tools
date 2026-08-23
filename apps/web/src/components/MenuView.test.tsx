@@ -9,6 +9,7 @@ import type { MenuDraft } from "@vegan-tools/domain";
 vi.mock("../api.js", () => ({
   submitDishFeedback: vi.fn(),
   updateRestaurantNotes: vi.fn(),
+  reanalyzeMenuDraft: vi.fn(),
   resolveApiUrl: (url: string) => url,
   sourcePdfPageUrl: (url: string, page: number) => `${url}#page=${page}`,
 }));
@@ -109,5 +110,40 @@ describe("MenuView and DishCorrectionDialog Form UI", () => {
     });
 
     expect(onUpdateMenu).toHaveBeenCalled();
+  });
+
+  it("triggers menu reanalysis when clicking Reanalyze button", async () => {
+    const user = userEvent.setup();
+    const onUpdateMenu = vi.fn();
+    const menuWithSources: MenuDraft = {
+      ...sampleMenu,
+      sourceFiles: [{ name: "menu.pdf", mimeType: "application/pdf", url: "/v1/sources/menu.pdf" }],
+    };
+
+    vi.mocked(api.reanalyzeMenuDraft).mockResolvedValueOnce({
+      ...menuWithSources,
+      restaurantName: "Trattoria Vegana (Reanalyzed)",
+    });
+
+    render(<MenuView menu={menuWithSources} onUpdateMenu={onUpdateMenu} />);
+
+    const reanalyzeBtn = screen.getByRole("button", { name: /reanalitza|reanalyze/i });
+    expect(reanalyzeBtn).toBeDefined();
+
+    await user.click(reanalyzeBtn);
+
+    await waitFor(() => {
+      expect(api.reanalyzeMenuDraft).toHaveBeenCalledWith(
+        "menu-test-1",
+        "token-test-1",
+        { highAccuracy: true },
+      );
+    });
+
+    expect(onUpdateMenu).toHaveBeenCalledWith(
+      expect.objectContaining({
+        restaurantName: "Trattoria Vegana (Reanalyzed)",
+      }),
+    );
   });
 });

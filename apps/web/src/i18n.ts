@@ -243,6 +243,13 @@ const caPhrases = {
     "Puja una carta (fotos o PDF) per analitzar els seus plats.",
   "Back to map": "Torna al mapa",
   "Edit sources / Upload menu": "Edita les fonts / Puja carta",
+  "Reanalyze (Pro AI)": "Reanalitza (IA Pro)",
+  "Reanalyzing...": "Reanalitzant...",
+  "Re-extract dishes from the saved menu files using advanced high-accuracy AI":
+    "Torna a extreure els plats de les fonts amb un model d'IA avançat",
+  "Reanalysis failed.": "La reanàlisi ha fallat.",
+  "No original source files available to reanalyze. Please upload the menu photos or PDF.":
+    "No hi ha fonts originals guardades per reanalitzar. Puja les fotos o el PDF de la carta.",
   "Carta del restaurant": "Carta del restaurant",
   "Directions": "Indicacions",
   "Maps": "Indicacions",

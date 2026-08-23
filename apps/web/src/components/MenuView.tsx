@@ -14,15 +14,17 @@ import {
   ExternalLink,
   Info,
   Leaf,
+  LoaderCircle,
   MessageSquareWarning,
   Pencil,
+  Sparkles,
   Utensils,
   Wrench,
 } from "lucide-react";
 import { t, tx, useLanguage } from "../i18n";
 import type { Language } from "../i18n";
 import { localizeGeneratedText } from "../generated-i18n";
-import { resolveApiUrl, sourcePdfPageUrl } from "../api";
+import { reanalyzeMenuDraft, resolveApiUrl, sourcePdfPageUrl } from "../api";
 import { isPresentableMenuSource } from "../menu-source";
 import { DishCorrectionDialog } from "./DishCorrectionDialog";
 import { RestaurantNotesDialog } from "./RestaurantNotesDialog";
@@ -139,6 +141,22 @@ export function MenuView({
   const [openReasons, setOpenReasons] = useState<Set<string>>(new Set());
   const [editingItem, setEditingItem] = useState<MenuItem | null>(null);
   const [isEditingNotes, setIsEditingNotes] = useState(false);
+  const [isReanalyzing, setIsReanalyzing] = useState(false);
+  const [reanalyzeError, setReanalyzeError] = useState<string | null>(null);
+
+  const handleReanalyze = async () => {
+    if (!menu.id) return;
+    setIsReanalyzing(true);
+    setReanalyzeError(null);
+    try {
+      const updated = await reanalyzeMenuDraft(menu.id, menu.editToken, { highAccuracy: true });
+      onUpdateMenu?.(updated);
+    } catch (err) {
+      setReanalyzeError(err instanceof Error ? err.message : tx("Reanalysis failed."));
+    } finally {
+      setIsReanalyzing(false);
+    }
+  };
 
   const allItems = useMemo(
     () => menu.sections.flatMap((section) => section.items),
@@ -261,6 +279,18 @@ export function MenuView({
             <MessageSquareWarning />
             <span>{communityNotes ? tx("Edit venue notes") : tx("Add venue notes")}</span>
           </button>
+          {menu.id && menu.sourceFiles && menu.sourceFiles.length > 0 && onUpdateMenu && (
+            <button
+              type="button"
+              className="menu-sub-action-button menu-sub-action-button--highlight"
+              onClick={() => void handleReanalyze()}
+              disabled={isReanalyzing}
+              title={tx("Re-extract dishes from the saved menu files using advanced high-accuracy AI")}
+            >
+              {isReanalyzing ? <LoaderCircle className="spin" /> : <Sparkles />}
+              <span>{isReanalyzing ? tx("Reanalyzing...") : tx("Reanalyze (Pro AI)")}</span>
+            </button>
+          )}
           {onEditSources && (
             <button
               type="button"
@@ -272,6 +302,12 @@ export function MenuView({
             </button>
           )}
         </div>
+
+        {reanalyzeError && (
+          <div className="error-banner" style={{ margin: "0.75rem auto 0", maxWidth: "600px" }}>
+            {reanalyzeError}
+          </div>
+        )}
 
         {communityNotes && (
           <div className="community-notes-banner">
