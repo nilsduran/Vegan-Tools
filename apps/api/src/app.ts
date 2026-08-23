@@ -1063,12 +1063,15 @@ export async function buildApp(
           return distKm <= radiusKm;
         }
 
+        const queryWords = normQuery.split(/[\s,]+/).filter((w) => w.length > 2);
+        const wordsMatch = queryWords.length > 0 && queryWords.every((w) => rName.includes(w) || rAddr.includes(w));
         const nameMatch = (
           rName.includes(normQuery) ||
           normQuery.includes(rName) ||
           rName.includes(searchHead) ||
           searchHead.includes(rName) ||
-          (rAddr.includes(normQuery) && rName.length > 2)
+          (rAddr.includes(normQuery) && rName.length > 2) ||
+          wordsMatch
         );
         return nameMatch;
       });
