@@ -798,6 +798,43 @@ export async function buildApp(
         geoapifyQuery = query;
       }
 
+      function calculateRelevanceScore(searchQuery: string, cand: RestaurantCandidate): number {
+        const normalize = (s: string) => s.toLowerCase().normalize("NFD").replace(/\p{Diacritic}/gu, "").trim();
+        const qNorm = normalize(searchQuery);
+        const qWords = qNorm.split(/[\s,]+/).filter((w) => w.length > 1);
+        const nameNorm = normalize(cand.name);
+        const addrNorm = normalize(cand.address || "");
+
+        let score = 0;
+
+        // Exact full name match
+        if (nameNorm === qNorm) {
+          score += 2000;
+        }
+
+        // Keyword matching
+        for (const w of qWords) {
+          if (nameNorm === w) {
+            score += 1000;
+          } else if (nameNorm.startsWith(w) || nameNorm.endsWith(w)) {
+            score += 600;
+          } else if (nameNorm.includes(w)) {
+            score += 400;
+          }
+
+          // Address match for other query words (e.g. city "barcelona")
+          if (addrNorm.includes(w) && !nameNorm.includes(w)) {
+            score += 300;
+          }
+        }
+
+        // Vegan/Vegetarian boost
+        if (cand.isVegan) score += 250;
+        else if (cand.isVegetarian) score += 100;
+
+        return score;
+      }
+
       if (!geoapifyKey && request.query.autocomplete === "true") {
         return reply.code(503).send({
           code: "AUTOCOMPLETE_PROVIDER_REQUIRED",
@@ -806,39 +843,39 @@ export async function buildApp(
         });
       }
 
+      const validGeoapifyCategories =
+        "catering.restaurant,catering.cafe,catering.fast_food,catering.ice_cream,catering.bar,catering.pub,commercial.food_and_drink.bakery";
+
       if (geoapifyKey && Date.now() > geoapifyDisabledUntil) {
-        const url = new URL("https://api.geoapify.com/v2/places");
-        url.searchParams.set(
-          "categories",
-          "catering.restaurant,catering.cafe,catering.fast_food,catering.ice_cream,catering.bakery",
-        );
-        url.searchParams.set("apiKey", geoapifyKey);
-        url.searchParams.set(
-          "limit",
-          request.query.autocomplete === "true" ? "8" : "50",
+        // If specific name search: use Autocomplete endpoint for high precision POI keyword search
+        // If spatial search: use Places endpoint with circle filter
+        const isSpatialSearch = hasLocation && (isGenericQuery || Boolean(request.query.radius));
+        const url = new URL(
+          isSpatialSearch
+            ? "https://api.geoapify.com/v2/places"
+            : "https://api.geoapify.com/v1/geocode/autocomplete",
         );
 
-        if (hasLocation && (isGenericQuery || request.query.radius)) {
-          url.searchParams.set(
-            "filter",
-            `circle:${longitude},${latitude},${radiusMeters}`,
-          );
+        if (isSpatialSearch) {
+          url.searchParams.set("categories", validGeoapifyCategories);
+          url.searchParams.set("filter", `circle:${longitude},${latitude},${radiusMeters}`);
           url.searchParams.set("bias", `proximity:${longitude},${latitude}`);
-        } else if (hasLocation) {
-          url.searchParams.set("text", inferredNear ? `${geoapifyQuery} ${inferredNear}` : geoapifyQuery);
-          url.searchParams.set("bias", `proximity:${longitude},${latitude}`);
-        } else if (inferredNear) {
-          url.searchParams.set("text", `${geoapifyQuery} ${inferredNear}`);
+          url.searchParams.set("limit", request.query.autocomplete === "true" ? "8" : "50");
         } else {
-          url.searchParams.set("text", geoapifyQuery);
+          url.searchParams.set("text", query);
+          if (hasLocation) {
+            url.searchParams.set("bias", `proximity:${longitude},${latitude}`);
+          }
+          url.searchParams.set("limit", request.query.autocomplete === "true" ? "8" : "20");
         }
+        url.searchParams.set("apiKey", geoapifyKey);
 
         try {
           const response = await fetch(url.toString(), {
             headers: {
               Accept: "application/json",
             },
-            signal: AbortSignal.timeout(3_000),
+            signal: AbortSignal.timeout(3_500),
           });
 
           if (
@@ -871,6 +908,8 @@ export async function buildApp(
                   contact?: { phone?: string; website?: string };
                   opening_hours?: string;
                   categories?: string[];
+                  category?: string;
+                  result_type?: string;
                   catering?: {
                     cuisine?: string;
                     diet?: {
@@ -891,14 +930,26 @@ export async function buildApp(
               .filter((f) => {
                 const props = f.properties;
                 const coords = f.geometry?.coordinates;
-                return (
-                  props?.name &&
-                  coords &&
-                  coords.length >= 2 &&
-                  Number.isFinite(coords[1]) &&
-                  Number.isFinite(coords[0]) &&
-                  isWithinLocation(coords[1], coords[0])
-                );
+                if (!props?.name || !coords || coords.length < 2 || !Number.isFinite(coords[1]) || !Number.isFinite(coords[0])) {
+                  return false;
+                }
+                if (!isWithinLocation(coords[1], coords[0])) return false;
+
+                // In autocomplete mode, filter out non-dining establishments (e.g. cosmetics, clothing shops)
+                if (!isSpatialSearch) {
+                  const cats = props.categories ?? (props.category ? [props.category] : []);
+                  const isDining =
+                    cats.some((c) => c.startsWith("catering") || c.startsWith("commercial.food_and_drink")) ||
+                    props.result_type === "amenity" ||
+                    props.catering !== undefined;
+                  const queryLower = query.toLowerCase();
+                  const nameLower = props.name.toLowerCase();
+                  // Allow if categorized as food/drink OR if the place name contains the query keyword
+                  if (!isDining && !nameLower.includes(queryLower) && !queryLower.includes(nameLower)) {
+                    return false;
+                  }
+                }
+                return true;
               })
               .map((f) => {
                 const props = f.properties!;
@@ -922,7 +973,7 @@ export async function buildApp(
 
                 const categories = Array.isArray(props.categories)
                   ? props.categories
-                  : [];
+                  : props.category ? [props.category] : [];
                 const isVegan =
                   props.catering?.diet?.vegan === true ||
                   categories.includes("diet.vegan");
@@ -969,11 +1020,15 @@ export async function buildApp(
               });
 
             if (candidates.length > 0) {
+              const ranked = !isGenericQuery
+                ? candidates.sort((a, b) => calculateRelevanceScore(query, b) - calculateRelevanceScore(query, a))
+                : candidates;
+
               restaurantSearchCache.set(cacheKey, {
                 expiresAt: Date.now() + 15 * 60_000,
-                results: candidates,
+                results: ranked,
               });
-              return candidates;
+              return ranked;
             }
           }
         } catch (error) {
@@ -1134,11 +1189,14 @@ export async function buildApp(
       if (photonResults.length > 0 || curatedMatches.length > 0) {
         const combined = [...curatedMatches, ...photonResults];
         const deduplicated = deduplicateRestaurants(combined);
+        const ranked = !isGenericQuery
+          ? deduplicated.sort((a, b) => calculateRelevanceScore(query, b) - calculateRelevanceScore(query, a))
+          : deduplicated;
         restaurantSearchCache.set(cacheKey, {
           expiresAt: Date.now() + 15 * 60_000,
-          results: deduplicated,
+          results: ranked,
         });
-        return deduplicated;
+        return ranked;
       }
 
       // 4. Fallback to OpenStreetMap Nominatim
@@ -1261,12 +1319,15 @@ export async function buildApp(
         const allResults = [...curatedMatches, ...photonResults, ...nominatimCandidates]
           .filter((item) => isWithinLocation(item.latitude, item.longitude));
         const finalResults = deduplicateRestaurants(allResults);
+        const rankedResults = !isGenericQuery
+          ? finalResults.sort((a, b) => calculateRelevanceScore(query, b) - calculateRelevanceScore(query, a))
+          : finalResults;
 
         restaurantSearchCache.set(cacheKey, {
           expiresAt: Date.now() + 15 * 60_000,
-          results: finalResults,
+          results: rankedResults,
         });
-        return finalResults;
+        return rankedResults;
       } catch (error) {
         request.log.warn({ error }, "Restaurant search failed");
         if (photonResults.length > 0 || curatedMatches.length > 0) {

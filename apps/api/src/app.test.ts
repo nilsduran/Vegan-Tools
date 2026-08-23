@@ -171,9 +171,8 @@ describe("API", () => {
       provider: "geoapify",
     });
     const requestedUrl = new URL(String(fetchMock.mock.calls[0]?.[0]));
-    expect(requestedUrl.pathname).toBe("/v2/places");
-    expect(requestedUrl.searchParams.get("categories")).toContain("catering.restaurant");
-    expect(requestedUrl.searchParams.get("text")).toBe("El Pa Barcelona");
+    expect(requestedUrl.pathname).toBe("/v1/geocode/autocomplete");
+    expect(requestedUrl.searchParams.get("text")).toBe("El Pa");
     await app.close();
   });
 

@@ -19,19 +19,19 @@ function distanceInMeters(left: L.LatLng, right: L.LatLng): number {
   return earthRadius * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
 }
 
-// Custom modern SVG marker for Vegan Tools restaurants
+// Custom modern SVG marker for Vegan Tools restaurants (prominent, legible and touch-friendly)
 function createRestaurantIcon(isSelected: boolean) {
   const pinColor = isSelected ? "#064e3b" : "#047857";
   const strokeColor = isSelected ? "#34d399" : "#ffffff";
-  const strokeWidth = isSelected ? 2.4 : 1.8;
-  const width = isSelected ? 46 : 38;
-  const height = isSelected ? 60 : 50;
-  const dotRadius = isSelected ? 5.6 : 4.8;
+  const strokeWidth = isSelected ? 2.8 : 2.0;
+  const width = isSelected ? 58 : 48;
+  const height = isSelected ? 76 : 64;
+  const dotRadius = isSelected ? 7.0 : 5.8;
   const dotColor = isSelected ? "#bef264" : "#d9f99d";
 
   const svgHtml = `
     <div style="width: ${width}px; height: ${height}px; margin: 0; padding: 0; display: block; line-height: 0;">
-      <svg viewBox="0 0 24 32" width="${width}" height="${height}" fill="${pinColor}" stroke="${strokeColor}" stroke-width="${strokeWidth}" stroke-linecap="round" stroke-linejoin="round" style="filter: drop-shadow(0 4px 8px rgba(0,0,0,0.36));">
+      <svg viewBox="0 0 24 32" width="${width}" height="${height}" fill="${pinColor}" stroke="${strokeColor}" stroke-width="${strokeWidth}" stroke-linecap="round" stroke-linejoin="round" style="filter: drop-shadow(0 6px 14px rgba(0,0,0,0.42));">
         <path d="M12 2C7.03 2 3 6.03 3 11c0 7.2 9 19 9 19s9-11.8 9-19c0-4.97-4.03-9-9-9z"/>
         <circle cx="12" cy="11" r="${dotRadius}" fill="${dotColor}" stroke="none"/>
         <circle cx="12" cy="11" r="${dotRadius * 0.45}" fill="${isSelected ? "#064e3b" : "#065f46"}" stroke="none"/>
@@ -50,13 +50,13 @@ function createRestaurantIcon(isSelected: boolean) {
 
 // Custom modern circular cluster badge with count
 function createClusterIcon(count: number, hasSelected: boolean) {
-  const size = count < 10 ? 38 : count < 50 ? 44 : 50;
+  const size = count < 10 ? 46 : count < 50 ? 54 : 62;
   const bgColor = hasSelected ? "#064e3b" : "#047857";
   const borderColor = hasSelected ? "#a7f3d0" : "#d9f99d";
-  const borderWidth = hasSelected ? 3 : 2.5;
+  const borderWidth = hasSelected ? 3.5 : 3;
 
   const html = `
-    <div class="vegan-tools-map-cluster ${hasSelected ? "selected" : ""}" style="width: ${size}px; height: ${size}px; line-height: ${size}px; background: ${bgColor}; border: ${borderWidth}px solid ${borderColor};">
+    <div class="vegan-tools-map-cluster ${hasSelected ? "selected" : ""}" style="width: ${size}px; height: ${size}px; line-height: ${size}px; font-size: ${size >= 54 ? "1.1rem" : "0.95rem"}; background: ${bgColor}; border: ${borderWidth}px solid ${borderColor};">
       <span>${count}</span>
     </div>
   `;
@@ -71,17 +71,17 @@ function createClusterIcon(count: number, hasSelected: boolean) {
 
 function createUserLocationIcon() {
   const svgHtml = `
-    <div style="position: relative; width: 24px; height: 24px; margin: 0; padding: 0;">
-      <div style="position: absolute; inset: 0; background: rgba(30, 144, 255, 0.25); border-radius: 50%; animation: pulse-ring 2s infinite;"></div>
-      <div style="position: absolute; top: 4px; left: 4px; width: 16px; height: 16px; background: #1e90ff; border: 2.5px solid #ffffff; border-radius: 50%; box-shadow: 0 2px 5px rgba(0,0,0,0.3);"></div>
+    <div style="position: relative; width: 32px; height: 32px; margin: 0; padding: 0;">
+      <div style="position: absolute; inset: 0; background: rgba(30, 144, 255, 0.28); border-radius: 50%; animation: pulse-ring 2s infinite;"></div>
+      <div style="position: absolute; top: 5px; left: 5px; width: 22px; height: 22px; background: #1e90ff; border: 3px solid #ffffff; border-radius: 50%; box-shadow: 0 2px 6px rgba(0,0,0,0.35);"></div>
     </div>
   `;
 
   return L.divIcon({
     html: svgHtml,
-    className: "vegan-tools-user-location-pin",
-    iconSize: [24, 24],
-    iconAnchor: [12, 12],
+    className: "user-location-marker",
+    iconSize: [32, 32],
+    iconAnchor: [16, 16],
   });
 }
 
