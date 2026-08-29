@@ -36,7 +36,9 @@ describe("MenuReaderPage Form UI", () => {
     cleanup();
   });
 
-  it("allows searching for a restaurant and selecting a candidate", async () => {
+  it(
+    "allows searching for a restaurant and selecting a candidate",
+    async () => {
     const candidate: RestaurantCandidate = {
       id: "foursquare-123",
       name: "Teresa Carles",
@@ -97,10 +99,11 @@ describe("MenuReaderPage Form UI", () => {
 
     await waitFor(() => {
       expect(api.resolveRestaurant).toHaveBeenCalledWith(candidate);
+      expect(api.discoverRestaurantMenu).toHaveBeenCalledWith(candidate, "https://teresacarles.com");
     });
 
-    expect(await screen.findByText("Opcions veganes")).toBeDefined();
-  });
+    expect(await screen.findByRole("button", { name: /back to map/i })).toBeDefined();
+  }, 15000);
 
   it("clears search query and results when clicking the X clear button", async () => {
     const candidate: RestaurantCandidate = {

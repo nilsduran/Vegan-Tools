@@ -2,7 +2,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import L from "leaflet";
 import "leaflet/dist/leaflet.css";
 import { Crosshair, LoaderCircle, Maximize2, Search } from "lucide-react";
-import type { RestaurantCandidate } from "@vegan-tools/domain";
+import { FEATURED_RESTAURANTS_BARCELONA, type RestaurantCandidate } from "@vegan-tools/domain";
 import { getApproximateLocation } from "../api";
 import { clusterPoints } from "../utils/cluster";
 import { tx, useLanguage } from "../i18n";
@@ -19,29 +19,94 @@ function distanceInMeters(left: L.LatLng, right: L.LatLng): number {
   return earthRadius * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
 }
 
-// Custom modern SVG marker for Vegan Tools restaurants (prominent, legible and touch-friendly)
-function createRestaurantIcon(isSelected: boolean) {
-  const pinColor = isSelected ? "#064e3b" : "#047857";
-  const strokeColor = isSelected ? "#34d399" : "#ffffff";
-  const strokeWidth = isSelected ? 3.0 : 2.2;
-  const width = isSelected ? 72 : 56;
-  const height = isSelected ? 96 : 74;
+function getCuisineIcon(restaurant: RestaurantCandidate): string {
+  const name = (restaurant.name || "").toLowerCase();
+  const tags = (restaurant.tags ?? []).map((t) => t.toLowerCase());
+  const cuisine = (restaurant.cuisine ?? "").toLowerCase();
+  const text = `${name} ${tags.join(" ")} ${cuisine}`;
+
+  // Direct specific match for prominent featured places
+  if (name.includes("asante") || text.includes("brunch") || text.includes("breakfast") || text.includes("esmorzar")) return "☕";
+  if (name.includes("vrutal") || name.includes("mad mad") || name.includes("quinoa") || text.includes("burger") || text.includes("hamburg")) return "🍔";
+  if (name.includes("blu bar") || text.includes("pizza") || text.includes("pizzeria") || text.includes("itali")) return "🍕";
+  if (name.includes("gallo santo") || text.includes("taco") || text.includes("mexic") || text.includes("burrito") || text.includes("quesadilla")) return "🌮";
+  if (name.includes("desoriente") || text.includes("sushi") || text.includes("japan") || text.includes("japones") || text.includes("asian") || text.includes("asiat")) return "🍣";
+  if (text.includes("ramen") || text.includes("noodle") || text.includes("thai") || text.includes("viet") || text.includes("wok")) return "🍜";
+  if (name.includes("good shit") || text.includes("kebab") || text.includes("falafel") || text.includes("shawarma") || text.includes("doner") || text.includes("döner")) return "🥙";
+  if (name.includes("hanai") || text.includes("bakery") || text.includes("pastiss") || text.includes("pasteler") || text.includes("croissant") || text.includes("cake") || text.includes("ice_cream") || text.includes("gelat") || text.includes("pastry")) return "🥐";
+  if (text.includes("cafe") || text.includes("cafeter") || text.includes("coffee") || text.includes("morgentau")) return "☕";
+  if (name.includes("bubita") || text.includes("paella") || text.includes("arros") || text.includes("rice")) return "🥘";
+  if (text.includes("curry") || text.includes("india") || text.includes("masala")) return "🍛";
+  if (text.includes("tapas") || text.includes("tapa") || text.includes("pinchos") || text.includes("bistrot") || text.includes("bar") || text.includes("mediterranean") || text.includes("spanish")) return "🥗";
+
+  return restaurant.isVegan ? "🌱" : "🍽️";
+}
+
+// Custom marker: HappyCow-style round bubble with sharp thin needle base and large legible rating badge
+function createRestaurantIcon(
+  restaurant: RestaurantCandidate,
+  isSelected: boolean,
+  isHovered: boolean = false,
+) {
+  const isHigh = isSelected || isHovered;
+  const isFeatured = (restaurant as { isFeatured?: boolean }).isFeatured ?? false;
+
+  // Palette 1: Gold / Forest Green / Botanical Purple / Slate Grey
+  const baseColor = isFeatured
+    ? "#ca8a04" // Gold for Top Picks
+    : restaurant.isVegan
+      ? "#047857" // Forest emerald for 100% Vegan
+      : restaurant.isVegetarian
+        ? "#7c3aed" // Botanical Purple for Vegetarian
+        : "#475569"; // Slate Grey for Vegan Options
+
+  const lighterBorderColor = isFeatured
+    ? "#fef08a" // Light gold
+    : restaurant.isVegan
+      ? "#a7f3d0" // Light emerald/mint
+      : restaurant.isVegetarian
+        ? "#ddd6fe" // Light purple/lavender
+        : "#cbd5e1"; // Light slate grey
+
+  const pinColor = baseColor;
+  const strokeColor = isSelected ? lighterBorderColor : isHovered ? lighterBorderColor : "#ffffff";
+  const strokeWidth = isHigh ? 2.5 : 2.0;
+  const width = isHigh ? 44 : 38;
+  const height = isHigh ? 56 : 48;
+  const cuisineIcon = getCuisineIcon(restaurant);
+
+  const hasRating =
+    typeof restaurant.rating === "number" &&
+    Number.isFinite(restaurant.rating) &&
+    restaurant.rating > 0;
+  const ratingLabel = isFeatured
+    ? `★ ${restaurant.rating?.toFixed(1) || "5.0"}`
+    : (hasRating ? restaurant.rating!.toFixed(1) : "");
+
+  // Large, highly legible badge at the base (with real 10-11px font)
+  const ratingCapsule = hasRating || isFeatured
+    ? `<rect x="${isFeatured ? 6 : 9}" y="32" width="${isFeatured ? 28 : 22}" height="14" rx="7" fill="#ffffff" stroke="${pinColor}" stroke-width="1.6"/>
+       <text x="20" y="42.5" text-anchor="middle" font-family="system-ui, -apple-system, sans-serif" font-size="${isFeatured ? 8.5 : 9.5}" font-weight="800" fill="${pinColor}">${ratingLabel}</text>`
+    : "";
 
   const svgHtml = `
-    <div style="width: ${width}px; height: ${height}px; margin: 0; padding: 0; display: block; line-height: 0;">
-      <svg viewBox="0 0 32 42" width="${width}" height="${height}" fill="none" xmlns="http://www.w3.org/2000/svg" style="filter: drop-shadow(0 8px 18px rgba(0,0,0,0.48));">
-        <path d="M16 2C8.8 2 3 7.8 3 15c0 10.5 13 25 13 25s13-14.5 13-25c0-7.2-5.8-13-13-13z" fill="${pinColor}" stroke="${strokeColor}" stroke-width="${strokeWidth}" stroke-linejoin="round"/>
-        <circle cx="16" cy="15" r="9.2" fill="#ffffff"/>
-        <path d="M16 8.5C12.8 8.5 10.5 11.5 10.5 15.5c4 0 7.2-2.2 7.2-5.5 0-0.9-0.7-1.5-1.7-1.5z" fill="${pinColor}"/>
-        <path d="M16 15.5c0-3.5 2.2-5.2 4.5-5.2 0 3-1.8 5.2-4.5 5.2z" fill="#84cc16"/>
-        <path d="M16 15.5v3" stroke="${pinColor}" stroke-width="1.6" stroke-linecap="round"/>
+    <div style="width: ${width}px; height: ${height}px; margin: 0; padding: 0; display: block; line-height: 0; transform-origin: bottom center; ${
+      isSelected ? "transform: scale(1.11); filter: drop-shadow(0 0 10px rgba(0,0,0,0.5)) drop-shadow(0 6px 16px rgba(0,0,0,0.35)); z-index: 1000;" : isHovered ? "transform: scale(1.08); filter: drop-shadow(0 4px 12px rgba(0,0,0,0.35));" : ""
+    }">
+      <svg viewBox="0 0 40 50" width="${width}" height="${height}" fill="none" xmlns="http://www.w3.org/2000/svg" style="display: block; filter: drop-shadow(0 3px 8px rgba(0,0,0,0.32));">
+        <!-- HappyCow style: large circular dome + sharp thin needle base -->
+        <path d="M20 2C10 2 2 10 2 20c0 7.5 4.5 14 11 16.8L20 48l7-11.2c6.5-2.8 11-9.3 11-16.8C38 10 30 2 20 2z" fill="${pinColor}" stroke="${strokeColor}" stroke-width="${strokeWidth}" stroke-linejoin="round"/>
+        <!-- Inner white disc for crisp cuisine icon -->
+        <circle cx="20" cy="19" r="13" fill="#ffffff"/>
+        <text x="20" y="25" text-anchor="middle" font-size="16">${cuisineIcon}</text>
+        ${ratingCapsule}
       </svg>
     </div>
   `;
 
   return L.divIcon({
     html: svgHtml,
-    className: "vegan-tools-map-pin-container",
+    className: `vegan-tools-map-pin-container ${isHovered ? "hovered" : ""} ${isSelected ? "selected" : ""}`,
     iconSize: [width, height],
     iconAnchor: [width / 2, height],
     popupAnchor: [0, -height],
@@ -71,36 +136,42 @@ function createClusterIcon(count: number, hasSelected: boolean) {
 
 function createUserLocationIcon() {
   const svgHtml = `
-    <div style="position: relative; width: 32px; height: 32px; margin: 0; padding: 0;">
+    <div style="position: relative; width: 24px; height: 24px; margin: 0; padding: 0;">
       <div style="position: absolute; inset: 0; background: rgba(30, 144, 255, 0.28); border-radius: 50%; animation: pulse-ring 2s infinite;"></div>
-      <div style="position: absolute; top: 5px; left: 5px; width: 22px; height: 22px; background: #1e90ff; border: 3px solid #ffffff; border-radius: 50%; box-shadow: 0 2px 6px rgba(0,0,0,0.35);"></div>
+      <div style="position: absolute; top: 4px; left: 4px; width: 16px; height: 16px; background: #1e90ff; border: 2.5px solid #ffffff; border-radius: 50%; box-shadow: 0 2px 5px rgba(0,0,0,0.3);"></div>
     </div>
   `;
 
   return L.divIcon({
     html: svgHtml,
     className: "user-location-marker",
-    iconSize: [32, 32],
-    iconAnchor: [16, 16],
+    iconSize: [24, 24],
+    iconAnchor: [12, 12],
   });
 }
 
 export function RestaurantMap({
   restaurants,
   selectedRestaurant,
+  hoveredRestaurantId,
   onSelectRestaurant,
   onOpenMenu,
   onSearchArea,
   onUserCoordsChange,
+  onMapClick,
 }: {
   restaurants: RestaurantCandidate[];
   selectedRestaurant?: RestaurantCandidate;
+  hoveredRestaurantId?: string;
   onSelectRestaurant: (restaurant: RestaurantCandidate) => void;
   onOpenMenu: (restaurant: RestaurantCandidate) => void;
   onSearchArea?: (center: { lat: number; lng: number }, radius: number) => void;
   onUserCoordsChange?: (coords: { lat: number; lng: number }) => void;
+  onMapClick?: () => void;
 }) {
   const language = useLanguage();
+  const onMapClickRef = useRef(onMapClick);
+  onMapClickRef.current = onMapClick;
   const mapContainerRef = useRef<HTMLDivElement>(null);
   const mapInstanceRef = useRef<L.Map | null>(null);
   const markersGroupRef = useRef<L.LayerGroup | null>(null);
@@ -117,50 +188,57 @@ export function RestaurantMap({
     markersGroup.clearLayers();
 
     const zoom = map.getZoom();
-    // Progressive zoom-dependent clustering:
-    // zoom >= 15: completely unclustered (0px radius) so every restaurant pin is visible
-    // zoom === 14: minimal 18px radius (only overlaps in same building cluster)
-    // zoom === 13: 28px radius
-    // zoom < 13: 40px radius
-    const clusterRadius = zoom >= 15 ? 0 : zoom === 14 ? 18 : zoom === 13 ? 28 : 40;
+    const clusterRadius = zoom >= 14 ? 0 : zoom === 13 ? 14 : zoom === 12 ? 22 : 32;
+
+    const existingIds = new Set(restaurants.map((r) => r.id));
+    const combinedRestaurants = [
+      ...restaurants,
+      ...FEATURED_RESTAURANTS_BARCELONA.filter((f) => !existingIds.has(f.id)),
+    ];
+
+    const validRestaurants = combinedRestaurants.filter(
+      (r) =>
+        r.placeType !== "city" &&
+        typeof r.latitude === "number" &&
+        typeof r.longitude === "number" &&
+        Number.isFinite(r.latitude) &&
+        Number.isFinite(r.longitude) &&
+        !(r.latitude === 0 && r.longitude === 0)
+    );
 
     const clusterResults =
       clusterRadius > 0
         ? clusterPoints(
-            restaurants,
+            validRestaurants,
             (lat, lng) => map.latLngToLayerPoint([lat, lng]),
             clusterRadius
           )
-        : restaurants
-            .filter(
-              (r) =>
-                typeof r.latitude === "number" &&
-                typeof r.longitude === "number" &&
-                Number.isFinite(r.latitude) &&
-                Number.isFinite(r.longitude) &&
-                !(r.latitude === 0 && r.longitude === 0)
-            )
-            .map((item) => ({
-              type: "single" as const,
-              item,
-              latitude: item.latitude,
-              longitude: item.longitude,
-            }));
+        : validRestaurants.map((item) => ({
+            type: "single" as const,
+            item,
+            latitude: item.latitude,
+            longitude: item.longitude,
+          }));
 
     for (const result of clusterResults) {
       if (result.type === "single") {
         const restaurant = result.item;
         const isSelected = selectedRestaurant?.id === restaurant.id;
+        const isHovered = hoveredRestaurantId === restaurant.id;
         const marker = L.marker([restaurant.latitude, restaurant.longitude], {
-          icon: createRestaurantIcon(isSelected),
-          zIndexOffset: isSelected ? 1000 : 0,
+          icon: createRestaurantIcon(restaurant, isSelected, isHovered),
+          zIndexOffset: isSelected ? 1000 : isHovered ? 900 : 0,
         });
 
         marker.bindTooltip(restaurant.name, {
           permanent: true,
           direction: "bottom",
-          offset: [0, 2],
-          className: isSelected ? "map-pin-name-tooltip selected" : "map-pin-name-tooltip",
+          offset: [0, 8],
+          className: isSelected
+            ? "map-pin-name-tooltip selected"
+            : isHovered
+              ? "map-pin-name-tooltip hovered"
+              : "map-pin-name-tooltip",
         });
 
         marker.on("click", (e) => {
@@ -173,10 +251,13 @@ export function RestaurantMap({
         const hasSelected = selectedRestaurant
           ? result.items.some((r) => r.id === selectedRestaurant.id)
           : false;
+        const hasHovered = hoveredRestaurantId
+          ? result.items.some((r) => r.id === hoveredRestaurantId)
+          : false;
 
         const clusterMarker = L.marker([result.latitude, result.longitude], {
-          icon: createClusterIcon(result.count, hasSelected),
-          zIndexOffset: hasSelected ? 800 : 100,
+          icon: createClusterIcon(result.count, hasSelected || hasHovered),
+          zIndexOffset: hasSelected ? 800 : hasHovered ? 700 : 100,
         });
 
         clusterMarker.on("click", (e) => {
@@ -191,10 +272,8 @@ export function RestaurantMap({
         markersGroup.addLayer(clusterMarker);
       }
     }
-  }, [restaurants, selectedRestaurant, onSelectRestaurant]);
+  }, [restaurants, selectedRestaurant, hoveredRestaurantId, onSelectRestaurant]);
 
-  // Keep the Leaflet instance stable while React updates the map data.
-  // The callbacks are refreshed through refs so map events still see current state.
   const renderClustersRef = useRef(renderClustersAndMarkers);
   const onSearchAreaRef = useRef(onSearchArea);
   useEffect(() => {
@@ -216,12 +295,26 @@ export function RestaurantMap({
       attributionControl: true,
     });
 
-    L.tileLayer("https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png", {
-      attribution:
-        '&copy; <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noreferrer">OpenStreetMap</a> contributors &copy; <a href="https://carto.com/attributions" target="_blank" rel="noreferrer">CARTO</a>',
-      subdomains: "abcd",
-      maxZoom: 19,
-    }).addTo(map);
+    // Minimalist Esri Light Gray Canvas: clean roads, geography and typography with ZERO random commercial POIs/businesses
+    L.tileLayer(
+      "https://server.arcgisonline.com/ArcGIS/rest/services/Canvas/World_Light_Gray_Base/MapServer/tile/{z}/{y}/{x}",
+      {
+        attribution:
+          '&copy; <a href="https://www.esri.com/" target="_blank" rel="noreferrer">Esri</a>, HERE, Garmin, &copy; OpenStreetMap contributors',
+        maxNativeZoom: 16,
+        maxZoom: 20,
+      }
+    ).addTo(map);
+
+    L.tileLayer(
+      "https://server.arcgisonline.com/ArcGIS/rest/services/Canvas/World_Light_Gray_Reference/MapServer/tile/{z}/{y}/{x}",
+      {
+        attribution: "",
+        maxNativeZoom: 16,
+        maxZoom: 20,
+        pane: "shadowPane",
+      }
+    ).addTo(map);
 
     L.control
       .zoom({
@@ -235,16 +328,26 @@ export function RestaurantMap({
 
     const updateZoomClass = () => {
       if (!mapContainerRef.current) return;
-      if (map.getZoom() >= 14) {
+      if (map.getZoom() >= 15) {
         mapContainerRef.current.classList.add("leaflet-map-zoom-close");
       } else {
         mapContainerRef.current.classList.remove("leaflet-map-zoom-close");
+      }
+      if (map.getZoom() >= 17) {
+        mapContainerRef.current.classList.add("leaflet-map-labels-visible");
+      } else {
+        mapContainerRef.current.classList.remove("leaflet-map-labels-visible");
       }
     };
     map.on("zoomend", updateZoomClass);
     map.on("zoomend", () => renderClustersRef.current());
     map.on("moveend", () => renderClustersRef.current());
     updateZoomClass();
+
+    // Detect user tap/click on the empty map canvas to collapse bottom sheet
+    map.on("click", () => {
+      onMapClickRef.current?.();
+    });
 
     // Detect user pan/drag to show "Search this area" button
     map.on("dragend", () => {
@@ -273,7 +376,7 @@ export function RestaurantMap({
 
   // On mount, try requesting GPS location once with silent fallback to IP location
   useEffect(() => {
-    if (initialLocatedRef.current || selectedRestaurant) return;
+    if (initialLocatedRef.current) return;
     initialLocatedRef.current = true;
     let cancelled = false;
 
@@ -319,7 +422,7 @@ export function RestaurantMap({
     return () => {
       cancelled = true;
     };
-  }, [selectedRestaurant, onUserCoordsChange]);
+  }, [onUserCoordsChange]);
 
   // Update Markers when renderClustersAndMarkers changes
   useEffect(() => {

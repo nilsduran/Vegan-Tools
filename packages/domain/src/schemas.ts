@@ -220,8 +220,10 @@ export const restaurantCandidateSchema = z.object({
   tags: z.array(z.string()).optional(),
   isVegan: z.boolean().optional(),
   isVegetarian: z.boolean().optional(),
+  isFeatured: z.boolean().optional(),
   isOpenNow: z.boolean().optional(),
   rating: z.number().optional(),
+  placeType: z.enum(["restaurant", "city", "locality"]).default("restaurant").optional(),
 });
 export type RestaurantCandidate = z.infer<typeof restaurantCandidateSchema>;
 

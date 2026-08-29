@@ -1,12 +1,13 @@
-import { useState } from "react";
-import { Filter, Leaf, X } from "lucide-react";
+import { useState, type ReactNode } from "react";
+import { Filter, Leaf, RotateCcw } from "lucide-react";
 import { tx, type CatalanPhraseKey } from "../i18n";
 import type { RestaurantCandidate } from "@vegan-tools/domain";
+import { GlutenFreeIcon } from "./GlutenFreeIcon";
 
 export interface FilterDefinition {
   id: string;
   labelKey: CatalanPhraseKey;
-  icon: string;
+  icon: ReactNode;
   match: (candidate: RestaurantCandidate) => boolean;
 }
 
@@ -18,15 +19,6 @@ export const PRIMARY_FILTERS: FilterDefinition[] = [
     labelKey: "4+ leaves",
     icon: "🍃",
     match: (c) => Boolean(c.rating !== undefined && c.rating >= 4),
-  },
-  {
-    id: "open_now",
-    labelKey: "Open now",
-    icon: "🕒",
-    match: (c) => {
-      if (c.isOpenNow !== undefined) return c.isOpenNow;
-      return Boolean(c.openingHours);
-    },
   },
   {
     id: "vegan",
@@ -44,6 +36,31 @@ export const PRIMARY_FILTERS: FilterDefinition[] = [
           name.includes("plant based") ||
           name.includes("plant-based") ||
           name.includes("100% vegetal"),
+      );
+    },
+  },
+  {
+    id: "vegan_options",
+    labelKey: "Vegan options",
+    icon: "🌿",
+    match: (c) => {
+      const name = c.name.toLowerCase();
+      return Boolean(
+        c.isVegan ||
+          c.isVegetarian ||
+          c.tags?.includes("vegan") ||
+          c.tags?.includes("vegetarian") ||
+          c.cuisine?.toLowerCase().includes("vegan") ||
+          c.cuisine?.toLowerCase().includes("vegetarian") ||
+          name.includes("vegan") ||
+          name.includes("vegà") ||
+          name.includes("vegano") ||
+          name.includes("vegetari") ||
+          name.includes("healthy") ||
+          name.includes("bio") ||
+          name.includes("organic") ||
+          // Any place that isn't strictly non-vegan-only with verified dishes
+          (c.tags && c.tags.length > 0 && !c.tags.includes("carnivore_only")),
       );
     },
   },
@@ -93,7 +110,7 @@ export const CATEGORY_FILTERS: FilterDefinition[] = [
   {
     id: "italian",
     labelKey: "Italian",
-    icon: "🍝",
+    icon: "🍕",
     match: (c) => {
       const name = c.name.toLowerCase();
       return Boolean(
@@ -113,7 +130,7 @@ export const CATEGORY_FILTERS: FilterDefinition[] = [
   {
     id: "asian",
     labelKey: "Asian",
-    icon: "🥢",
+    icon: "🍜",
     match: (c) => {
       const name = c.name.toLowerCase();
       return Boolean(
@@ -155,38 +172,6 @@ export const CATEGORY_FILTERS: FilterDefinition[] = [
     },
   },
   {
-    id: "ice_cream",
-    labelKey: "Ice cream",
-    icon: "🍦",
-    match: (c) => {
-      const name = c.name.toLowerCase();
-      return Boolean(
-        c.tags?.includes("ice_cream") ||
-          c.cuisine?.toLowerCase().includes("ice_cream") ||
-          name.includes("gelat") ||
-          name.includes("helad") ||
-          name.includes("ice cream") ||
-          name.includes("gelater") ||
-          name.includes("helader"),
-      );
-    },
-  },
-  {
-    id: "burger",
-    labelKey: "Burger",
-    icon: "🍔",
-    match: (c) => {
-      const name = c.name.toLowerCase();
-      return Boolean(
-        c.tags?.includes("burger") ||
-          c.cuisine?.toLowerCase().includes("burger") ||
-          name.includes("burger") ||
-          name.includes("hamburgues") ||
-          name.includes("junk food"),
-      );
-    },
-  },
-  {
     id: "catalan",
     labelKey: "Catalan cuisine",
     icon: "🥘",
@@ -209,7 +194,7 @@ export const CATEGORY_FILTERS: FilterDefinition[] = [
   {
     id: "gluten_free",
     labelKey: "Gluten-free",
-    icon: "🌾",
+    icon: <GlutenFreeIcon size={16} />,
     match: (c) => {
       const name = c.name.toLowerCase();
       return Boolean(
@@ -223,10 +208,55 @@ export const CATEGORY_FILTERS: FilterDefinition[] = [
     },
   },
   {
-    id: "halal",
-    labelKey: "Halal",
-    icon: "🌙",
-    match: (c) => Boolean(c.tags?.includes("halal") || c.name.toLowerCase().includes("halal")),
+    id: "tapas",
+    labelKey: "Tapas",
+    icon: "🍢",
+    match: (c) => {
+      const name = c.name.toLowerCase();
+      return Boolean(
+        c.tags?.includes("tapas") ||
+          c.cuisine?.toLowerCase().includes("tapas") ||
+          name.includes("tapes") ||
+          name.includes("tapas") ||
+          name.includes("platets") ||
+          name.includes("pinchos") ||
+          name.includes("pintxos"),
+      );
+    },
+  },
+  {
+    id: "sushi",
+    labelKey: "Sushi",
+    icon: "🍣",
+    match: (c) => {
+      const name = c.name.toLowerCase();
+      return Boolean(
+        c.tags?.includes("japanese") ||
+          c.tags?.includes("sushi") ||
+          c.cuisine?.toLowerCase().includes("japanese") ||
+          c.cuisine?.toLowerCase().includes("sushi") ||
+          name.includes("sushi") ||
+          name.includes("ramen") ||
+          name.includes("japo") ||
+          name.includes("japan"),
+      );
+    },
+  },
+  {
+    id: "mexican",
+    labelKey: "Mexican",
+    icon: "🌮",
+    match: (c) => {
+      const name = c.name.toLowerCase();
+      return Boolean(
+        c.tags?.includes("mexican") ||
+          c.cuisine?.toLowerCase().includes("mexican") ||
+          name.includes("mexic") ||
+          name.includes("taco") ||
+          name.includes("burrito") ||
+          name.includes("cantina"),
+      );
+    },
   },
   {
     id: "indian",
@@ -243,6 +273,79 @@ export const CATEGORY_FILTERS: FilterDefinition[] = [
           name.includes("masala"),
       );
     },
+  },
+  {
+    id: "burger",
+    labelKey: "Burger",
+    icon: "🍔",
+    match: (c) => {
+      const name = c.name.toLowerCase();
+      return Boolean(
+        c.tags?.includes("burger") ||
+          c.cuisine?.toLowerCase().includes("burger") ||
+          name.includes("burger") ||
+          name.includes("hamburgues") ||
+          name.includes("junk food"),
+      );
+    },
+  },
+  {
+    id: "vegetarian",
+    labelKey: "Vegetarian",
+    icon: "🥗",
+    match: (c) => {
+      const name = c.name.toLowerCase();
+      return Boolean(
+        c.isVegetarian ||
+          c.tags?.includes("vegetarian") ||
+          c.cuisine?.toLowerCase().includes("vegetarian") ||
+          name.includes("vegetari") ||
+          name.includes("veggie") ||
+          name.includes("vegetariano") ||
+          name.includes("vegetariana"),
+      );
+    },
+  },
+  {
+    id: "kebab",
+    labelKey: "Kebab",
+    icon: "🥙",
+    match: (c) => {
+      const name = c.name.toLowerCase();
+      return Boolean(
+        c.tags?.includes("kebab") ||
+          c.cuisine?.toLowerCase().includes("kebab") ||
+          c.cuisine?.toLowerCase().includes("turkish") ||
+          name.includes("kebab") ||
+          name.includes("doner") ||
+          name.includes("döner") ||
+          name.includes("shawarma") ||
+          name.includes("falafel"),
+      );
+    },
+  },
+  {
+    id: "ice_cream",
+    labelKey: "Ice cream",
+    icon: "🍦",
+    match: (c) => {
+      const name = c.name.toLowerCase();
+      return Boolean(
+        c.tags?.includes("ice_cream") ||
+          c.cuisine?.toLowerCase().includes("ice_cream") ||
+          name.includes("gelat") ||
+          name.includes("helad") ||
+          name.includes("ice cream") ||
+          name.includes("gelater") ||
+          name.includes("helader"),
+      );
+    },
+  },
+  {
+    id: "halal",
+    labelKey: "Halal",
+    icon: "حلال",
+    match: (c) => Boolean(c.tags?.includes("halal") || c.name.toLowerCase().includes("halal")),
   },
   {
     id: "fish_and_chips",
@@ -298,15 +401,17 @@ interface FilterPillsProps {
   activeFilters: string[];
   onToggleFilter: (filterId: string) => void;
   onClearFilters: () => void;
+  onExpandChange?: (expanded: boolean) => void;
 }
 
 export function FilterPills({
   activeFilters,
   onToggleFilter,
   onClearFilters,
+  onExpandChange,
 }: FilterPillsProps) {
   const [expanded, setExpanded] = useState(false);
-  const activeCategoryCount = CATEGORY_FILTERS.filter((f) => activeFilters.includes(f.id)).length;
+  const hasActiveFilters = activeFilters.length > 0;
 
   return (
     <div className="filter-pills-container" aria-label={tx("Filter by cuisine or feature")}>
@@ -351,34 +456,37 @@ export function FilterPills({
         <button
           type="button"
           className={`filter-pill expand-pill funnel-pill ${expanded ? "expanded" : ""} ${
-            activeCategoryCount > 0 ? "has-active" : ""
+            hasActiveFilters ? "has-active" : ""
           }`}
-          onClick={() => setExpanded(!expanded)}
+          onClick={() => {
+            const next = !expanded;
+            setExpanded(next);
+            onExpandChange?.(next);
+          }}
           aria-expanded={expanded}
           aria-label={tx("Filters")}
           title={tx("Filters")}
         >
           <Filter className="pill-funnel-icon" aria-hidden="true" />
-          {activeCategoryCount > 0 && (
-            <span className="filter-count-badge">{activeCategoryCount}</span>
-          )}
         </button>
-
-        {activeFilters.length > 0 && (
-          <button
-            type="button"
-            className="filter-pill clear-pill"
-            onClick={onClearFilters}
-            title={tx("All places")}
-            aria-label={tx("All places")}
-          >
-            <X aria-hidden="true" />
-          </button>
-        )}
       </div>
 
       {expanded && (
         <div className="filter-pills-extra" role="region" aria-label={tx("Filters")}>
+          {hasActiveFilters && (
+            <button
+              type="button"
+              className="filter-pill reset-filter-btn"
+              onClick={() => {
+                onClearFilters();
+              }}
+              aria-label={tx("Reset filters")}
+              title={tx("Reset filters")}
+            >
+              <RotateCcw size={14} aria-hidden="true" />
+              <span>{tx("Reset filters")}</span>
+            </button>
+          )}
           {CATEGORY_FILTERS.map((f) => {
             const isActive = activeFilters.includes(f.id);
             return (

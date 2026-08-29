@@ -6,6 +6,7 @@ import {
   type ReactNode,
 } from "react";
 import { createClient, type SupabaseClient, type User, type Session } from "@supabase/supabase-js";
+import { generateSafeUUID } from "./utils/uuid";
 
 export interface AuthUser {
   id: string;
@@ -206,7 +207,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   };
 
   const loginAsDemoUser = (name = "Col·laborador/a") => {
-    const demoId = `user-demo-${crypto.randomUUID()}`;
+    const demoId = `user-demo-${generateSafeUUID()}`;
     const demoUser: AuthUser = {
       id: demoId,
       name,

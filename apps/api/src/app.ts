@@ -20,6 +20,7 @@ import {
   restaurantCandidateSchema,
 } from "@vegan-tools/domain";
 import { CURATED_RESTAURANTS } from "./curated-restaurants.js";
+import { evaluateOpeningHours } from "./opening-hours.js";
 import { randomUUID } from "node:crypto";
 import { repository, type Repository } from "./store.js";
 import { lookupOpenFoodFacts } from "./open-food-facts.js";
@@ -127,6 +128,8 @@ export async function buildApp(
   ];
   const allowedOrigins = new Set([...configuredOrigins, ...productionWebOrigins]);
   const loopbackOrigin = /^https?:\/\/(?:localhost|127\.0\.0\.1|\[::1\])(?::\d+)?$/;
+  const privateLanOrigin =
+    /^https?:\/\/(?:192\.168\.\d{1,3}\.\d{1,3}|10\.\d{1,3}\.\d{1,3}\.\d{1,3}|172\.(?:1[6-9]|2\d|3[01])\.\d{1,3}\.\d{1,3})(?::\d+)?$/;
   await app.register(cors, {
     origin: (origin, callback) => {
       if (!origin) {
@@ -134,7 +137,11 @@ export async function buildApp(
         return;
       }
       const normalizedOrigin = normalizeCorsOrigin(origin);
-      callback(null, allowedOrigins.has(normalizedOrigin) || loopbackOrigin.test(normalizedOrigin));
+      const isAllowed =
+        allowedOrigins.has(normalizedOrigin) ||
+        loopbackOrigin.test(normalizedOrigin) ||
+        privateLanOrigin.test(normalizedOrigin);
+      callback(null, isAllowed);
     },
   });
   await app.register(multipart, {
@@ -296,19 +303,78 @@ export async function buildApp(
     return clean || formattedAddress;
   }
 
+  function haversineMeters(lat1: number, lon1: number, lat2: number, lon2: number): number {
+    const toRad = Math.PI / 180;
+    const dLat = (lat2 - lat1) * toRad;
+    const dLon = (lon2 - lon1) * toRad;
+    const a =
+      Math.sin(dLat / 2) ** 2 +
+      Math.cos(lat1 * toRad) * Math.cos(lat2 * toRad) * Math.sin(dLon / 2) ** 2;
+    return 6371e3 * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+  }
+
+  function normalizeNameForDeduplication(name: string): string {
+    return name
+      .normalize("NFD")
+      .replace(/\p{Diacritic}/gu, "")
+      .toLowerCase()
+      .replace(/[^a-z0-9]/g, "");
+  }
+
   function deduplicateRestaurants(candidates: RestaurantCandidate[]): RestaurantCandidate[] {
-    const seen = new Set<string>();
     const result: RestaurantCandidate[] = [];
 
-    for (const c of candidates) {
-      const latKey = c.latitude.toFixed(3);
-      const lngKey = c.longitude.toFixed(3);
-      const normName = c.name.trim().toLowerCase().replace(/[^a-z0-9]/g, "");
-      const key = `${normName}:${latKey}:${lngKey}`;
+    for (const incoming of candidates) {
+      const incomingNorm = normalizeNameForDeduplication(incoming.name);
+      if (!incomingNorm) continue;
 
-      if (!seen.has(key)) {
-        seen.add(key);
-        result.push(c);
+      let matchedIndex = -1;
+      for (let i = 0; i < result.length; i++) {
+        const existing = result[i]!;
+        if (existing.id === incoming.id) {
+          matchedIndex = i;
+          break;
+        }
+
+        const existingNorm = normalizeNameForDeduplication(existing.name);
+        const distMeters = haversineMeters(
+          existing.latitude,
+          existing.longitude,
+          incoming.latitude,
+          incoming.longitude,
+        );
+
+        // Deduplicate if places are within 35 meters and names match or share a significant substring
+        const nameMatches =
+          existingNorm === incomingNorm ||
+          (existingNorm.length >= 4 &&
+            incomingNorm.length >= 4 &&
+            (existingNorm.includes(incomingNorm) || incomingNorm.includes(existingNorm)));
+
+        if (distMeters <= 35 && nameMatches) {
+          matchedIndex = i;
+          break;
+        }
+      }
+
+      if (matchedIndex >= 0) {
+        const existing = result[matchedIndex]!;
+        const prefersIncoming = incoming.provider === "curated" && existing.provider !== "curated";
+
+        const merged: RestaurantCandidate = {
+          ...(prefersIncoming ? incoming : existing),
+          websiteUrl: existing.websiteUrl || incoming.websiteUrl,
+          openingHours: existing.openingHours || incoming.openingHours,
+          rating: existing.rating ?? incoming.rating,
+          cuisine: existing.cuisine || incoming.cuisine,
+          isVegan: existing.isVegan || incoming.isVegan,
+          isVegetarian: existing.isVegetarian || incoming.isVegetarian,
+          isOpenNow: existing.isOpenNow !== undefined ? existing.isOpenNow : incoming.isOpenNow,
+          tags: Array.from(new Set([...(existing.tags || []), ...(incoming.tags || [])])),
+        };
+        result[matchedIndex] = merged;
+      } else {
+        result.push({ ...incoming });
       }
     }
 
@@ -332,7 +398,10 @@ export async function buildApp(
         Number.isFinite(longitude) && longitude >= -180 && longitude <= 180;
 
       if (!hasLocation) {
-        return CURATED_RESTAURANTS.slice(0, limit);
+        return CURATED_RESTAURANTS.slice(0, limit).map((r) => ({
+          ...r,
+          isOpenNow: evaluateOpeningHours(r.openingHours),
+        }));
       }
 
       // Calculate distance in km to each curated place
@@ -352,7 +421,10 @@ export async function buildApp(
       // Return only venues within regional reach (max 50 km) or the 5 closest within 100km
       const nearby = withDistance.filter((item) => item.distKm <= 55);
       const candidates = nearby.length > 0 ? nearby : withDistance.filter((item) => item.distKm <= 120).slice(0, 6);
-      return candidates.slice(0, limit).map((item) => item.r);
+      return candidates.slice(0, limit).map((item) => ({
+        ...item.r,
+        isOpenNow: evaluateOpeningHours(item.r.openingHours),
+      }));
     },
   );
 
@@ -538,6 +610,17 @@ export async function buildApp(
     ) {
       tags.add("fish_and_chips");
     }
+    if (
+      allText.includes("kebab") ||
+      allText.includes("doner") ||
+      allText.includes("döner") ||
+      allText.includes("turkish") ||
+      allText.includes("shawarma") ||
+      cuisineLower.includes("kebab") ||
+      cuisineLower.includes("turkish")
+    ) {
+      tags.add("kebab");
+    }
 
     let inferredCuisine = curatedMatch?.cuisine ?? input.cuisine;
     if (!inferredCuisine) {
@@ -545,6 +628,7 @@ export async function buildApp(
       else if (tags.has("asian")) inferredCuisine = "asian";
       else if (tags.has("mediterranean")) inferredCuisine = "mediterranean";
       else if (tags.has("burger")) inferredCuisine = "burger";
+      else if (tags.has("kebab")) inferredCuisine = "kebab";
       else if (tags.has("catalan")) inferredCuisine = "catalan";
       else if (tags.has("indian")) inferredCuisine = "indian";
       else if (tags.has("ice_cream")) inferredCuisine = "ice_cream";
@@ -651,6 +735,8 @@ export async function buildApp(
             isVegan: inferred.isVegan,
             isVegetarian: inferred.isVegetarian,
             rating: inferred.rating,
+            openingHours: tags.opening_hours,
+            isOpenNow: evaluateOpeningHours(tags.opening_hours),
           });
         }
 
@@ -674,6 +760,7 @@ export async function buildApp(
       latitude?: string;
       longitude?: string;
       radius?: string;
+      bbox?: string;
     };
   }>(
     "/v1/restaurants/search",
@@ -700,6 +787,15 @@ export async function buildApp(
           ? requestedRadius
           : 5_000;
       const radiusKm = radiusMeters / 1_000;
+
+      let parsedBbox: [number, number, number, number] | undefined; // [minLon, minLat, maxLon, maxLat]
+      if (request.query.bbox) {
+        const parts = request.query.bbox.split(",").map(Number);
+        if (parts.length === 4 && parts.every((p) => Number.isFinite(p))) {
+          parsedBbox = [parts[0]!, parts[1]!, parts[2]!, parts[3]!];
+        }
+      }
+
       const cacheKey = [
         geoapifyKey ? "geoapify" : "openstreetmap",
         request.query.autocomplete === "true" ? "autocomplete" : "search",
@@ -707,6 +803,7 @@ export async function buildApp(
         request.query.near?.trim().toLocaleLowerCase() ?? "",
         hasLocation ? `${latitude},${longitude}` : "",
         hasLocation ? String(radiusMeters) : "",
+        request.query.bbox ?? "",
       ].join("|");
       const cachedSearch = restaurantSearchCache.get(cacheKey);
       if (cachedSearch && cachedSearch.expiresAt > Date.now()) {
@@ -718,6 +815,7 @@ export async function buildApp(
         request.query.autocomplete !== "true" &&
         !request.query.near?.trim() &&
         !hasLocation &&
+        !parsedBbox &&
         !query.includes(",")
       ) {
         const words = query.split(/\s+/).filter(Boolean);
@@ -771,7 +869,12 @@ export async function buildApp(
       const commaParts = query.split(",").map((part) => part.trim()).filter(Boolean);
       const hasExplicitCity = Boolean(request.query.near?.trim() || commaParts.length > 1 || inferredTextNear);
       
-      const isWithinLocation = (candLat: number, candLon: number): boolean => {
+      const isWithinLocation = (candLat: number, candLon: number, isLocality: boolean = false): boolean => {
+        if (isLocality) return true;
+        if (parsedBbox) {
+          const [minLon, minLat, maxLon, maxLat] = parsedBbox;
+          return candLon >= minLon && candLat >= minLat && candLon <= maxLon && candLat <= maxLat;
+        }
         if (!hasLocation || hasExplicitCity) return true;
         const dLat = (candLat - latitude) * (Math.PI / 180);
         const dLon = (candLon - longitude) * (Math.PI / 180);
@@ -799,49 +902,99 @@ export async function buildApp(
         geoapifyQuery = query;
       }
 
-      function calculateRelevanceScore(searchQuery: string, cand: RestaurantCandidate): number {
-        const normalize = (s: string) => s.toLowerCase().normalize("NFD").replace(/\p{Diacritic}/gu, "").trim();
+      function calculateRelevanceScore(
+        searchQuery: string,
+        cand: RestaurantCandidate,
+        primaryNameQuery?: string,
+        locationFilter?: string,
+      ): number {
+        const normalize = (s: string) =>
+          s
+            .toLowerCase()
+            .normalize("NFD")
+            .replace(/\p{Diacritic}/gu, "")
+            .trim();
+
         const qNorm = normalize(searchQuery);
-        const qWords = qNorm.split(/[\s,]+/).filter((w) => w.length > 1);
         const nameNorm = normalize(cand.name);
         const addrNorm = normalize(cand.address || "");
+        const primNorm = primaryNameQuery ? normalize(primaryNameQuery) : "";
+        const locNorm = locationFilter ? normalize(locationFilter) : "";
 
         let score = 0;
 
-        // Exact full name match
-        if (nameNorm === qNorm) {
+        // 1. Name Match (Checking primary name query first, then full query)
+        const targetNameQuery = primNorm || qNorm;
+        if (nameNorm === targetNameQuery || (primNorm && nameNorm === primNorm) || nameNorm === qNorm) {
           score += 2000;
+        } else if (targetNameQuery && (nameNorm.startsWith(targetNameQuery) || nameNorm.endsWith(targetNameQuery))) {
+          score += 1200;
+        } else if (targetNameQuery && (nameNorm.includes(targetNameQuery) || targetNameQuery.includes(nameNorm))) {
+          score += 800;
         }
 
-        // Keyword matching
+        // Token-level name matching
+        const qWords = (targetNameQuery || qNorm).split(/[\s,]+/).filter((w) => w.length > 1);
         for (const w of qWords) {
           if (nameNorm === w) {
-            score += 1000;
-          } else if (nameNorm.startsWith(w) || nameNorm.endsWith(w)) {
-            score += 600;
-          } else if (nameNorm.includes(w)) {
             score += 400;
-          }
-
-          // Address match for other query words (e.g. city "barcelona")
-          if (addrNorm.includes(w) && !nameNorm.includes(w)) {
-            score += 300;
+          } else if (nameNorm.includes(w)) {
+            score += 200;
           }
         }
 
-        // Vegan/Vegetarian boost
-        if (cand.isVegan) score += 250;
-        else if (cand.isVegetarian) score += 100;
+        // 2. Location / Address matching
+        if (locNorm) {
+          const locWords = locNorm.split(/[\s,]+/).filter((w) => w.length > 2);
+          const matchesLocation = locWords.length > 0 && locWords.every((w) => addrNorm.includes(w));
+          if (matchesLocation || addrNorm.includes(locNorm)) {
+            score += 600;
+          }
+        }
+
+        // 3. Proximity bonus (if GPS coordinates provided and no explicit distant city filter)
+        if (hasLocation && !hasExplicitCity) {
+          const dLat = (cand.latitude - latitude) * (Math.PI / 180);
+          const dLon = (cand.longitude - longitude) * (Math.PI / 180);
+          const a =
+            Math.sin(dLat / 2) ** 2 +
+            Math.cos(latitude * (Math.PI / 180)) *
+              Math.cos(cand.latitude * (Math.PI / 180)) *
+              Math.sin(dLon / 2) ** 2;
+          const distKm = 6371 * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+
+          if (distKm <= 1) score += 400;
+          else if (distKm <= 5) score += 250;
+          else if (distKm <= 15) score += 100;
+          else if (distKm <= 50) score += 50;
+        }
+
+        // 4. Data Quality & Diet
+        if (cand.websiteUrl) score += 150;
+        if (cand.isVegan) score += 200;
+        else if (cand.isVegetarian) score += 80;
+        if (cand.rating && cand.rating >= 4) {
+          score += Math.round(cand.rating * 30);
+        }
+        // City/locality relevance: exact match gets promoted based on hierarchical scale, partial match gets deprioritized
+        if (cand.placeType === "city" || cand.placeType === "locality") {
+          const isExactCityMatch = nameNorm === targetNameQuery || nameNorm === qNorm;
+          if (isExactCityMatch) {
+            const locKind = cand.tags?.[0] || "city";
+            let localityBonus = 150;
+            if (locKind === "city") localityBonus = 350;
+            else if (locKind === "town") localityBonus = 250;
+            else if (locKind === "village") localityBonus = 150;
+            else if (locKind === "municipality") localityBonus = 100;
+            else if (locKind === "suburb" || locKind === "borough") localityBonus = 50;
+
+            score += localityBonus;
+          } else {
+            score -= 1500;
+          }
+        }
 
         return score;
-      }
-
-      if (!geoapifyKey && request.query.autocomplete === "true") {
-        return reply.code(503).send({
-          code: "AUTOCOMPLETE_PROVIDER_REQUIRED",
-          message:
-            "Live suggestions require Geoapify. Press Enter to search OpenStreetMap instead.",
-        });
       }
 
       const validGeoapifyCategories =
@@ -850,7 +1003,7 @@ export async function buildApp(
       if (geoapifyKey && Date.now() > geoapifyDisabledUntil) {
         // If specific name search: use Autocomplete endpoint for high precision POI keyword search
         // If spatial search: use Places endpoint with circle filter
-        const isSpatialSearch = hasLocation && (isGenericQuery || Boolean(request.query.radius));
+        const isSpatialSearch = Boolean(parsedBbox) || (hasLocation && (isGenericQuery || Boolean(request.query.radius)));
         const url = new URL(
           isSpatialSearch
             ? "https://api.geoapify.com/v2/places"
@@ -859,12 +1012,16 @@ export async function buildApp(
 
         if (isSpatialSearch) {
           url.searchParams.set("categories", validGeoapifyCategories);
-          url.searchParams.set("filter", `circle:${longitude},${latitude},${radiusMeters}`);
-          url.searchParams.set("bias", `proximity:${longitude},${latitude}`);
+          if (parsedBbox) {
+            url.searchParams.set("filter", `rect:${parsedBbox[0]},${parsedBbox[1]},${parsedBbox[2]},${parsedBbox[3]}`);
+          } else {
+            url.searchParams.set("filter", `circle:${longitude},${latitude},${radiusMeters}`);
+            url.searchParams.set("bias", `proximity:${longitude},${latitude}`);
+          }
           url.searchParams.set("limit", request.query.autocomplete === "true" ? "8" : "50");
         } else {
           url.searchParams.set("text", query);
-          if (hasLocation) {
+          if (hasLocation && !inferredNear && !hasExplicitCity) {
             url.searchParams.set("bias", `proximity:${longitude},${latitude}`);
           }
           url.searchParams.set("limit", request.query.autocomplete === "true" ? "8" : "20");
@@ -911,8 +1068,14 @@ export async function buildApp(
                   categories?: string[];
                   category?: string;
                   result_type?: string;
+                  datasource?: {
+                    raw?: {
+                      opening_hours?: string;
+                    };
+                  };
                   catering?: {
                     cuisine?: string;
+                    opening_hours?: string;
                     diet?: {
                       vegan?: boolean;
                       vegetarian?: boolean;
@@ -934,21 +1097,42 @@ export async function buildApp(
                 if (!props?.name || !coords || coords.length < 2 || !Number.isFinite(coords[1]) || !Number.isFinite(coords[0])) {
                   return false;
                 }
-                if (!isWithinLocation(coords[1], coords[0])) return false;
 
-                // In autocomplete mode, filter out non-dining establishments (e.g. cosmetics, clothing shops)
-                if (!isSpatialSearch) {
-                  const cats = props.categories ?? (props.category ? [props.category] : []);
-                  const isDining =
-                    cats.some((c) => c.startsWith("catering") || c.startsWith("commercial.food_and_drink")) ||
-                    props.result_type === "amenity" ||
-                    props.catering !== undefined;
-                  const queryLower = query.toLowerCase();
-                  const nameLower = props.name.toLowerCase();
-                  // Allow if categorized as food/drink OR if the place name contains the query keyword
-                  if (!isDining && !nameLower.includes(queryLower) && !queryLower.includes(nameLower)) {
-                    return false;
-                  }
+                // Only allow dining establishments or geographic localities (cities/towns/neighborhoods)
+                const cats = props.categories ?? (props.category ? [props.category] : []);
+                const nameLower = props.name.toLowerCase();
+                const hasDiningNameKeyword = [
+                  "restaurant", "restaurante", "cafe", "cafè", "café", "cafeteria", "bar", "pub",
+                  "bistro", "bistrot", "bakery", "forn", "panaderia", "pizzeria", "burger", "sushi",
+                  "tapas", "taverna", "taberna", "cerveceria", "gelateria", "ice cream", "heladeria",
+                  "vegan", "vegà", "vegano", "vegetarian", "vegetarià", "vegetariano", "pa torrat"
+                ].some((kw) => nameLower.includes(kw));
+
+                const isDining =
+                  cats.some((c) => c.startsWith("catering") || c.startsWith("commercial.food_and_drink")) ||
+                  props.catering !== undefined ||
+                  hasDiningNameKeyword;
+
+                const isLocality =
+                  props.result_type === "city" ||
+                  props.result_type === "locality" ||
+                  props.result_type === "suburb" ||
+                  props.result_type === "administrative" ||
+                  cats.includes("administrative");
+
+                const isNonDiningAmenity =
+                  cats.some((c) =>
+                    c.includes("police") ||
+                    c.includes("school") ||
+                    c.includes("bank") ||
+                    c.includes("parking") ||
+                    c.includes("industrial")
+                  );
+
+                if (!isWithinLocation(coords[1], coords[0], isLocality)) return false;
+
+                if ((!isDining && !isLocality) || (isNonDiningAmenity && !isDining)) {
+                  return false;
                 }
                 return true;
               })
@@ -972,31 +1156,46 @@ export async function buildApp(
                   websiteUrl = undefined;
                 }
 
-                const categories = Array.isArray(props.categories)
-                  ? props.categories
-                  : props.category ? [props.category] : [];
+                const categories = Array.isArray(props.categories) ? props.categories : [];
+                const isLocality =
+                  props.result_type === "city" ||
+                  props.result_type === "locality" ||
+                  props.result_type === "suburb" ||
+                  props.result_type === "administrative" ||
+                  categories.includes("administrative");
+
                 const isVegan =
-                  props.catering?.diet?.vegan === true ||
+                  Boolean(props.catering?.diet?.vegan) ||
+                  categories.includes("catering.restaurant.vegan") ||
                   categories.includes("diet.vegan");
                 const isVegetarian =
-                  isVegan ||
-                  props.catering?.diet?.vegetarian === true ||
+                  Boolean(props.catering?.diet?.vegetarian) ||
+                  categories.includes("catering.restaurant.vegetarian") ||
                   categories.includes("diet.vegetarian");
 
                 const tags = new Set<string>();
-                if (isVegan) tags.add("vegan");
-                if (isVegetarian) tags.add("vegetarian");
-                for (const cat of categories) {
-                  if (cat.includes("restaurant")) tags.add("restaurant");
-                  if (cat.includes("cafe") || cat.includes("bakery")) tags.add("cafe_bakery");
-                  if (cat.includes("italian") || cat.includes("pizza")) tags.add("italian");
-                  if (cat.includes("asian") || cat.includes("japanese") || cat.includes("chinese")) tags.add("asian");
-                  if (cat.includes("mediterranean") || cat.includes("tapas")) tags.add("mediterranean");
-                  if (cat.includes("burger") || cat.includes("fast_food")) tags.add("burger");
-                  if (cat.includes("ice_cream")) tags.add("ice_cream");
-                  if (cat.includes("indian")) tags.add("indian");
-                  if (cat.includes("gluten_free")) tags.add("gluten_free");
+                if (isLocality) {
+                  tags.add("city");
+                } else {
+                  if (isVegan) tags.add("vegan");
+                  if (isVegetarian) tags.add("vegetarian");
+                  for (const cat of categories) {
+                    if (cat.includes("restaurant")) tags.add("restaurant");
+                    if (cat.includes("cafe") || cat.includes("bakery")) tags.add("cafe_bakery");
+                    if (cat.includes("italian") || cat.includes("pizza")) tags.add("italian");
+                    if (cat.includes("asian") || cat.includes("japanese") || cat.includes("chinese")) tags.add("asian");
+                    if (cat.includes("mediterranean") || cat.includes("tapas")) tags.add("mediterranean");
+                    if (cat.includes("burger") || cat.includes("fast_food")) tags.add("burger");
+                    if (cat.includes("ice_cream")) tags.add("ice_cream");
+                    if (cat.includes("indian")) tags.add("indian");
+                    if (cat.includes("gluten_free")) tags.add("gluten_free");
+                  }
                 }
+
+                const openingHoursStr =
+                  props.opening_hours ||
+                  props.catering?.opening_hours ||
+                  props.datasource?.raw?.opening_hours;
 
                 return {
                   id: `geoapify-${placeId}`,
@@ -1016,14 +1215,21 @@ export async function buildApp(
                   tags: Array.from(tags),
                   isVegan: isVegan || undefined,
                   isVegetarian: isVegetarian || undefined,
-                  openingHours: props.opening_hours,
+                  openingHours: openingHoursStr,
+                  isOpenNow: evaluateOpeningHours(openingHoursStr),
+                  placeType: isLocality ? ("city" as const) : ("restaurant" as const),
                 };
               });
 
             if (candidates.length > 0) {
+              const deduplicated = deduplicateRestaurants(candidates);
               const ranked = !isGenericQuery
-                ? candidates.sort((a, b) => calculateRelevanceScore(query, b) - calculateRelevanceScore(query, a))
-                : candidates;
+                ? deduplicated.sort(
+                    (a, b) =>
+                      calculateRelevanceScore(query, b, geoapifyQuery, inferredNear) -
+                      calculateRelevanceScore(query, a, geoapifyQuery, inferredNear),
+                  )
+                : deduplicated;
 
               restaurantSearchCache.set(cacheKey, {
                 expiresAt: Date.now() + 15 * 60_000,
@@ -1075,7 +1281,10 @@ export async function buildApp(
           wordsMatch
         );
         return nameMatch;
-      });
+      }).map((r) => ({
+        ...r,
+        isOpenNow: evaluateOpeningHours(r.openingHours),
+      }));
 
       // 2. Spatial Overpass API query for generic area discovery
       if (isGenericQuery && hasLocation && !hasExplicitCity) {
@@ -1151,11 +1360,10 @@ export async function buildApp(
             const p = f.properties;
             if (!p?.name || !f.geometry?.coordinates) continue;
             const [lon, lat] = f.geometry.coordinates;
-            const isDining = (p.osm_key === "amenity" || p.osm_key === "shop") && diningValues.has(p.osm_value ?? "");
-            const pNorm = normalizeText(p.name);
-            const nameMatches = pNorm.includes(searchHead) || searchHead.includes(pNorm) || pNorm.includes(normQuery);
-            if (!isDining && !nameMatches && p.osm_key !== "amenity") continue;
-            if (!isWithinLocation(lat, lon)) continue;
+            const isDining = (p.osm_key === "amenity" || p.osm_key === "shop" || p.osm_key === "catering") && diningValues.has(p.osm_value ?? "");
+            const isLocality = (p.osm_key === "place" || p.osm_key === "boundary") && ["city", "town", "village", "suburb", "municipality", "borough"].includes(p.osm_value ?? "");
+            if (!isDining && !isLocality) continue;
+            if (!isWithinLocation(lat, lon, isLocality)) continue;
 
             const streetAddress = [p.street, p.housenumber].filter(Boolean).join(" ");
             const locality = p.city || p.town || p.village;
@@ -1163,11 +1371,14 @@ export async function buildApp(
               .filter(Boolean)
               .join(", ");
 
-            const { tags, isVegan, isVegetarian, cuisine, rating } = inferTagsAndVegan({
-              name: p.name,
-              osm_key: p.osm_key,
-              osm_value: p.osm_value,
-            });
+            const localityKind = isLocality ? (p.osm_value ?? "city") : undefined;
+            const { tags, isVegan, isVegetarian, cuisine, rating } = isLocality
+              ? { tags: [localityKind || "city"], isVegan: undefined, isVegetarian: undefined, cuisine: undefined, rating: undefined }
+              : inferTagsAndVegan({
+                  name: p.name,
+                  osm_key: p.osm_key,
+                  osm_value: p.osm_value,
+                });
 
             photonResults.push({
               id: `osm-${p.osm_type ?? "N"}-${p.osm_id ?? Math.floor(Math.random() * 1e8)}`,
@@ -1182,6 +1393,7 @@ export async function buildApp(
               isVegan,
               isVegetarian,
               rating,
+              placeType: isLocality ? ("city" as const) : ("restaurant" as const),
             });
           }
         }
@@ -1194,13 +1406,22 @@ export async function buildApp(
         const combined = [...curatedMatches, ...photonResults];
         const deduplicated = deduplicateRestaurants(combined);
         const ranked = !isGenericQuery
-          ? deduplicated.sort((a, b) => calculateRelevanceScore(query, b) - calculateRelevanceScore(query, a))
+          ? deduplicated.sort(
+              (a, b) =>
+                calculateRelevanceScore(query, b, geoapifyQuery, inferredNear) -
+                calculateRelevanceScore(query, a, geoapifyQuery, inferredNear),
+            )
           : deduplicated;
         restaurantSearchCache.set(cacheKey, {
           expiresAt: Date.now() + 15 * 60_000,
           results: ranked,
         });
         return ranked;
+      }
+
+      // If autocomplete is requested, avoid hitting public Nominatim
+      if (request.query.autocomplete === "true") {
+        return [];
       }
 
       // 4. Fallback to OpenStreetMap Nominatim
@@ -1277,16 +1498,20 @@ export async function buildApp(
 
         const diningTypes = new Set([
           "restaurant", "cafe", "fast_food", "bar", "pub", "bistro", "ice_cream",
-          "bakery", "food_court", "pastry", "coffee_shop", "deli", "vegetarian", "vegan"
+          "bakery", "food_court", "pastry", "coffee_shop", "deli", "vegetarian", "vegan",
+          "biergarten", "tea_house", "creperie", "pizzeria"
         ]);
-        const searchHead = query.split(",")[0]?.trim().toLowerCase() ?? query.toLowerCase();
+        const localityTypes = new Set([
+          "city", "town", "village", "suburb", "municipality", "borough"
+        ]);
         const nominatimCandidates: RestaurantCandidate[] = raw
-          .filter((item) =>
-            diningTypes.has(item.type ?? "") ||
-            item.category === "amenity" ||
-            (item.name && item.name.toLowerCase().includes(searchHead))
-          )
+          .filter((item) => {
+            const isDining = diningTypes.has(item.type ?? "") || (item.category === "amenity" && diningTypes.has(item.type ?? ""));
+            const isLocality = localityTypes.has(item.type ?? "") || item.category === "place" || item.category === "boundary";
+            return isDining || isLocality;
+          })
           .map((item) => {
+            const isLocality = localityTypes.has(item.type ?? "") || item.category === "place" || item.category === "boundary";
             const website = item.extratags?.website ?? item.extratags?.["contact:website"];
             let websiteUrl: string | undefined;
             try {
@@ -1297,11 +1522,14 @@ export async function buildApp(
             } catch {
               websiteUrl = undefined;
             }
-            const { tags, isVegan, isVegetarian, cuisine } = inferTagsAndVegan({
-              name: item.name ?? item.display_name,
-              cuisine: item.extratags?.cuisine,
-              type: item.type,
-            });
+            const localityKind = isLocality ? (item.type ?? "city") : undefined;
+            const { tags, isVegan, isVegetarian, cuisine } = isLocality
+              ? { tags: [localityKind || "city"], isVegan: undefined, isVegetarian: undefined, cuisine: undefined }
+              : inferTagsAndVegan({
+                  name: item.name ?? item.display_name,
+                  cuisine: item.extratags?.cuisine,
+                  type: item.type,
+                });
 
             return {
               id: `${item.osm_type}-${item.osm_id}`,
@@ -1311,20 +1539,26 @@ export async function buildApp(
               longitude: Number(item.lon),
               websiteUrl,
               mapUrl: `https://www.openstreetmap.org/${item.osm_type}/${item.osm_id}`,
-              provider: "openstreetmap",
+              provider: "openstreetmap" as const,
               openingHours: item.extratags?.opening_hours,
+              isOpenNow: evaluateOpeningHours(item.extratags?.opening_hours),
               cuisine,
               tags,
               isVegan,
               isVegetarian,
+              placeType: isLocality ? ("city" as const) : ("restaurant" as const),
             };
           });
 
         const allResults = [...curatedMatches, ...photonResults, ...nominatimCandidates]
-          .filter((item) => isWithinLocation(item.latitude, item.longitude));
+          .filter((item) => isWithinLocation(item.latitude, item.longitude, item.placeType === "city"));
         const finalResults = deduplicateRestaurants(allResults);
         const rankedResults = !isGenericQuery
-          ? finalResults.sort((a, b) => calculateRelevanceScore(query, b) - calculateRelevanceScore(query, a))
+          ? finalResults.sort(
+              (a, b) =>
+                calculateRelevanceScore(query, b, geoapifyQuery, inferredNear) -
+                calculateRelevanceScore(query, a, geoapifyQuery, inferredNear),
+            )
           : finalResults;
 
         restaurantSearchCache.set(cacheKey, {

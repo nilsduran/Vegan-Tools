@@ -19,7 +19,11 @@ import {
   veganizeRecipe as veganizeRecipeLocally,
 } from "@vegan-tools/domain";
 
-const API_URL = import.meta.env.VITE_API_URL ?? "http://localhost:3001";
+const API_URL =
+  import.meta.env.VITE_API_URL ??
+  (typeof window !== "undefined"
+    ? `${window.location.protocol}//${window.location.hostname}:3001`
+    : "http://localhost:3001");
 
 export function resolveApiUrl(path: string) {
   return /^https?:\/\//i.test(path) ? path : `${API_URL}${path}`;
@@ -127,6 +131,7 @@ export async function searchRestaurants(
     latitude?: number;
     longitude?: number;
     radius?: number;
+    bbox?: [number, number, number, number] | string;
     location?: { latitude: number; longitude: number };
     signal?: AbortSignal;
   } = {},
@@ -143,6 +148,10 @@ export async function searchRestaurants(
   }
   if (typeof options.radius === "number" && Number.isFinite(options.radius)) {
     params.set("radius", String(Math.round(options.radius)));
+  }
+  if (options.bbox) {
+    const bboxStr = Array.isArray(options.bbox) ? options.bbox.join(",") : options.bbox;
+    params.set("bbox", bboxStr);
   }
   const response = await checkedFetch(
     `/v1/restaurants/search?${params}`,

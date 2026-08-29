@@ -20,6 +20,7 @@
     "pretest": "npm run build -w @vegan-tools/domain",
     "test": "vitest run",
     "test:watch": "vitest",
+    "test:coverage": "tsx scripts/benchmark-restaurant-coverage.ts",
     "check:secrets": "node scripts/check-bundle-secrets.mjs",
     "check": "npm run typecheck && npm test && npm run build && npm run check:secrets",
     "clean": "node scripts/clean.mjs"

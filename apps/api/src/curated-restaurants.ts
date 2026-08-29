@@ -19,7 +19,7 @@ export const CURATED_RESTAURANTS: RestaurantCandidate[] = [
     tags: ["mediterranean", "vegetarian", "gluten_free", "restaurant"],
     isVegetarian: true,
     isVegan: false,
-    rating: 4.6,
+    openingHours: "Mo-Su 12:00-24:00",
   },
   {
     id: "curated-bcn-roots-vegan",
@@ -34,22 +34,7 @@ export const CURATED_RESTAURANTS: RestaurantCandidate[] = [
     tags: ["vegan", "burger", "restaurant"],
     isVegan: true,
     isVegetarian: true,
-    rating: 4.7,
-  },
-  {
-    id: "curated-bcn-rasoterra",
-    name: "Rasoterra Vegan Bistrot",
-    address: "Carrer del Palau, 5, 08002 Barcelona",
-    latitude: 41.3814,
-    longitude: 2.1782,
-    websiteUrl: "https://www.rasoterra.cat",
-    mapUrl: "https://www.google.com/maps/search/?api=1&query=Rasoterra+Barcelona",
-    provider: "curated",
-    cuisine: "mediterranean",
-    tags: ["vegan", "mediterranean", "catalan", "restaurant"],
-    isVegan: true,
-    isVegetarian: true,
-    rating: 4.8,
+    openingHours: "Tu-Su 13:00-16:00, 19:30-23:30",
   },
   {
     id: "curated-bcn-barcelonamilano",
@@ -62,7 +47,7 @@ export const CURATED_RESTAURANTS: RestaurantCandidate[] = [
     provider: "curated",
     cuisine: "italian",
     tags: ["italian", "catalan", "restaurant"],
-    rating: 4.4,
+    openingHours: "Mo-Su 13:00-16:00, 20:00-23:30",
   },
   {
     id: "curated-salou-sama-sama",
@@ -76,7 +61,7 @@ export const CURATED_RESTAURANTS: RestaurantCandidate[] = [
     cuisine: "restaurant",
     tags: ["vegan", "vegetarian", "restaurant"],
     isVegetarian: true,
-    rating: 4.6,
+    openingHours: "Mo-Su 12:30-16:00, 19:30-23:30",
   },
   {
     id: "curated-bcn-gallo-santo",
@@ -88,10 +73,10 @@ export const CURATED_RESTAURANTS: RestaurantCandidate[] = [
     mapUrl: "https://www.google.com/maps/search/?api=1&query=Gallo+Santo+Gracia+Barcelona",
     provider: "curated",
     cuisine: "restaurant",
-    tags: ["vegan", "restaurant"],
+    tags: ["vegan", "restaurant", "mexican"],
     isVegan: true,
     isVegetarian: true,
-    rating: 4.5,
+    openingHours: "Mo-Su 13:00-16:00, 20:00-24:00",
   },
   {
     id: "curated-bcn-vegan-junk-food",
@@ -106,7 +91,7 @@ export const CURATED_RESTAURANTS: RestaurantCandidate[] = [
     tags: ["vegan", "burger", "restaurant"],
     isVegan: true,
     isVegetarian: true,
-    rating: 4.4,
+    openingHours: "Mo-Su 12:00-23:00",
   },
   {
     id: "curated-bcn-santoni",
@@ -121,7 +106,7 @@ export const CURATED_RESTAURANTS: RestaurantCandidate[] = [
     tags: ["vegan", "cafe_bakery", "italian"],
     isVegan: true,
     isVegetarian: true,
-    rating: 4.7,
+    openingHours: "Mo-Sa 08:30-20:30; Su 09:00-15:00",
   },
   {
     id: "flax-and-kale",
@@ -136,7 +121,7 @@ export const CURATED_RESTAURANTS: RestaurantCandidate[] = [
     tags: ["mediterranean", "gluten_free", "cafe_bakery", "restaurant"],
     isVegetarian: true,
     isVegan: false,
-    rating: 4.3,
+    openingHours: "Mo-Su 10:00-23:30",
   },
 
   // --- CATALUNYA: VIC & OSONA ---
@@ -153,7 +138,7 @@ export const CURATED_RESTAURANTS: RestaurantCandidate[] = [
     tags: ["vegan", "catalan", "mediterranean", "restaurant"],
     isVegan: true,
     isVegetarian: true,
-    rating: 4.9,
+    openingHours: "We-Su 13:00-16:00, 20:00-23:00",
   },
   {
     id: "curated-vic-el-taller",
@@ -167,7 +152,7 @@ export const CURATED_RESTAURANTS: RestaurantCandidate[] = [
     tags: ["vegan", "cafe_bakery", "restaurant"],
     isVegan: true,
     isVegetarian: true,
-    rating: 4.8,
+    openingHours: "Tu-Sa 09:00-20:00",
   },
 
   // --- CATALUNYA: GIRONA ---
@@ -184,7 +169,7 @@ export const CURATED_RESTAURANTS: RestaurantCandidate[] = [
     tags: ["vegan", "mediterranean", "catalan", "restaurant"],
     isVegan: true,
     isVegetarian: true,
-    rating: 4.8,
+    openingHours: "Tu-Sa 13:00-16:00, 20:00-23:30",
   },
   {
     id: "curated-gir-bionectar",
@@ -199,7 +184,7 @@ export const CURATED_RESTAURANTS: RestaurantCandidate[] = [
     tags: ["vegan", "mediterranean", "gluten_free", "restaurant"],
     isVegan: true,
     isVegetarian: true,
-    rating: 4.8,
+    openingHours: "Mo-Sa 12:30-16:30, 19:30-22:30",
   },
   {
     id: "curated-gir-integral",
@@ -213,7 +198,7 @@ export const CURATED_RESTAURANTS: RestaurantCandidate[] = [
     tags: ["vegetarian", "mediterranean", "catalan", "restaurant"],
     isVegetarian: true,
     isVegan: false,
-    rating: 4.5,
+    openingHours: "Mo-Sa 13:00-16:00",
   },
 
   // --- CATALUNYA: LLEIDA & TARRAGONA ---
@@ -230,7 +215,7 @@ export const CURATED_RESTAURANTS: RestaurantCandidate[] = [
     tags: ["vegan", "mediterranean", "restaurant"],
     isVegan: true,
     isVegetarian: true,
-    rating: 4.7,
+    openingHours: "Tu-Su 13:00-16:00, 20:30-23:30",
   },
   {
     id: "curated-lleida-hortet",
@@ -244,7 +229,7 @@ export const CURATED_RESTAURANTS: RestaurantCandidate[] = [
     tags: ["vegetarian", "catalan", "mediterranean", "restaurant"],
     isVegetarian: true,
     isVegan: false,
-    rating: 4.4,
+    openingHours: "Mo-Sa 13:00-16:00",
   },
 
   // --- CATALUNYA: MANRESA & VALLES ---
@@ -260,7 +245,7 @@ export const CURATED_RESTAURANTS: RestaurantCandidate[] = [
     tags: ["vegan", "cafe_bakery", "mediterranean"],
     isVegan: true,
     isVegetarian: true,
-    rating: 4.6,
+    openingHours: "Mo-Sa 09:00-20:00",
   },
 
   // --- WORLD HUBS: LONDON ---
@@ -277,7 +262,7 @@ export const CURATED_RESTAURANTS: RestaurantCandidate[] = [
     tags: ["vegan", "italian", "gluten_free", "restaurant"],
     isVegan: true,
     isVegetarian: true,
-    rating: 4.8,
+    openingHours: "Mo-Su 12:00-22:30",
   },
   {
     id: "curated-lon-mildreds-soho",
@@ -292,7 +277,7 @@ export const CURATED_RESTAURANTS: RestaurantCandidate[] = [
     tags: ["vegan", "asian", "international", "restaurant"],
     isVegan: true,
     isVegetarian: true,
-    rating: 4.6,
+    openingHours: "Mo-Su 09:00-23:00",
   },
 
   // --- WORLD HUBS: BERLIN ---
@@ -309,7 +294,7 @@ export const CURATED_RESTAURANTS: RestaurantCandidate[] = [
     tags: ["vegan", "cafe_bakery"],
     isVegan: true,
     isVegetarian: true,
-    rating: 4.8,
+    openingHours: "Mo-Su 10:00-20:00",
   },
 
   // --- WORLD HUBS: PARIS ---
@@ -326,6 +311,6 @@ export const CURATED_RESTAURANTS: RestaurantCandidate[] = [
     tags: ["vegan", "restaurant", "gluten_free"],
     isVegan: true,
     isVegetarian: true,
-    rating: 4.9,
+    openingHours: "We-Sa 12:00-14:30, 19:00-22:30; Su 11:30-15:00",
   },
 ];

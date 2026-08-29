@@ -655,8 +655,9 @@
 .map-view-hero {
   position: relative;
   width: 100%;
-  height: calc(100vh - 64px);
+  height: calc(100vh - 74px);
   min-height: 520px;
+  margin-top: 0.6rem;
   display: flex;
   overflow: hidden;
 }
@@ -669,11 +670,11 @@
 }
 
 :root:lang(ca) {
-  --map-sidebar-width: 362px;
+  --map-sidebar-width: 405px;
 }
 
 :root:lang(en) {
-  --map-sidebar-width: 375px;
+  --map-sidebar-width: 395px;
 }
 
 .map-floating-sidebar {
@@ -681,9 +682,9 @@
   top: 1rem;
   left: 1rem;
   bottom: 1rem;
-  width: var(--map-sidebar-width, 355px);
+  width: var(--map-sidebar-width, 400px);
   min-width: 0;
-  max-width: min(390px, calc(100vw - 2rem));
+  max-width: min(430px, calc(100vw - 2rem));
   z-index: 100;
   background: rgba(255, 255, 255, 0.97);
   backdrop-filter: blur(12px);
@@ -1233,20 +1234,35 @@
   font-weight: 600;
   cursor: pointer;
   transition: background 0.15s ease;
-}
-
-.sidebar-upload-menu-btn:hover {
-  background: #dcfce7;
-}
-
-.sidebar-upload-menu-btn svg {
-  width: 13px;
   height: 13px;
 }
 
-.sidebar-error {
-  margin: 0.5rem 0.85rem 0;
-  font-size: 0.82rem;
+.filter-pills-extra {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.35rem;
+  padding: 0.5rem;
+  background: #f9fafb;
+  border-radius: 12px;
+  border: 1px solid var(--line);
+  animation: typeaheadFadeIn 0.15s ease;
+}
+
+.community-rating-status {
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+}
+
+.community-rating-status .reviews-label {
+  font-size: 0.88rem;
+  font-weight: 700;
+  color: var(--green-dark);
+}
+
+.community-rating-status .reviews-hint {
+  font-size: 0.74rem;
+  color: #6b7280;
 }
 
 .sidebar-content-area {
@@ -1259,6 +1275,7 @@
 .sidebar-results-list {
   flex: 1;
   overflow-y: auto;
+  text-align: left;
 }
 
 .sidebar-results-list .restaurant-results {
@@ -1267,17 +1284,25 @@
   padding: 0;
   display: flex;
   flex-direction: column;
+  text-align: left;
 }
 
 .sidebar-results-list .restaurant-results li {
   padding: 0.85rem 1rem;
   border-bottom: 1px solid var(--line);
   display: flex;
-  align-items: center;
+  align-items: flex-start;
   justify-content: space-between;
   gap: 0.75rem;
   cursor: pointer;
+  text-align: left;
   transition: background 0.15s ease;
+}
+
+.sidebar-results-list .restaurant-results li > div {
+  flex: 1;
+  min-width: 0;
+  text-align: left;
 }
 
 .sidebar-results-list .restaurant-results li:hover {
@@ -1294,6 +1319,7 @@
   font-size: 0.8rem;
   color: #666;
   margin-top: 0.15rem;
+  text-align: left;
 }
 
 /* Map Pin and Floating Tooltip Labels */
@@ -1306,6 +1332,13 @@
   display: flex !important;
   align-items: center !important;
   justify-content: center !important;
+}
+
+/* Override the app-wide icon size so marker SVGs use their Leaflet dimensions. */
+.vegan-tools-map-pin-container svg {
+  width: 100% !important;
+  height: 100% !important;
+  display: block;
 }
 
 .vegan-tools-map-cluster {
@@ -1347,8 +1380,8 @@
   display: none !important;
 }
 
-/* Only display tooltips when the map container is zoomed in close (zoom >= 14) */
-.leaflet-map-zoom-close .map-pin-name-tooltip {
+/* Keep labels hidden until the map is very close; pins remain visible below this zoom. */
+.leaflet-map-labels-visible .map-pin-name-tooltip {
   display: block !important;
   opacity: 1;
   background: #ffffff !important;
@@ -1356,19 +1389,37 @@
   border-radius: 6px !important;
   color: #0f172a !important;
   font-weight: 700 !important;
-  font-size: 0.78rem !important;
-  padding: 0.18rem 0.5rem !important;
+  font-size: 0.68rem !important;
+  padding: 0.14rem 0.38rem !important;
   box-shadow: 0 3px 8px rgba(0, 0, 0, 0.22) !important;
   white-space: nowrap !important;
+  text-align: center !important;
   pointer-events: none !important;
   transition: opacity 0.15s ease !important;
 }
 
-.leaflet-map-zoom-close .map-pin-name-tooltip.selected {
+.leaflet-map-labels-visible .map-pin-name-tooltip.selected {
   background: #064e3b !important;
   color: #ffffff !important;
   border-color: #042f2e !important;
   box-shadow: 0 4px 12px rgba(6, 78, 59, 0.45) !important;
+}
+
+.map-pin-name-tooltip.hovered {
+  display: block !important;
+  opacity: 1 !important;
+  background: #047857 !important;
+  color: #ffffff !important;
+  border: 1px solid #065f46 !important;
+  border-radius: 6px !important;
+  font-weight: 750 !important;
+  font-size: 0.72rem !important;
+  padding: 0.18rem 0.45rem !important;
+  box-shadow: 0 4px 14px rgba(4, 120, 87, 0.45) !important;
+  white-space: nowrap !important;
+  text-align: center !important;
+  pointer-events: none !important;
+  z-index: 1000 !important;
 }
 
 /* Detail Pane (Google Maps style) */
@@ -1713,22 +1764,34 @@
 /* Mobile Responsiveness for Map Layout: Bottom Sheet */
 @media (max-width: 768px) {
   .map-view-hero {
-    height: calc(100vh - 56px);
+    height: 84vh;
+    min-height: 520px;
+    margin-top: 0.5rem;
+  }
+
+  /* Prevent iOS Safari auto-zoom on input focus */
+  input[type="text"],
+  input[type="search"],
+  input[type="url"],
+  input,
+  select,
+  textarea {
+    font-size: 16px !important;
   }
 
   .map-floating-sidebar.bottom-sheet-container {
-    position: fixed;
+    position: absolute;
     top: auto;
-    left: 0;
-    right: 0;
-    bottom: 0;
-    width: 100%;
-    max-width: 100%;
-    z-index: 1000;
-    border-radius: 1.35rem 1.35rem 0 0;
-    box-shadow: 0 -8px 32px rgba(0, 0, 0, 0.2);
+    left: 0.75rem;
+    right: 0.75rem;
+    bottom: 0.75rem;
+    width: auto;
+    max-width: calc(100vw - 1.5rem);
+    max-height: calc(100% - 1.5rem);
+    z-index: 500;
+    border-radius: 1.25rem;
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.22);
     border: 1px solid var(--line);
-    border-bottom: 0;
     background: rgba(255, 255, 255, 0.98);
     backdrop-filter: blur(16px);
     display: flex;
@@ -1738,25 +1801,28 @@
   }
 
   .map-floating-sidebar.bottom-sheet-container.snap-collapsed {
-    height: 86px;
+    height: auto;
+    max-height: 125px;
   }
 
   .map-floating-sidebar.bottom-sheet-container.snap-half {
-    height: 50vh;
+    height: 52%;
   }
 
   .map-floating-sidebar.bottom-sheet-container.snap-expanded {
-    height: 88vh;
+    height: calc(100% - 1.5rem);
+    top: 0.75rem;
   }
 
   .bottom-sheet-handle-bar {
     display: flex;
+    touch-action: none;
   }
 
   .map-floating-sidebar.bottom-sheet-container.compact-sidebar {
     background: rgba(255, 255, 255, 0.98);
     border: 1px solid var(--line);
-    box-shadow: 0 -8px 32px rgba(0, 0, 0, 0.2);
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.22);
   }
 }
 
@@ -2772,4 +2838,21 @@
   white-space: nowrap;
   font-size: 0.85rem;
   padding: 0.55rem 0.9rem;
+}
+
+/* Fix Leaflet DivIcon default border, background & margins to eliminate zoom jump artifacts */
+.vegan-tools-map-pin-container,
+.vegan-tools-map-cluster-container,
+.user-location-marker {
+  background: transparent !important;
+  border: none !important;
+  box-shadow: none !important;
+  margin: 0 !important;
+  padding: 0 !important;
+  line-height: 0 !important;
+}
+
+/* Minimalist Dataviz map filter: soft muted palette with high street-level clarity up to zoom 20 */
+.map-fullscreen-canvas .leaflet-tile-pane {
+  filter: saturate(0.35) brightness(1.06) contrast(0.96);
 }

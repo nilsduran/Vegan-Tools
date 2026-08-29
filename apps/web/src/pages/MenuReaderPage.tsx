@@ -8,13 +8,16 @@ import {
   AlertCircle,
   ArrowLeft,
   Camera,
+  Clock,
   ExternalLink,
   FileImage,
   FileText,
   Globe,
   Images,
   LoaderCircle,
+  MapPin,
   Navigation,
+  Search,
   Sparkles,
   Upload,
   Utensils,
@@ -39,16 +42,20 @@ import { BottomSheet, type SnapPoint } from "../components/BottomSheet";
 import { t, tx, useLanguage } from "../i18n";
 import { getDirectionsUrl } from "../utils/navigation";
 import { formatDistance } from "../utils/distance";
+import { generateSafeUUID } from "../utils/uuid";
 
 function newSearchSessionToken() {
-  return crypto.randomUUID().replaceAll("-", "");
+  return generateSafeUUID().replaceAll("-", "");
 }
 
 function sameRestaurant(left?: RestaurantCandidate, right?: RestaurantCandidate): boolean {
   if (!left || !right) return false;
-  if (left.id === right.id) return true;
-  return left.name.trim().toLocaleLowerCase() === right.name.trim().toLocaleLowerCase() &&
-    left.address.trim().toLocaleLowerCase() === right.address.trim().toLocaleLowerCase();
+  if (left.id && right.id && left.id === right.id) return true;
+  const leftName = (left.name || "").trim().toLowerCase();
+  const rightName = (right.name || "").trim().toLowerCase();
+  const leftAddr = (left.address || "").trim().toLowerCase();
+  const rightAddr = (right.address || "").trim().toLowerCase();
+  return leftName === rightName && leftAddr === rightAddr;
 }
 
 export function MenuReaderPage() {
@@ -63,6 +70,7 @@ export function MenuReaderPage() {
   const [curatedPins, setCuratedPins] = useState<RestaurantCandidate[]>([]);
   const [selectedRestaurant, setSelectedRestaurant] = useState<RestaurantCandidate>();
   const [searchingRestaurants, setSearchingRestaurants] = useState(false);
+  const [hoveredRestaurantId, setHoveredRestaurantId] = useState<string>();
   const [searchSubmitted, setSearchSubmitted] = useState(false);
   const [restaurantError, setRestaurantError] = useState("");
   const [activeFilters, setActiveFilters] = useState<string[]>(() => {
@@ -86,12 +94,29 @@ export function MenuReaderPage() {
   const draftId = draft?.id;
   const editToken = draft?.editToken;
   const draftStatus = draft?.status;
-  const [sheetSnapPoint, setSheetSnapPoint] = useState<SnapPoint>("half");
+  const [sheetSnapPoint, setSheetSnapPoint] = useState<SnapPoint>(() =>
+    searchParams.get("place") ? "half" : "collapsed",
+  );
+  const previousPlaceIdRef = useRef<string | null>(searchParams.get("place"));
 
   const handleSelectRestaurant = (restaurant?: RestaurantCandidate) => {
+    if (restaurant?.placeType === "city") {
+      // Geographic navigation: fly to the city and search restaurants there without opening a menu
+      setSelectedRestaurant(undefined);
+      setUserCoords({ lat: restaurant.latitude, lng: restaurant.longitude });
+      setSheetSnapPoint("half");
+      void handleSearchArea({ lat: restaurant.latitude, lng: restaurant.longitude }, 5000);
+      setSearchParams((prev) => {
+        const next = new URLSearchParams(prev);
+        next.delete("place");
+        return next;
+      });
+      return;
+    }
+
     setSelectedRestaurant(restaurant);
     if (restaurant) {
-      setSheetSnapPoint((prev) => (prev === "collapsed" ? "half" : prev));
+      setSheetSnapPoint("half");
     }
     setSearchParams((prev) => {
       const next = new URLSearchParams(prev);
@@ -124,7 +149,9 @@ export function MenuReaderPage() {
       .then(async (loc) => {
         if (cancelled || !loc) return;
         setApproximateLocation(loc);
-        const curated = await getCuratedRestaurants(loc);
+        const curated = await getCuratedRestaurants(
+          loc ? { latitude: loc.latitude, longitude: loc.longitude } : undefined,
+        );
         if (!cancelled && curated.length > 0) {
           setCuratedPins(curated);
         }
@@ -140,6 +167,9 @@ export function MenuReaderPage() {
   // Handle URL deep-linking and browser back/forward buttons
   useEffect(() => {
     const placeId = searchParams.get("place");
+    if (previousPlaceIdRef.current === placeId) return;
+    previousPlaceIdRef.current = placeId;
+
     if (!placeId) {
       if (selectedRestaurant) {
         setSelectedRestaurant(undefined);
@@ -166,7 +196,7 @@ export function MenuReaderPage() {
   // Debounced unified real-time search
   useEffect(() => {
     const query = restaurantQuery.trim();
-    if (query.length < 2 || selectedRestaurant) {
+    if (query.length < 2 || selectedRestaurant || searchSubmitted) {
       if (query.length === 0 && !searchSubmitted) {
         setRestaurantResults([]);
         setRestaurantError("");
@@ -187,8 +217,10 @@ export function MenuReaderPage() {
           setRestaurantResults(safe);
           if (safe.length === 0) {
             setRestaurantError(tx("No matching restaurant was found. Try adding a city or area."));
+            setSheetSnapPoint("collapsed");
           } else {
             setRestaurantError("");
+            setSheetSnapPoint("half");
           }
         }
       } catch {
@@ -200,7 +232,7 @@ export function MenuReaderPage() {
           setSearchingRestaurants(false);
         }
       }
-    }, 220);
+    }, 300);
     return () => {
       window.clearTimeout(timeout);
       controller.abort();
@@ -213,196 +245,194 @@ export function MenuReaderPage() {
     searchSubmitted,
   ]);
 
-  const executeSearch = async (queryToSearch: string) => {
-    const trimmed = queryToSearch.trim();
-    if (trimmed.length < 2) return;
-    setRestaurantError("");
-    handleSelectRestaurant(undefined);
-    setSearchSubmitted(true);
+  const executeSearch = async (forcedQuery?: string) => {
+    const query = (forcedQuery ?? restaurantQuery).trim();
+    if (query.length < 2) return;
     setSearchingRestaurants(true);
+    setSearchSubmitted(true);
     try {
-      const results = await searchRestaurants(trimmed, {
+      const results = await searchRestaurants(query, {
         latitude: userCoords?.lat ?? approximateLocation?.latitude,
         longitude: userCoords?.lng ?? approximateLocation?.longitude,
       });
-      const safeResults = Array.isArray(results) ? results : [];
-      setRestaurantResults(safeResults);
-      if (safeResults.length === 0) {
+      const safe = Array.isArray(results) ? results : [];
+      setRestaurantResults(safe);
+      if (safe.length === 0) {
         setRestaurantError(tx("No matching restaurant was found. Try adding a city or area."));
+        setSheetSnapPoint("collapsed");
+      } else {
+        setRestaurantError("");
+        setSheetSnapPoint("half");
       }
-    } catch (searchError) {
-      setRestaurantError(
-        searchError instanceof Error ? searchError.message : tx("Restaurant search failed."),
-      );
+    } catch {
+      setRestaurantResults([]);
+      setRestaurantError(tx("Restaurant search failed."));
+      setSheetSnapPoint("collapsed");
+    } finally {
+      setSearchingRestaurants(false);
+    }
+  };
+
+  const [openingMenuRestaurantId, setOpeningMenuRestaurantId] = useState<string>();
+
+  const selectRestaurant = async (restaurant: RestaurantCandidate) => {
+    setOpeningMenuRestaurantId(restaurant.id);
+    setError("");
+
+    try {
+      const resolved = await resolveRestaurant(restaurant);
+      if (resolved.websiteUrl) {
+        const cachedOrDiscovered = await discoverRestaurantMenu(resolved, resolved.websiteUrl);
+        if (cachedOrDiscovered) {
+          setLoadedFromCache(cachedOrDiscovered.status === "ready" && (cachedOrDiscovered.sections?.length ?? 0) > 0);
+          setDraft(cachedOrDiscovered);
+          return;
+        }
+      }
+    } catch {
+      // Allow manual file upload if menu discovery is unavailable
+    } finally {
+      setOpeningMenuRestaurantId(undefined);
+    }
+
+    handleSelectRestaurant(restaurant);
+    uploadSectionRef.current?.scrollIntoView({ behavior: "smooth" });
+  };
+
+  const handleSearchArea = async (center: { lat: number; lng: number }, radius: number) => {
+    setSearchingRestaurants(true);
+    try {
+      const results = await searchRestaurants("restaurant", {
+        latitude: center.lat,
+        longitude: center.lng,
+        radius,
+      });
+      const safe = Array.isArray(results) ? results : [];
+      setRestaurantResults(safe);
+      if (safe.length === 0) {
+        setRestaurantError(tx("No matching restaurant was found in this area."));
+      } else {
+        setRestaurantError("");
+      }
+    } catch {
       setRestaurantResults([]);
     } finally {
       setSearchingRestaurants(false);
     }
   };
 
-  useEffect(() => {
-    const trimmed = restaurantQuery.trim();
-    if (trimmed.length < 3 || selectedRestaurant || searchSubmitted) {
-      return;
-    }
-    const timer = setTimeout(() => {
-      void executeSearch(trimmed);
-    }, 420);
-
-    return () => clearTimeout(timer);
-  }, [restaurantQuery, selectedRestaurant, searchSubmitted]);
-
-  const selectRestaurant = async (restaurant: RestaurantCandidate) => {
-    setSearchingRestaurants(true);
-    setRestaurantError("");
-    try {
-      const resolved = await resolveRestaurant(restaurant);
-      handleSelectRestaurant(resolved);
-      setSearchSessionToken(newSearchSessionToken());
-      if (resolved.websiteUrl) {
-        setLoadedFromCache(false);
-        setDraft(await discoverRestaurantMenu(resolved, resolved.websiteUrl));
-      } else {
-        setRestaurantError(
-          "We couldn’t verify an official website automatically. Add menu photos or a PDF below.",
-        );
-      }
-    } catch (selectionError) {
-      setRestaurantError(
-        selectionError instanceof Error
-          ? selectionError.message
-          : "The selected restaurant could not be loaded.",
-      );
-    } finally {
-      setSearchingRestaurants(false);
+  const handleAddFiles = (incoming: File[]) => {
+    const total = files.length + incoming.length;
+    if (total > 8) {
+      setFileLimitWarning(true);
+      const allowed = incoming.slice(0, Math.max(0, 8 - files.length));
+      setFiles((prev) => [...prev, ...allowed]);
+    } else {
+      setFileLimitWarning(false);
+      setFiles((prev) => [...prev, ...incoming]);
     }
   };
 
   useEffect(() => {
-    if (!draftId || !editToken || draftStatus !== "processing") return;
-    let cancelled = false;
-    let timeout: number | undefined;
-    const poll = async () => {
+    if (!draftId || !editToken || !draftStatus || draftStatus !== "processing") return;
+    const interval = window.setInterval(async () => {
       try {
         const next = await getMenuDraft(draftId, editToken);
-        if (cancelled) return;
         setDraft(next);
-        if (next.status === "processing") {
-          timeout = window.setTimeout(() => void poll(), 1200);
-        } else if (next.status === "failed" && next.error) {
-          setRestaurantError(next.error);
+        if (next.status !== "processing") {
+          window.clearInterval(interval);
         }
-      } catch (pollError) {
-        if (cancelled) return;
-        setError(pollError instanceof Error ? pollError.message : "Analysis check failed.");
+      } catch {
+        window.clearInterval(interval);
       }
-    };
-    timeout = window.setTimeout(() => void poll(), 400);
-    return () => {
-      cancelled = true;
-      if (timeout) window.clearTimeout(timeout);
-    };
+    }, 2_000);
+    return () => window.clearInterval(interval);
   }, [draftId, draftStatus, editToken]);
 
-  if (draft?.status === "ready" || draft?.status === "published") {
+  if (draft && draft.status === "processing") {
     return (
-      <div className="page">
-        <header className="page-header">
-          <button
-            type="button"
-            className="secondary-button"
-            onClick={() => {
-              setDraft(undefined);
-              setSelectedRestaurant(undefined);
-            }}
-          >
-            <ArrowLeft aria-hidden="true" />
-            <span>{language === "ca" ? "Torna al restaurant" : "Back to restaurant"}</span>
-          </button>
-          <div className="header-titles">
-            <span className="eyebrow">{tx("Restaurant menu")}</span>
-            <h1>{draft.restaurantName || (language === "ca" ? "Anàlisi de la carta" : "Menu analysis")}</h1>
+      <div className="page menu-view-page menu-loading-view" style={{ minHeight: "80vh", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", padding: "2rem 1rem", textAlign: "center" }}>
+        <button
+          type="button"
+          className="back-to-search-btn"
+          style={{ position: "absolute", top: "1.5rem", left: "1.5rem" }}
+          onClick={() => {
+            setDraft(undefined);
+            setFiles([]);
+            setLoadedFromCache(false);
+          }}
+        >
+          <ArrowLeft size={16} />
+          <span>{tx("Back to map")}</span>
+        </button>
+        <div style={{ maxWidth: "460px", background: "white", padding: "2.5rem 2rem", borderRadius: "18px", boxShadow: "0 10px 30px rgba(0,0,0,0.08)", border: "1px solid var(--line, #e2e8f0)" }}>
+          <LoaderCircle className="spin" size={48} style={{ color: "var(--green, #047857)", margin: "0 auto 1.5rem" }} />
+          <h2 style={{ fontSize: "1.5rem", fontWeight: 700, margin: "0 0 0.5rem" }}>{draft.restaurantName || selectedRestaurant?.name || tx("Descobrint la carta...")}</h2>
+          <p style={{ color: "var(--muted, #64748b)", fontSize: "0.95rem", lineHeight: 1.5, margin: "0 0 1.5rem" }}>
+            {tx("Llegint la carta oficial i analitzant els plats amb intel·ligència artificial...")}
+          </p>
+          <div style={{ width: "100%", height: "6px", background: "#e2e8f0", borderRadius: "999px", overflow: "hidden" }}>
+            <div style={{ width: "60%", height: "100%", background: "var(--green, #047857)", borderRadius: "999px", animation: "pulse 1.5s infinite" }} />
           </div>
-          {draft.sourceUrl && (
-            <a
-              href={draft.sourceUrl}
-              target="_blank"
-              rel="noreferrer"
-              className="source-link"
-            >
-              <ExternalLink aria-hidden="true" />
-              <span>{language === "ca" ? "Font original" : "Original source"}</span>
-            </a>
-          )}
-        </header>
+        </div>
+      </div>
+    );
+  }
 
+  if (draft && draft.sections && draft.sections.length > 0) {
+    return (
+      <div className="page menu-view-page">
+        <button
+          type="button"
+          className="back-to-search-btn"
+          onClick={() => {
+            setDraft(undefined);
+            setFiles([]);
+            setLoadedFromCache(false);
+          }}
+        >
+          <ArrowLeft size={16} />
+          <span>{tx("Back to map")}</span>
+        </button>
         <MenuEditor
           initialMenu={draft}
-          sourceFiles={files}
+          onUpdateMenu={(updated) => setDraft(updated)}
           cached={loadedFromCache}
-          onUpdateMenu={setDraft}
-          onRefresh={() => {
+          onEditSources={() => {
             setDraft(undefined);
             setLoadedFromCache(false);
-            setFiles([]);
-            window.setTimeout(
-              () => uploadSectionRef.current?.scrollIntoView({ behavior: "smooth" }),
-              0,
-            );
+            uploadSectionRef.current?.scrollIntoView({ behavior: "smooth" });
           }}
         />
       </div>
     );
   }
 
-  const handleSearchArea = async (center: { lat: number; lng: number }, radius: number) => {
-    setSearchingRestaurants(true);
-    setRestaurantError("");
-    setSelectedRestaurant(undefined);
-    try {
-      const results = await searchRestaurants("restaurants", {
-        latitude: center.lat,
-        longitude: center.lng,
-        radius,
-        near: "",
-      });
-      const safeResults = Array.isArray(results) ? results : [];
-      setRestaurantResults(safeResults);
-      if (safeResults.length === 0) {
-        setRestaurantError(tx("No matching restaurant was found in this area."));
-      }
-    } catch (err) {
-      setRestaurantError(
-        err instanceof Error ? err.message : tx("Restaurant search failed."),
-      );
-    } finally {
-      setSearchingRestaurants(false);
-    }
-  };
-
-  const handleAddFiles = (newFiles: File[]) => {
-    setFiles((current) => {
-      const combined = [...current, ...newFiles];
-      if (combined.length > 8) {
-        setFileLimitWarning(true);
-        setTimeout(() => setFileLimitWarning(false), 4000);
-      }
-      return combined.slice(0, 8);
-    });
-  };
-
   const handleUrlSubmit = async (e: FormEvent) => {
     e.preventDefault();
-    const url = websiteUrlInput.trim();
-    if (!url) return;
+    const urlToFetch = websiteUrlInput.trim();
+    if (!urlToFetch) return;
+
     setError("");
     setSubmittingUrl(true);
     try {
-      setLoadedFromCache(false);
-      const nextDraft = await discoverMenuByUrl(url, selectedRestaurant?.name);
-      setDraft(nextDraft);
+      const discoveredDraft = await discoverMenuByUrl(urlToFetch, selectedRestaurant?.name);
+      if (discoveredDraft && discoveredDraft.sections && discoveredDraft.sections.length > 0) {
+        setLoadedFromCache(false);
+        setDraft(discoveredDraft);
+      } else {
+        setError(
+          tx(
+            "The website menu was found, but no dishes could be extracted. Upload the PDF or menu photos instead.",
+          ),
+        );
+      }
     } catch (err) {
-      setError(err instanceof Error ? err.message : tx("Finding menu on website failed."));
+      setError(
+        err instanceof Error
+          ? err.message
+          : tx("The restaurant website did not return an HTML page or PDF menu."),
+      );
     } finally {
       setSubmittingUrl(false);
     }
@@ -430,6 +460,7 @@ export function MenuReaderPage() {
           snapPoint={sheetSnapPoint}
           onSnapChange={setSheetSnapPoint}
           isCompact={!selectedRestaurant && filteredResults.length === 0}
+          allowDrag={Boolean(selectedRestaurant || filteredResults.length > 0 || searchingRestaurants || searchSubmitted)}
           ariaLabel={tx("Search restaurants")}
           header={
             <div className="sidebar-search-header">
@@ -437,6 +468,10 @@ export function MenuReaderPage() {
                 query={restaurantQuery}
                 onQueryChange={(val) => {
                   setRestaurantQuery(val);
+                  if (val.trim().length === 0) {
+                    setRestaurantResults([]);
+                    setSheetSnapPoint("collapsed");
+                  }
                   if (selectedRestaurant) {
                     handleSelectRestaurant(undefined);
                   }
@@ -445,7 +480,6 @@ export function MenuReaderPage() {
                 loading={searchingRestaurants}
                 canClear={canClearSearch}
                 onSubmitSearch={(q) => {
-                  setSheetSnapPoint("half");
                   void executeSearch(q);
                 }}
                 onClear={() => {
@@ -454,13 +488,16 @@ export function MenuReaderPage() {
                   handleSelectRestaurant(undefined);
                   setSearchSubmitted(false);
                   setRestaurantError("");
+                  setSheetSnapPoint("collapsed");
                 }}
               />
 
               <FilterPills
                 activeFilters={activeFilters}
                 onToggleFilter={(filterId) => {
-                  setSheetSnapPoint((prev) => (prev === "collapsed" ? "half" : prev));
+                  if (filteredResults.length > 0) {
+                    setSheetSnapPoint((prev) => (prev === "collapsed" ? "half" : prev));
+                  }
                   setActiveFilters((current) =>
                     current.includes(filterId)
                       ? current.filter((id) => id !== filterId)
@@ -468,6 +505,11 @@ export function MenuReaderPage() {
                   );
                 }}
                 onClearFilters={() => setActiveFilters([])}
+                onExpandChange={(isExpanded) => {
+                  if (isExpanded) {
+                    setSheetSnapPoint("half");
+                  }
+                }}
               />
 
               {restaurantError && <div className="sidebar-error error-banner">{tx(restaurantError)}</div>}
@@ -496,50 +538,68 @@ export function MenuReaderPage() {
                       { lat: restaurant.latitude, lng: restaurant.longitude },
                     );
 
+                    const isCity = restaurant.placeType === "city";
+
                     return (
                       <li
                         key={restaurant.id}
-                        className={sameRestaurant(restaurant, selectedRestaurant ?? restaurant) ? "active clickable" : "clickable"}
+                        className={selectedRestaurant && sameRestaurant(restaurant, selectedRestaurant) ? "active clickable" : "clickable"}
                         onClick={() => handleSelectRestaurant(restaurant)}
+                        onMouseEnter={() => setHoveredRestaurantId(restaurant.id)}
+                        onMouseLeave={() => setHoveredRestaurantId(undefined)}
                       >
-                        <div>
-                          <strong>{restaurant.name}</strong>
-                          <span>{distanceStr ? `${distanceStr} · ${restaurant.address}` : restaurant.address}</span>
-                          <div className="restaurant-links">
-                            <button
-                              type="button"
-                              className="restaurant-link-btn"
-                              disabled={searchingRestaurants}
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                void selectRestaurant(restaurant);
-                              }}
-                            >
-                              <Utensils aria-hidden="true" />
-                              <span>{tx("Menu")}</span>
-                            </button>
-                            {restaurant.websiteUrl && (
+                        {isCity ? (
+                          <div className="city-navigation-item" style={{ display: "flex", alignItems: "center", gap: "0.6rem" }}>
+                            <MapPin size={20} className="city-item-icon" style={{ color: "var(--green)", flexShrink: 0 }} aria-hidden="true" />
+                            <div>
+                              <strong>{restaurant.name}</strong>
+                              <span style={{ fontSize: "0.78rem", color: "var(--muted)", display: "block" }}>{restaurant.address || tx("Explore area")}</span>
+                            </div>
+                          </div>
+                        ) : (
+                          <div>
+                            <strong>{restaurant.name}</strong>
+                            <span>{distanceStr && restaurant.address ? `${distanceStr} · ${restaurant.address}` : (distanceStr || restaurant.address || "")}</span>
+                            <div className="restaurant-links">
+                              <button
+                                type="button"
+                                className="restaurant-link-btn"
+                                disabled={searchingRestaurants || openingMenuRestaurantId === restaurant.id}
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  void selectRestaurant(restaurant);
+                                }}
+                              >
+                                {openingMenuRestaurantId === restaurant.id ? (
+                                  <LoaderCircle className="spin" size={14} aria-hidden="true" />
+                                ) : (
+                                  <Utensils aria-hidden="true" />
+                                )}
+                                <span>{tx("Menu")}</span>
+                              </button>
+                              {restaurant.websiteUrl && (
+                                <a
+                                  href={restaurant.websiteUrl}
+                                  target="_blank"
+                                  rel="noreferrer"
+                                  onClick={(e) => e.stopPropagation()}
+                                >
+                                  <Globe aria-hidden="true" />
+                                  <span>{tx("Website")}</span>
+                                </a>
+                              )}
                               <a
-                                href={restaurant.websiteUrl}
+                                href={directionsUrl}
                                 target="_blank"
                                 rel="noreferrer"
                                 onClick={(e) => e.stopPropagation()}
                               >
-                                <Globe aria-hidden="true" />
-                                <span>{tx("Website")}</span>
+                                <Navigation aria-hidden="true" />
+                                <span>{tx("Directions")}</span>
                               </a>
-                            )}
-                            <a
-                              href={directionsUrl}
-                              target="_blank"
-                              rel="noreferrer"
-                              onClick={(e) => e.stopPropagation()}
-                            >
-                              <Navigation aria-hidden="true" />
-                              <span>{tx("Directions")}</span>
-                            </a>
+                            </div>
                           </div>
-                        </div>
+                        )}
                       </li>
                     );
                   })}
@@ -553,6 +613,7 @@ export function MenuReaderPage() {
           <RestaurantMap
             restaurants={displayedMapRestaurants}
             selectedRestaurant={selectedRestaurant}
+            hoveredRestaurantId={hoveredRestaurantId}
             onSelectRestaurant={(restaurant) => {
               handleSelectRestaurant(restaurant);
             }}
@@ -561,6 +622,9 @@ export function MenuReaderPage() {
             }}
             onSearchArea={handleSearchArea}
             onUserCoordsChange={setUserCoords}
+            onMapClick={() => {
+              setSheetSnapPoint("collapsed");
+            }}
           />
         </div>
       </div>
@@ -672,7 +736,7 @@ export function MenuReaderPage() {
         <div className="menu-url-section-card">
           <div className="menu-url-header">
             <Globe aria-hidden="true" />
-            <h3>{tx("Or enter a website or menu link")}</h3>
+            <h3>{tx("Website or menu link")}</h3>
           </div>
           <form onSubmit={(e) => void handleUrlSubmit(e)} className="menu-url-form">
             <input
@@ -687,9 +751,9 @@ export function MenuReaderPage() {
               type="submit"
               className="secondary-button submit-url-btn"
               disabled={submittingUrl || !websiteUrlInput.trim()}
+              aria-label={tx("Find menu")}
             >
-              {submittingUrl ? <LoaderCircle className="spin" /> : <Sparkles aria-hidden="true" />}
-              <span>{tx("Find menu")}</span>
+              {submittingUrl ? <LoaderCircle className="spin" /> : <Search size={18} aria-hidden="true" />}
             </button>
           </form>
         </div>

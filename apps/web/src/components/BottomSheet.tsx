@@ -1,4 +1,4 @@
-import { useCallback, useRef, useState, type ReactNode, type TouchEvent } from "react";
+import { useCallback, useRef, useState, type PointerEvent, type ReactNode, type TouchEvent } from "react";
 import { tx } from "../i18n";
 
 export type SnapPoint = "collapsed" | "half" | "expanded";
@@ -9,6 +9,7 @@ interface BottomSheetProps {
   header: ReactNode;
   children: ReactNode;
   isCompact?: boolean;
+  allowDrag?: boolean;
   className?: string;
   ariaLabel?: string;
 }
@@ -19,16 +20,18 @@ export function BottomSheet({
   header,
   children,
   isCompact = false,
+  allowDrag = true,
   className = "",
   ariaLabel,
 }: BottomSheetProps) {
-  const touchStartY = useRef<number | null>(null);
-  const touchStartTime = useRef<number>(0);
+  const dragStartY = useRef<number | null>(null);
+  const dragStartTime = useRef<number>(0);
   const [isDragging, setIsDragging] = useState(false);
   const [dragOffset, setDragOffset] = useState(0);
   const contentRef = useRef<HTMLDivElement>(null);
 
   const cycleSnapPoint = useCallback(() => {
+    if (!allowDrag && snapPoint === "collapsed") return;
     if (snapPoint === "collapsed") {
       onSnapChange("half");
     } else if (snapPoint === "half") {
@@ -36,23 +39,19 @@ export function BottomSheet({
     } else {
       onSnapChange("half");
     }
-  }, [snapPoint, onSnapChange]);
+  }, [snapPoint, onSnapChange, allowDrag]);
 
-  const handleTouchStart = (e: TouchEvent) => {
-    const touch = e.touches[0];
-    if (!touch) return;
-    touchStartY.current = touch.clientY;
-    touchStartTime.current = Date.now();
+  const onDragStart = (clientY: number) => {
+    if (!allowDrag && snapPoint === "collapsed") return;
+    dragStartY.current = clientY;
+    dragStartTime.current = Date.now();
     setIsDragging(true);
     setDragOffset(0);
   };
 
-  const handleTouchMove = (e: TouchEvent) => {
-    if (touchStartY.current === null) return;
-    const touch = e.touches[0];
-    if (!touch) return;
-    const currentY = touch.clientY;
-    const deltaY = currentY - touchStartY.current;
+  const onDragMove = (clientY: number) => {
+    if (dragStartY.current === null) return;
+    const deltaY = clientY - dragStartY.current;
 
     // Resistance at extremes
     if (snapPoint === "expanded" && deltaY < 0) {
@@ -64,34 +63,26 @@ export function BottomSheet({
     }
   };
 
-  const handleTouchEnd = (e: TouchEvent) => {
-    if (touchStartY.current === null) return;
-    const touch = e.changedTouches[0] || e.touches[0];
-    if (!touch) {
-      touchStartY.current = null;
-      setIsDragging(false);
-      setDragOffset(0);
-      return;
-    }
-    const endY = touch.clientY;
-    const deltaY = endY - touchStartY.current;
-    const deltaTime = Date.now() - touchStartTime.current;
-    const velocity = deltaY / Math.max(deltaTime, 1); // px per ms
+  const onDragEnd = (clientY: number) => {
+    if (dragStartY.current === null) return;
+    const deltaY = clientY - dragStartY.current;
+    const deltaTime = Date.now() - dragStartTime.current;
+    const velocity = deltaY / Math.max(deltaTime, 1);
 
-    touchStartY.current = null;
+    dragStartY.current = null;
     setIsDragging(false);
     setDragOffset(0);
 
-    // If it was a quick tap (< 200ms and < 8px movement)
-    if (Math.abs(deltaY) < 8 && deltaTime < 200) {
+    // Click/tap
+    if (Math.abs(deltaY) < 6 && deltaTime < 220) {
       cycleSnapPoint();
       return;
     }
 
-    // Significant swipe up
-    if (deltaY < -45 || velocity < -0.35) {
+    // Swipe up
+    if (deltaY < -25 || velocity < -0.25) {
       if (snapPoint === "collapsed") {
-        if (velocity < -0.8 || deltaY < -160) {
+        if (velocity < -1.2 || deltaY < -220) {
           onSnapChange("expanded");
         } else {
           onSnapChange("half");
@@ -102,15 +93,64 @@ export function BottomSheet({
       return;
     }
 
-    // Significant swipe down
-    if (deltaY > 45 || velocity > 0.35) {
+    // Swipe down
+    if (deltaY > 25 || velocity > 0.25) {
       if (snapPoint === "expanded") {
-        onSnapChange("half");
+        if (velocity > 1.2 || deltaY > 220) {
+          onSnapChange("collapsed");
+        } else {
+          onSnapChange("half");
+        }
       } else if (snapPoint === "half") {
         onSnapChange("collapsed");
       }
       return;
     }
+  };
+
+  // Pointer event handlers
+  const handlePointerDown = (e: PointerEvent<HTMLDivElement>) => {
+    const target = e.target as HTMLElement;
+    if (target.closest("button") || target.closest("input") || target.closest("a")) return;
+    try {
+      e.currentTarget.setPointerCapture(e.pointerId);
+    } catch {
+      // Ignore
+    }
+    onDragStart(e.clientY);
+  };
+
+  const handlePointerMove = (e: PointerEvent<HTMLDivElement>) => {
+    onDragMove(e.clientY);
+  };
+
+  const handlePointerUp = (e: PointerEvent<HTMLDivElement>) => {
+    try {
+      if (e.currentTarget.hasPointerCapture(e.pointerId)) {
+        e.currentTarget.releasePointerCapture(e.pointerId);
+      }
+    } catch {
+      // Ignore
+    }
+    onDragEnd(e.clientY);
+  };
+
+  // Native touch event fallback for environments/devices that rely on TouchEvent
+  const handleTouchStart = (e: TouchEvent<HTMLDivElement>) => {
+    const target = e.target as HTMLElement;
+    if (target.closest("button") || target.closest("input") || target.closest("a")) return;
+    const touch = e.touches[0];
+    if (touch) onDragStart(touch.clientY);
+  };
+
+  const handleTouchMove = (e: TouchEvent<HTMLDivElement>) => {
+    const touch = e.touches[0];
+    if (touch) onDragMove(touch.clientY);
+  };
+
+  const handleTouchEnd = (e: TouchEvent<HTMLDivElement>) => {
+    const touch = e.changedTouches[0] || e.touches[0];
+    if (touch) onDragEnd(touch.clientY);
   };
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
@@ -138,6 +178,11 @@ export function BottomSheet({
       {/* Mobile drag handle bar */}
       <div
         className="bottom-sheet-handle-bar"
+        style={!allowDrag && snapPoint === "collapsed" ? { display: "none" } : undefined}
+        onPointerDown={handlePointerDown}
+        onPointerMove={handlePointerMove}
+        onPointerUp={handlePointerUp}
+        onPointerCancel={handlePointerUp}
         onTouchStart={handleTouchStart}
         onTouchMove={handleTouchMove}
         onTouchEnd={handleTouchEnd}
@@ -159,6 +204,10 @@ export function BottomSheet({
 
       <div
         className="bottom-sheet-header-area"
+        onPointerDown={handlePointerDown}
+        onPointerMove={handlePointerMove}
+        onPointerUp={handlePointerUp}
+        onPointerCancel={handlePointerUp}
         onTouchStart={handleTouchStart}
         onTouchMove={handleTouchMove}
         onTouchEnd={handleTouchEnd}

@@ -10,6 +10,7 @@ interface SearchTypeaheadProps {
   onClear: () => void;
   canClear?: boolean;
   placeholder?: string;
+  onFocus?: () => void;
 }
 
 export function SearchTypeahead({
@@ -20,21 +21,25 @@ export function SearchTypeahead({
   onClear,
   canClear = false,
   placeholder,
+  onFocus,
 }: SearchTypeaheadProps) {
   const inputRef = useRef<HTMLInputElement>(null);
 
   const handleKeyDown = (event: KeyboardEvent<HTMLInputElement>) => {
     if (event.key === "Enter") {
       event.preventDefault();
+      inputRef.current?.blur();
       onSubmitSearch(query);
     } else if (event.key === "Escape") {
       event.preventDefault();
+      inputRef.current?.blur();
       onClear();
     }
   };
 
   const handleSubmit = (event: FormEvent) => {
     event.preventDefault();
+    inputRef.current?.blur();
     onSubmitSearch(query);
   };
 
@@ -42,17 +47,21 @@ export function SearchTypeahead({
 
   return (
     <div className="search-typeahead-container">
-      <form onSubmit={handleSubmit} className="restaurant-search-form">
+      <form onSubmit={handleSubmit} role="search" className="restaurant-search-form">
         <div className="search-input-wrapper">
           <input
             ref={inputRef}
             type="text"
+            inputMode="search"
             value={query}
             onChange={(e) => onQueryChange(e.target.value)}
+            onFocus={onFocus}
             onKeyDown={handleKeyDown}
             aria-label={placeholder || tx("Search for a restaurant")}
             placeholder={placeholder || tx("Search for a restaurant")}
             autoComplete="off"
+            autoCorrect="off"
+            spellCheck="false"
             required
             minLength={2}
           />
@@ -61,8 +70,8 @@ export function SearchTypeahead({
               type="button"
               className="search-clear-btn"
               onClick={() => {
+                inputRef.current?.blur();
                 onClear();
-                inputRef.current?.focus();
               }}
               title={tx("Clear")}
               aria-label={tx("Clear")}
