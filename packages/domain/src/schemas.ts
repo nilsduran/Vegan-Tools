@@ -233,7 +233,7 @@ export const restaurantReviewSchema = z.object({
   userId: z.string(),
   userName: z.string(),
   userAvatarUrl: z.string().url().optional(),
-  leavesScore: z.number().int().min(1).max(5),
+  leavesScore: z.number().min(1).max(5),
   comment: z.string().max(500).default(""),
   createdAt: z.string(),
   updatedAt: z.string(),
@@ -254,7 +254,7 @@ export const restaurantReviewStatsSchema = z.object({
 export type RestaurantReviewStats = z.infer<typeof restaurantReviewStatsSchema>;
 
 export const createReviewRequestSchema = z.object({
-  leavesScore: z.number().int().min(1).max(5),
+  leavesScore: z.number().min(1).max(5),
   comment: z.string().max(500).optional().default(""),
   userName: z.string().min(1).max(60).optional(),
 });

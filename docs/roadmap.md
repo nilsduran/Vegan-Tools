@@ -22,7 +22,7 @@ Estat: **Fases 1 a 4 Completades i Estabilitzades** (Branca activa: `feature/int
 Estat: **Disseny d'Enginyeria & Model ER**.
 - **Model Relacional Sòlid**: Superar els repositoris fragmentats en memòria i consolidar l'esquema (`restaurants`, `restaurant_media`, `restaurant_reviews`, `restaurant_menus`, `dishes`, `community_tags`) amb suport per a SQLite/libSQL en local i PostgreSQL/Supabase en producció.
 - **Pàgines de Perfil de Restaurant Dedicades (`/restaurant/:id`)**: Fitxa completa per a cada negoci amb galeria d'imatges d'**espai segur** (zero carn/explotació animal), història del local, desglossament d'horaris per dia de la setmana, carta interactiva analitzada i ressenyes ètiques.
-- **💬 Sistema de Ressenyes Ètiques & Valoració de Fulles**: Opinions verificades de la comunitat, valoració botànica (1 a 5 fulles), recomanacions de plats concrets i política d'espai segur estricta (tolerància zero amb imatges de carn o explotació animal).
+- **💬 Sistema de Ressenyes Ètiques & Valoració de Fulles Decimals**: Opinions de la comunitat, valoració botànica amb precisió decimal (1.0 a 5.0 fulles, ex: `4.5`, `4.8`), recomanacions de plats concrets i política d'espai segur estricta (tolerància zero amb imatges de carn o explotació animal).
 
 ### 🍳 3. Receptari Mestre & Veganitzador Intel·ligent (`/recipes`)
 Estat: **Veganitzador actiu; Hub de receptes en expansió**.
@@ -33,6 +33,7 @@ Estat: **Veganitzador actiu; Hub de receptes en expansió**.
 ### 🔍 4. Escàner d'Ingredients & Auditoria de Productes (`/`)
 Estat: **Operatiu amb Open Food Facts & OCR d'Etiquetes**.
 - **Classificació d'Additius i Traçabilitat**: Detecció d'additius ocults (E120, carmí, albúmina, sèrum de llet, gelatina, additius de peix) amb jerarquia d'evidències del 99% de precisió.
+- **📷 Gestió Guiada de Permisos de Càmera**: Suport interactiu per a iOS Safari i Android Chrome amb diàleg d'ajuda pas a pas i alternativa de càmera nativa (`capture="environment"`).
 - **Historial Local i Mode Desconnectat**: Consulta ràpida de productes recents sense emmagatzemar perfils d'usuari permanents.
 
 ### 👤 5. Perfils d'Usuari, Preferències & Configuració (`/profile`)
@@ -40,7 +41,7 @@ Estat: **Disseny & Autenticació Bàsica**.
 - **Preferències Dietètiques i d'Al·lèrgies**: Filtre personalitzat automàtic (sense gluten, sense soja, sense fruits secs, només 100% vegà).
 - **🎨 Temes Visuals (Mode Clar / Mode Fosc)**: Suport per a commutació entre **Mode Clar** (*Light*) i **Mode Fosc** (*Dark*) amb sincronització automàtica segons la preferència del sistema (`prefers-color-scheme`).
 - **Llista de Restaurants Guardats i Preferits**: Marcadors personals al mapa de locals per visitar o favorits.
-- **Historial d'Aportacions i Ressenyes**: Gestió de les pròpies cartes pujades, fotos d'espai segur i valoracions de fulles.
+- **Historial d'Aportacions i Ressenyes**: Gestió i edició de les pròpies ressenyes creades a restaurants amb la seva puntuació de fulles i comentaris.
 - **Privacitat Estricta**: Opció d'ús 100% anònim / local sense compte o amb autenticació Supabase sense rastreig.
 
 ### 📚 6. Hub de Recursos, Nutrició i Santuaris (`/resources`)

@@ -357,6 +357,12 @@ const caPhrases = {
   "Failed to save review": "Error en desar la ressenya",
   "Failed to delete review": "Error en esborrar la ressenya",
   "Delete review": "Eliminar valoració",
+  "Camera permission required": "Permís de càmera necessari",
+  "How to enable camera": "Com donar permís a la càmera",
+  "Retry": "Reintentar",
+  "Computer / Other": "Ordinador / Altres",
+  "To scan barcodes and photograph ingredient labels in real time, your browser needs permission to access the camera.":
+    "Per escanejar codis de barres i fotografiar etiquetes en temps real, el navegador necessita permís per utilitzar la càmera.",
   "Zero tracking cookies or ad trackers. Delegated security and strict privacy compliance.":
     "Zero rastrejadors ni galetes publicitàries. Seguretat delegada i compliment estricte de la privacitat.",
   "Or enter a website or menu link": "O bé introdueix l'enllaç de la carta o web",

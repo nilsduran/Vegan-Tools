@@ -8,6 +8,7 @@ export interface RestaurantReviewsResult {
 
 export interface RestaurantReviewStore {
   getReviews(restaurantId: string): Promise<RestaurantReviewsResult>;
+  getUserReviews(userId: string): Promise<RestaurantReview[]>;
   saveReview(review: RestaurantReview): Promise<RestaurantReview>;
   deleteReview(restaurantId: string, userId: string): Promise<boolean>;
 }
@@ -58,6 +59,17 @@ export class MemoryRestaurantReviewStore implements RestaurantReviewStore {
       reviews,
       stats: calculateReviewStats(reviews),
     };
+  }
+
+  async getUserReviews(userId: string): Promise<RestaurantReview[]> {
+    const userReviews: RestaurantReview[] = [];
+    for (const userMap of this.store.values()) {
+      const review = userMap.get(userId);
+      if (review) {
+        userReviews.push(review);
+      }
+    }
+    return userReviews.sort((a, b) => b.createdAt.localeCompare(a.createdAt));
   }
 
   async saveReview(review: RestaurantReview): Promise<RestaurantReview> {
@@ -148,6 +160,32 @@ export class SupabaseRestaurantReviewStore implements RestaurantReviewStore {
       };
     } catch {
       return this.memoryFallback.getReviews(restaurantId);
+    }
+  }
+
+  async getUserReviews(userId: string): Promise<RestaurantReview[]> {
+    try {
+      const queryUrl = `${this.url}/rest/v1/restaurant_reviews?user_id=eq.${encodeURIComponent(
+        userId,
+      )}&order=created_at.desc`;
+
+      const response = await fetch(queryUrl, {
+        method: "GET",
+        headers: this.headers(),
+      });
+
+      if (!response.ok) {
+        return this.memoryFallback.getUserReviews(userId);
+      }
+
+      const rows = (await response.json()) as SupabaseReviewRow[];
+      const reviews = Array.isArray(rows) ? rows.map((r) => this.rowToReview(r)) : [];
+      if (reviews.length === 0) {
+        return this.memoryFallback.getUserReviews(userId);
+      }
+      return reviews;
+    } catch {
+      return this.memoryFallback.getUserReviews(userId);
     }
   }
 

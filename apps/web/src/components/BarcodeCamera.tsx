@@ -1,7 +1,8 @@
 import { useEffect, useRef, useState } from "react";
 import { BarcodeDetectorPolyfill } from "@undecaf/barcode-detector-polyfill";
-import { Camera, CameraOff } from "lucide-react";
+import { Camera, CameraOff, HelpCircle, RefreshCw } from "lucide-react";
 import { tx } from "../i18n";
+import { CameraPermissionModal } from "./CameraPermissionModal";
 
 type Detector = {
   detect(source: CanvasImageSource): Promise<Array<{ rawValue: string }>>;
@@ -11,6 +12,8 @@ export function BarcodeCamera({ onDetected }: { onDetected: (value: string) => v
   const videoRef = useRef<HTMLVideoElement>(null);
   const [error, setError] = useState("");
   const [started, setStarted] = useState(false);
+  const [showPermissionModal, setShowPermissionModal] = useState(false);
+  const [retryCount, setRetryCount] = useState(0);
 
   useEffect(() => {
     if (!started) return;
@@ -21,6 +24,7 @@ export function BarcodeCamera({ onDetected }: { onDetected: (value: string) => v
     let hits = 0;
 
     const start = async () => {
+      setError("");
       try {
         const NativeDetector = (globalThis as unknown as {
           BarcodeDetector?: new (options: { formats: string[] }) => Detector;
@@ -61,8 +65,9 @@ export function BarcodeCamera({ onDetected }: { onDetected: (value: string) => v
           }, 180);
         };
         frame = requestAnimationFrame(detect);
-      } catch {
+      } catch (err) {
         setError(tx("Camera access is unavailable. Enter the barcode below."));
+        setShowPermissionModal(true);
       }
     };
     void start();
@@ -72,7 +77,33 @@ export function BarcodeCamera({ onDetected }: { onDetected: (value: string) => v
       cancelAnimationFrame(frame);
       stream?.getTracks().forEach((track) => track.stop());
     };
-  }, [onDetected, started]);
+  }, [onDetected, started, retryCount]);
+
+  const handleNativeCapture = async (file: File) => {
+    try {
+      const NativeDetector = (globalThis as unknown as {
+        BarcodeDetector?: new (options: { formats: string[] }) => Detector;
+      }).BarcodeDetector;
+      const DetectorClass = NativeDetector ?? (BarcodeDetectorPolyfill as unknown as new (
+        options: { formats: string[] },
+      ) => Detector);
+      const detector = new DetectorClass({
+        formats: ["ean_13", "ean_8", "upc_a", "upc_e"],
+      });
+
+      const img = new Image();
+      img.src = URL.createObjectURL(file);
+      await img.decode();
+      const results = await detector.detect(img);
+      URL.revokeObjectURL(img.src);
+      if (results[0]?.rawValue) {
+        navigator.vibrate?.(100);
+        onDetected(results[0].rawValue);
+      }
+    } catch {
+      // Continue without breaking
+    }
+  };
 
   if (!started) {
     return (
@@ -87,7 +118,45 @@ export function BarcodeCamera({ onDetected }: { onDetected: (value: string) => v
   }
 
   if (error) {
-    return <div className="camera-error"><CameraOff />{error}</div>;
+    return (
+      <>
+        <div className="camera-error" style={{ display: "flex", flexDirection: "column", gap: "0.6rem", alignItems: "center" }}>
+          <div style={{ display: "flex", alignItems: "center", gap: "0.5rem" }}>
+            <CameraOff />
+            <span>{error}</span>
+          </div>
+          <div style={{ display: "flex", gap: "0.5rem", flexWrap: "wrap", justifyContent: "center" }}>
+            <button
+              type="button"
+              className="secondary-button"
+              style={{ fontSize: "0.82rem", padding: "0.4rem 0.75rem", gap: "0.35rem" }}
+              onClick={() => setShowPermissionModal(true)}
+            >
+              <HelpCircle size={15} aria-hidden="true" />
+              <span>{tx("How to enable camera")}</span>
+            </button>
+            <button
+              type="button"
+              className="secondary-button"
+              style={{ fontSize: "0.82rem", padding: "0.4rem 0.75rem", gap: "0.35rem" }}
+              onClick={() => setRetryCount((prev) => prev + 1)}
+            >
+              <RefreshCw size={15} aria-hidden="true" />
+              <span>{tx("Retry")}</span>
+            </button>
+          </div>
+        </div>
+
+        <CameraPermissionModal
+          isOpen={showPermissionModal}
+          onClose={() => setShowPermissionModal(false)}
+          onRetry={() => {
+            setRetryCount((prev) => prev + 1);
+          }}
+          onNativeCapture={handleNativeCapture}
+        />
+      </>
+    );
   }
 
   return (

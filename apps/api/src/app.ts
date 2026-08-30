@@ -1792,6 +1792,28 @@ export async function buildApp(
     },
   );
 
+  // 4. Get Current User's Reviews (Authenticated)
+  app.get("/v1/users/me/reviews", async (request, reply) => {
+    const user = extractUserFromAuthHeader(request.headers.authorization);
+    if (!user) {
+      return reply.code(401).send({
+        code: "UNAUTHORIZED",
+        message: "Authentication required to view your reviews.",
+      });
+    }
+
+    try {
+      const reviews = await restaurantReviewStore.getUserReviews(user.id);
+      return { reviews };
+    } catch (error) {
+      request.log.error({ error, userId: user.id }, "Failed to fetch user reviews");
+      return reply.code(500).send({
+        code: "STORE_ERROR",
+        message: "Failed to load user reviews.",
+      });
+    }
+  });
+
   app.post<{
     Body: {
       restaurantName?: string;

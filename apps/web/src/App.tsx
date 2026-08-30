@@ -1,5 +1,5 @@
 import { Capacitor } from "@capacitor/core";
-import { CookingPot, Home, Leaf, MapPin, ScanBarcode } from "lucide-react";
+import { CookingPot, Home, Leaf, MapPin, ScanBarcode, User } from "lucide-react";
 import { NavLink, Route, Routes } from "react-router-dom";
 import { setLanguage, t, tx, useLanguage } from "./i18n";
 import { HomePage } from "./pages/HomePage";
@@ -7,6 +7,7 @@ import { MenuReaderPage } from "./pages/MenuReaderPage";
 import { ProductScannerPage } from "./pages/ProductScannerPage";
 import { PublicMenuPage } from "./pages/PublicMenuPage";
 import { RecipeVeganizerPage } from "./pages/RecipeVeganizerPage";
+import { ProfilePage } from "./pages/ProfilePage";
 import { AuthProvider } from "./auth";
 
 function FlagUK() {
@@ -41,6 +42,7 @@ export function App() {
     { to: "/scanner", label: t("scanner"), icon: ScanBarcode },
     { to: "/map", label: t("map"), icon: MapPin },
     { to: "/recipes", label: t("recipes"), icon: CookingPot },
+    { to: "/profile", label: language === "ca" ? "Perfil" : "Profile", icon: User },
   ];
   return (
     <AuthProvider>
@@ -91,6 +93,7 @@ export function App() {
             <Route path="/scanner" element={<ProductScannerPage />} />
             <Route path="/product/:gtin" element={<ProductScannerPage />} />
             <Route path="/recipes" element={<RecipeVeganizerPage />} />
+            <Route path="/profile" element={<ProfilePage />} />
             <Route path="/m/:slug" element={<PublicMenuPage />} />
           </Routes>
         </main>

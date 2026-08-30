@@ -191,30 +191,81 @@ export function RestaurantReviews({ restaurant }: RestaurantReviewsProps) {
 
           {formError && <div className="composer-error">{formError}</div>}
 
-          {/* Interactive 5-Leaf Selector */}
+          {/* Interactive Decimal Leaf Selector */}
           <div className="leaves-interactive-selector" role="radiogroup" aria-label={tx("Leaf rating")}>
-            <div className="leaves-row">
-              {[1, 2, 3, 4, 5].map((score) => {
-                const isLit = displayedScore >= score;
+            <div className="leaves-row" style={{ display: "flex", alignItems: "center", gap: "0.4rem", justifyContent: "center", margin: "0.5rem 0" }}>
+              {[1, 2, 3, 4, 5].map((leafNum) => {
+                const fillRatio = Math.max(0, Math.min(1, displayedScore - (leafNum - 1)));
                 return (
                   <button
-                    key={score}
+                    key={leafNum}
                     type="button"
-                    className={`leaf-btn ${isLit ? "active" : ""}`}
-                    onMouseEnter={() => setHoverScore(score)}
-                    onMouseLeave={() => setHoverScore(null)}
-                    onClick={() => setLeavesScore(score)}
-                    aria-label={`${score} ${score === 1 ? tx("Leaf") : tx("Leaves")}`}
+                    className="leaf-btn"
+                    style={{
+                      background: "none",
+                      border: "none",
+                      fontSize: "1.75rem",
+                      cursor: "pointer",
+                      padding: "0.15rem",
+                      position: "relative",
+                      display: "inline-flex",
+                      filter: fillRatio === 0 ? "grayscale(100%) opacity(35%)" : "none",
+                      transition: "transform 0.15s ease, filter 0.15s ease",
+                    }}
+                    onClick={() => {
+                      // Click cycles between whole number and .5 increment
+                      if (leavesScore === leafNum) {
+                        setLeavesScore(Math.max(1, leafNum - 0.5));
+                      } else {
+                        setLeavesScore(leafNum);
+                      }
+                    }}
+                    aria-label={`${leafNum} ${leafNum === 1 ? tx("Leaf") : tx("Leaves")}`}
                   >
                     🍃
                   </button>
                 );
               })}
             </div>
-            <div className="leaf-feedback-text">
-              <strong>
-                {displayedScore} / 5 {displayedScore === 1 ? tx("Leaf") : tx("Leaves")}
-              </strong>
+
+            {/* Decimal Precision Slider (1.0 to 5.0 in 0.1 increments) */}
+            <div className="decimal-slider-wrap" style={{ display: "flex", alignItems: "center", gap: "0.75rem", padding: "0 0.5rem", maxWidth: "320px", margin: "0 auto" }}>
+              <input
+                type="range"
+                min="1.0"
+                max="5.0"
+                step="0.1"
+                value={leavesScore}
+                onChange={(e) => setLeavesScore(parseFloat(e.target.value))}
+                aria-label={tx("Leaf rating")}
+                style={{ flex: 1, accentColor: "#059669", cursor: "pointer" }}
+              />
+              <span className="decimal-score-tag" style={{ fontWeight: 700, fontSize: "1.1rem", color: "#047857", minWidth: "4.5rem", textAlign: "right" }}>
+                {leavesScore.toFixed(1)} / 5
+              </span>
+            </div>
+
+            {/* Quick preset buttons */}
+            <div className="preset-buttons-row" style={{ display: "flex", gap: "0.35rem", justifyContent: "center", marginTop: "0.6rem" }}>
+              {[1.0, 2.0, 3.0, 4.0, 4.5, 4.8, 5.0].map((preset) => (
+                <button
+                  key={preset}
+                  type="button"
+                  onClick={() => setLeavesScore(preset)}
+                  style={{
+                    fontSize: "0.76rem",
+                    padding: "0.2rem 0.45rem",
+                    borderRadius: "0.375rem",
+                    border: leavesScore === preset ? "1.5px solid #059669" : "1px solid #e2e8f0",
+                    background: leavesScore === preset ? "#ecfdf5" : "#ffffff",
+                    color: leavesScore === preset ? "#047857" : "#475569",
+                    fontWeight: leavesScore === preset ? 700 : 500,
+                    cursor: "pointer",
+                  }}
+                >
+                  {preset.toFixed(1)}
+                </button>
+              ))}
             </div>
           </div>
 
@@ -310,8 +361,8 @@ export function RestaurantReviews({ restaurant }: RestaurantReviewsProps) {
                     </div>
 
                     <div className="review-leaves-badge">
-                      {"🍃".repeat(rev.leavesScore)}
-                      <span className="score-num">{rev.leavesScore}/5</span>
+                      <span aria-hidden="true">🍃</span>
+                      <span className="score-num">{rev.leavesScore.toFixed(1)}/5</span>
                     </div>
                   </header>
 

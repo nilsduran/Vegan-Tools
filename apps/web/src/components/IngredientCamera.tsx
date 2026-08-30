@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from "react";
-import { Camera, CameraOff, LoaderCircle } from "lucide-react";
+import { Camera, CameraOff, HelpCircle, LoaderCircle, RefreshCw } from "lucide-react";
 import { tx } from "../i18n";
+import { CameraPermissionModal } from "./CameraPermissionModal";
 
 export function IngredientCamera({
   onCapture,
@@ -12,6 +13,8 @@ export function IngredientCamera({
   const [ready, setReady] = useState(false);
   const [capturing, setCapturing] = useState(false);
   const [error, setError] = useState("");
+  const [showPermissionModal, setShowPermissionModal] = useState(false);
+  const [retryCount, setRetryCount] = useState(0);
 
   useEffect(() => {
     if (!started) return;
@@ -19,6 +22,7 @@ export function IngredientCamera({
     let stream: MediaStream | undefined;
 
     const openCamera = async () => {
+      setError("");
       try {
         stream = await navigator.mediaDevices.getUserMedia({
           video: {
@@ -33,6 +37,7 @@ export function IngredientCamera({
         setReady(true);
       } catch {
         setError(tx("Camera access is unavailable. Upload an image below instead."));
+        setShowPermissionModal(true);
       }
     };
 
@@ -41,7 +46,7 @@ export function IngredientCamera({
       active = false;
       stream?.getTracks().forEach((track) => track.stop());
     };
-  }, [started]);
+  }, [started, retryCount]);
 
   const capture = async () => {
     const video = videoRef.current;
@@ -74,7 +79,45 @@ export function IngredientCamera({
   }
 
   if (error) {
-    return <div className="camera-error"><CameraOff />{error}</div>;
+    return (
+      <>
+        <div className="camera-error" style={{ display: "flex", flexDirection: "column", gap: "0.6rem", alignItems: "center" }}>
+          <div style={{ display: "flex", alignItems: "center", gap: "0.5rem" }}>
+            <CameraOff />
+            <span>{error}</span>
+          </div>
+          <div style={{ display: "flex", gap: "0.5rem", flexWrap: "wrap", justifyContent: "center" }}>
+            <button
+              type="button"
+              className="secondary-button"
+              style={{ fontSize: "0.82rem", padding: "0.4rem 0.75rem", gap: "0.35rem" }}
+              onClick={() => setShowPermissionModal(true)}
+            >
+              <HelpCircle size={15} aria-hidden="true" />
+              <span>{tx("How to enable camera")}</span>
+            </button>
+            <button
+              type="button"
+              className="secondary-button"
+              style={{ fontSize: "0.82rem", padding: "0.4rem 0.75rem", gap: "0.35rem" }}
+              onClick={() => setRetryCount((prev) => prev + 1)}
+            >
+              <RefreshCw size={15} aria-hidden="true" />
+              <span>{tx("Retry")}</span>
+            </button>
+          </div>
+        </div>
+
+        <CameraPermissionModal
+          isOpen={showPermissionModal}
+          onClose={() => setShowPermissionModal(false)}
+          onRetry={() => {
+            setRetryCount((prev) => prev + 1);
+          }}
+          onNativeCapture={onCapture}
+        />
+      </>
+    );
   }
 
   return (

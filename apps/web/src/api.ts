@@ -431,3 +431,18 @@ export async function deleteRestaurantReview(
   };
 }
 
+export async function getUserReviews(token: string): Promise<RestaurantReview[]> {
+  const response = await checkedFetch("/v1/users/me/reviews", {
+    method: "GET",
+    headers: {
+      Authorization: `Bearer ${token}`,
+    },
+  });
+  const json = (await response.json()) as { reviews: unknown[] };
+  if (!Array.isArray(json.reviews)) return [];
+  return json.reviews.flatMap((r) => {
+    const parsed = restaurantReviewSchema.safeParse(r);
+    return parsed.success ? [parsed.data] : [];
+  });
+}
+
