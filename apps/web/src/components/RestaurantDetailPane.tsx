@@ -66,17 +66,50 @@ function formatDisplayAddress(address: string): string {
     .trim();
 }
 
-// Extract cuisine tags from restaurant name or address if apparent
-function getCuisineTag(restaurant: RestaurantCandidate): string | undefined {
-  const name = restaurant.name.toLowerCase();
-  if (name.includes("pizza") || name.includes("pizzeria")) return "Pizzeria";
-  if (name.includes("burger")) return "Hamburgueseria";
-  if (name.includes("sushi") || name.includes("ramen")) return "Japonès";
-  if (name.includes("tapas") || name.includes("tapes")) return "Tapes";
-  if (name.includes("bakery") || name.includes("pastisseria")) return "Forn / Cafeteria";
-  if (name.includes("gelat") || name.includes("helad")) return "Gelateria";
-  if (name.includes("mexic") || name.includes("taco")) return "Mexicà";
-  if (name.includes("india") || name.includes("curry")) return "Indi";
+// Extract cuisine tags from restaurant cuisine, tags or name
+function getCuisineTag(restaurant: RestaurantCandidate): { icon: string; label: string } | undefined {
+  const name = (restaurant.name || "").toLowerCase();
+  const tags = (restaurant.tags ?? []).map((t) => t.toLowerCase());
+  const cuisine = (restaurant.cuisine ?? "").toLowerCase();
+  const text = `${name} ${tags.join(" ")} ${cuisine}`;
+
+  if (name.includes("asante") || text.includes("brunch") || text.includes("breakfast") || text.includes("esmorzar")) {
+    return { icon: "☕", label: "Brunch & Cafè" };
+  }
+  if (name.includes("vrutal") || name.includes("mad mad") || name.includes("quinoa") || text.includes("burger") || text.includes("hamburg")) {
+    return { icon: "🍔", label: "Hamburgueseria" };
+  }
+  if (name.includes("blu bar") || text.includes("pizza") || text.includes("pizzeria") || text.includes("itali")) {
+    return { icon: "🍕", label: "Pizzeria / Italià" };
+  }
+  if (name.includes("gallo santo") || text.includes("taco") || text.includes("mexic") || text.includes("burrito") || text.includes("quesadilla")) {
+    return { icon: "🌮", label: "Mexicà" };
+  }
+  if (name.includes("desoriente") || text.includes("sushi") || text.includes("japan") || text.includes("japones")) {
+    return { icon: "🍣", label: "Japonès & Sushi" };
+  }
+  if (text.includes("ramen") || text.includes("noodle") || text.includes("asian") || text.includes("asiat") || text.includes("thai") || text.includes("viet") || text.includes("wok")) {
+    return { icon: "🍜", label: "Asiàtic / Ramen" };
+  }
+  if (name.includes("good shit") || text.includes("kebab") || text.includes("falafel") || text.includes("shawarma") || text.includes("doner") || text.includes("döner")) {
+    return { icon: "🥙", label: "Kebab & Falafel" };
+  }
+  if (name.includes("hanai") || text.includes("bakery") || text.includes("pastiss") || text.includes("pasteler") || text.includes("croissant") || text.includes("cake") || text.includes("ice_cream") || text.includes("gelat") || text.includes("pastry")) {
+    return { icon: "🥐", label: "Pastisseria / Forn" };
+  }
+  if (text.includes("cafe") || text.includes("cafeter") || text.includes("coffee") || text.includes("morgentau")) {
+    return { icon: "☕", label: "Cafeteria" };
+  }
+  if (name.includes("bubita") || text.includes("paella") || text.includes("arros") || text.includes("rice")) {
+    return { icon: "🥘", label: "Paella & Tapes" };
+  }
+  if (text.includes("curry") || text.includes("india") || text.includes("masala")) {
+    return { icon: "🍛", label: "Cuina Índia" };
+  }
+  if (text.includes("tapas") || text.includes("tapa") || text.includes("pinchos") || text.includes("bistrot") || text.includes("bar") || text.includes("mediterranean") || text.includes("spanish")) {
+    return { icon: "🥗", label: "Tapes & Mercat" };
+  }
+
   return undefined;
 }
 
@@ -134,7 +167,12 @@ export function RestaurantDetailPane({
               <Leaf aria-hidden="true" />
               <span>{badge.label}</span>
             </span>
-            {cuisine && <span className="cuisine-badge">{cuisine}</span>}
+            {cuisine && (
+              <span className="cuisine-badge">
+                <span aria-hidden="true" style={{ marginRight: "0.25rem" }}>{cuisine.icon}</span>
+                <span>{tx(cuisine.label)}</span>
+              </span>
+            )}
           </div>
           <h2>{restaurant.name}</h2>
         </div>

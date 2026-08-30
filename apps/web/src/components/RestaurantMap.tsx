@@ -19,7 +19,7 @@ function distanceInMeters(left: L.LatLng, right: L.LatLng): number {
   return earthRadius * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
 }
 
-function getCuisineIcon(restaurant: RestaurantCandidate): string {
+export function getCuisineIcon(restaurant: RestaurantCandidate): string {
   const name = (restaurant.name || "").toLowerCase();
   const tags = (restaurant.tags ?? []).map((t) => t.toLowerCase());
   const cuisine = (restaurant.cuisine ?? "").toLowerCase();
@@ -295,26 +295,19 @@ export function RestaurantMap({
       attributionControl: true,
     });
 
-    // Minimalist Esri Light Gray Canvas: clean roads, geography and typography with ZERO random commercial POIs/businesses
-    L.tileLayer(
-      "https://server.arcgisonline.com/ArcGIS/rest/services/Canvas/World_Light_Gray_Base/MapServer/tile/{z}/{y}/{x}",
-      {
-        attribution:
-          '&copy; <a href="https://www.esri.com/" target="_blank" rel="noreferrer">Esri</a>, HERE, Garmin, &copy; OpenStreetMap contributors',
-        maxNativeZoom: 16,
-        maxZoom: 20,
-      }
-    ).addTo(map);
+    // CARTO Voyager (Warm, elegant and clean gastronomy basemap)
+    const cartoKey = (import.meta.env.VITE_CARTO_API_KEY as string | undefined)?.trim();
+    const cartoTileUrl = cartoKey
+      ? `https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png?api_key=${cartoKey}`
+      : "https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png";
 
-    L.tileLayer(
-      "https://server.arcgisonline.com/ArcGIS/rest/services/Canvas/World_Light_Gray_Reference/MapServer/tile/{z}/{y}/{x}",
-      {
-        attribution: "",
-        maxNativeZoom: 16,
-        maxZoom: 20,
-        pane: "shadowPane",
-      }
-    ).addTo(map);
+    L.tileLayer(cartoTileUrl, {
+      attribution:
+        '&copy; <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noreferrer">OpenStreetMap</a> contributors, &copy; <a href="https://carto.com/attributions" target="_blank" rel="noreferrer">CARTO</a>',
+      subdomains: "abcd",
+      maxNativeZoom: 19,
+      maxZoom: 20,
+    }).addTo(map);
 
     L.control
       .zoom({

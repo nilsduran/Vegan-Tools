@@ -35,7 +35,7 @@ import {
 } from "../api";
 import { MenuEditor } from "../components/MenuEditor";
 import { RestaurantDetailPane } from "../components/RestaurantDetailPane";
-import { RestaurantMap } from "../components/RestaurantMap";
+import { RestaurantMap, getCuisineIcon } from "../components/RestaurantMap";
 import { SearchTypeahead } from "../components/SearchTypeahead";
 import { FilterPills, filterRestaurants } from "../components/FilterPills";
 import { BottomSheet, type SnapPoint } from "../components/BottomSheet";
@@ -558,7 +558,10 @@ export function MenuReaderPage() {
                           </div>
                         ) : (
                           <div>
-                            <strong>{restaurant.name}</strong>
+                            <div style={{ display: "flex", alignItems: "center", gap: "0.4rem" }}>
+                              <span aria-hidden="true" style={{ fontSize: "1.05rem" }}>{getCuisineIcon(restaurant)}</span>
+                              <strong>{restaurant.name}</strong>
+                            </div>
                             <span>{distanceStr && restaurant.address ? `${distanceStr} · ${restaurant.address}` : (distanceStr || restaurant.address || "")}</span>
                             <div className="restaurant-links">
                               <button
