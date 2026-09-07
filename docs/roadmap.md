@@ -154,6 +154,18 @@ Projectes de gran envergadura o expansions estratègiques de menor urgència ope
    - Sistema de recol·lecció periòdica d'horaris comercials mitjançant Gemini Search Grounding / webs oficials / Google Places fins a assolir una cobertura massiva (>90%) abans d'activar el filtre públic.
 8. **🌐 Subdominis d'idioma i enrutament internacional**:
    - Configuració per a resolució d'idiomes mitjançant subdominis (`ca.vegantools.org` / `en.vegantools.org`) o prefixes de ruta per a posicionament SEO global.
+9. **🌱 Pàgina dedicada del projecte i manifest de valors (`/valors` o `/about`)**:
+   - Desenvolupar una pàgina institucional independent per explicar la missió antiespecista, la política d'Espai Segur (tolerància zero amb imatges d'explotació), la privacitat radical zero-tracking i el rigor del 99% d'evidències.
+10. **🐮 Investigació exhaustiva de HappyCow i proposta de valor guanyadora**:
+    - **Objectiu**: Analitzar a fons el disseny, arquitectura de la informació, funcionalitats i dinàmiques de comunitat de HappyCow (el referent històric del sector) per tancar mancances i consolidar les àrees on **Vegan Tools** pot oferir una experiència substancialment superior:
+      - *Què té de bo HappyCow*: Massa crítica d'usuaris, directori global ampli, ressenyes amb fotografies aportades per la comunitat, filtres bàsics (vegà, vegetarià, opcions) i sistema de gamificació/ambaixadors.
+      - *Mancances estructurals de HappyCow que Vegan Tools supera*:
+        1. **Anàlisi real de la carta amb IA**: HappyCow es limita a etiquetes genèriques i ressenyes d'usuaris sovint desfasades; Vegan Tools llegeix la carta real en PDF/foto/web i audita plat per plat amb justificació d'ingredients.
+        2. **Detecció automàtica de plats adaptables**: Suggeriments d'enginyeria culinària per saber exactament com demanar un plat en llocs no 100% vegans (ex: "sense formatge", "substituir maionesa").
+        3. **Plataforma 360° integrada**: HappyCow és només un directori de restaurants; Vegan Tools integra en una sola app la cerca de restauració, l'escàner de productes de supermercat (codi de barres + OCR d'ingredients) i el veganitzador de receptes casolanes.
+        4. **Espai Segur (Safe Space) real**: HappyCow mostra freqüentment en portada fotos d'hamburgueses de carn o plats d'animals en llocs mixtes; Vegan Tools té una política estricta de filtre ètic antiespecista.
+        5. **Privacitat i transparència zero-tracking**: Sense xarxes publicitàries invasives, sense rastrejadors de dades de geolocalització a tercers, i amb una base oberta basada en OpenStreetMap i Open Food Facts.
+
 
 ---
 

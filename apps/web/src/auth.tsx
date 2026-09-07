@@ -11,9 +11,19 @@ import { tx } from "./i18n";
 
 export interface AuthUser {
   id: string;
-  email?: string;
+  username: string;
   name: string;
+  email?: string;
   avatarUrl?: string;
+}
+
+export function normalizeUsername(raw: string): string {
+  return raw
+    .trim()
+    .toLowerCase()
+    .replace(/^@+/, "")
+    .replace(/[^a-z0-9_.-]/g, "_")
+    .slice(0, 25);
 }
 
 export interface AuthContextValue {
@@ -21,16 +31,19 @@ export interface AuthContextValue {
   session: Session | null;
   token: string | null;
   loading: boolean;
-  signInWithGoogle: () => Promise<{ error?: string }>;
-  signInWithApple: () => Promise<{ error?: string }>;
-  signInWithMagicLink: (email: string) => Promise<{ error?: string; message?: string }>;
+  signInWithGoogle: (chosenUsername?: string) => Promise<{ error?: string }>;
+  signInWithApple: (chosenUsername?: string) => Promise<{ error?: string }>;
+  signInWithMagicLink: (email: string, chosenUsername?: string) => Promise<{ error?: string; message?: string }>;
   signInWithPassword: (email: string, password: string) => Promise<{ error?: string }>;
   signUpWithPassword: (
     email: string,
     password: string,
-    name?: string
+    username: string
   ) => Promise<{ error?: string; message?: string }>;
   signOut: () => Promise<void>;
+  loginWithUsername: (username: string) => void;
+  updateUsername: (newUsername: string) => void;
+  /** @deprecated use loginWithUsername */
   loginAsDemoUser: (name?: string) => void;
 }
 
@@ -42,18 +55,19 @@ const supabaseAnonKey = (import.meta.env.VITE_SUPABASE_ANON_KEY as string | unde
 export const supabase: SupabaseClient | null =
   supabaseUrl && supabaseAnonKey ? createClient(supabaseUrl, supabaseAnonKey) : null;
 
-function userFromSupabaseUser(user: User): AuthUser {
+function userFromSupabaseUser(user: User, fallbackUsername?: string): AuthUser {
   const metadata = user.user_metadata || {};
-  const name =
-    metadata.full_name ||
-    metadata.name ||
-    metadata.user_name ||
-    (user.email ? user.email.split("@")[0] : "Usuari");
+  const cleanUser =
+    normalizeUsername(metadata.username || metadata.user_name || fallbackUsername || "") ||
+    normalizeUsername(user.email ? user.email.split("@")[0]! : "") ||
+    `vegi_${user.id.slice(0, 5)}`;
 
+  const name = `@${cleanUser}`;
   const avatarUrl = metadata.avatar_url || metadata.picture || undefined;
 
   return {
     id: user.id,
+    username: cleanUser,
     email: user.email,
     name,
     avatarUrl,
@@ -97,24 +111,91 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         authListener.subscription.unsubscribe();
       };
     } else {
-      // Local/offline demo user fallback
-      const stored = localStorage.getItem("vegan_tools_demo_user");
+      // Local/offline public user fallback (restored by username)
+      const stored =
+        localStorage.getItem("vegan_tools_public_user") ||
+        localStorage.getItem("vegan_tools_demo_user");
       if (stored) {
         try {
           const parsed = JSON.parse(stored) as { user: AuthUser; token: string };
-          setUser(parsed.user);
-          setToken(parsed.token);
+          if (parsed.user) {
+            const rawUser = parsed.user;
+            const cleanUser =
+              rawUser.username ||
+              normalizeUsername(rawUser.name || "") ||
+              "usuari_vegi";
+            const sanitizedUser: AuthUser = {
+              id: rawUser.id || `user-${generateSafeUUID()}`,
+              username: cleanUser,
+              name: `@${cleanUser}`,
+              avatarUrl: rawUser.avatarUrl,
+            };
+            setUser(sanitizedUser);
+            setToken(parsed.token || "public_token");
+          }
         } catch {
-          // Ignore
+          // Ignore parse errors
         }
       }
       setLoading(false);
     }
   }, []);
 
-  const signInWithGoogle = async (): Promise<{ error?: string }> => {
+  const loginWithUsername = (chosenUsername: string) => {
+    const clean =
+      normalizeUsername(chosenUsername) ||
+      `vegi_${Math.floor(1000 + Math.random() * 9000)}`;
+    const userId = `user-${generateSafeUUID()}`;
+    const newUser: AuthUser = {
+      id: userId,
+      username: clean,
+      name: `@${clean}`,
+    };
+
+    const header = btoa(JSON.stringify({ alg: "HS256", typ: "JWT" }));
+    const payload = btoa(
+      JSON.stringify({
+        sub: userId,
+        username: clean,
+        user_metadata: { full_name: `@${clean}`, username: clean },
+      })
+    );
+    const generatedToken = `${header}.${payload}.sig`;
+
+    localStorage.setItem(
+      "vegan_tools_public_user",
+      JSON.stringify({ user: newUser, token: generatedToken })
+    );
+    localStorage.setItem("vegan_tools_public_username", clean);
+    localStorage.removeItem("vegan_tools_demo_user");
+    setUser(newUser);
+    setToken(generatedToken);
+  };
+
+  const updateUsername = (newUsername: string) => {
+    const clean = normalizeUsername(newUsername);
+    if (!clean) return;
+
+    setUser((prev) => {
+      if (!prev) return null;
+      const updated: AuthUser = {
+        ...prev,
+        username: clean,
+        name: `@${clean}`,
+      };
+      const currentToken = token || "public_token";
+      localStorage.setItem(
+        "vegan_tools_public_user",
+        JSON.stringify({ user: updated, token: currentToken })
+      );
+      localStorage.setItem("vegan_tools_public_username", clean);
+      return updated;
+    });
+  };
+
+  const signInWithGoogle = async (chosenUsername?: string): Promise<{ error?: string }> => {
     if (!supabase) {
-      loginAsDemoUser(tx("Google User"));
+      loginWithUsername(chosenUsername || "usuari_comunitat");
       return {};
     }
     const { error } = await supabase.auth.signInWithOAuth({
@@ -126,9 +207,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     return error ? { error: error.message } : {};
   };
 
-  const signInWithApple = async (): Promise<{ error?: string }> => {
+  const signInWithApple = async (chosenUsername?: string): Promise<{ error?: string }> => {
     if (!supabase) {
-      loginAsDemoUser(tx("Apple User"));
+      loginWithUsername(chosenUsername || "usuari_comunitat");
       return {};
     }
     const { error } = await supabase.auth.signInWithOAuth({
@@ -141,11 +222,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   };
 
   const signInWithMagicLink = async (
-    email: string
+    email: string,
+    chosenUsername?: string
   ): Promise<{ error?: string; message?: string }> => {
     if (!supabase) {
-      loginAsDemoUser(email.split("@")[0]);
-      return { message: tx("Session started in demo mode.") };
+      loginWithUsername(chosenUsername || email.split("@")[0] || "usuari_comunitat");
+      return { message: tx("Session started.") };
     }
     const { error } = await supabase.auth.signInWithOtp({
       email: email.trim(),
@@ -162,7 +244,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     password: string
   ): Promise<{ error?: string }> => {
     if (!supabase) {
-      loginAsDemoUser(email.split("@")[0]);
+      loginWithUsername(email.split("@")[0] || "usuari_comunitat");
       return {};
     }
     const { error } = await supabase.auth.signInWithPassword({
@@ -175,10 +257,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const signUpWithPassword = async (
     email: string,
     password: string,
-    name?: string
+    username: string
   ): Promise<{ error?: string; message?: string }> => {
+    const cleanUser = normalizeUsername(username) || email.split("@")[0] || "usuari";
     if (!supabase) {
-      loginAsDemoUser(name || email.split("@")[0]);
+      loginWithUsername(cleanUser);
       return { message: "Compte creat correctament." };
     }
     const { data, error } = await supabase.auth.signUp({
@@ -186,7 +269,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       password,
       options: {
         data: {
-          full_name: name?.trim(),
+          username: cleanUser,
+          full_name: `@${cleanUser}`,
         },
       },
     });
@@ -201,36 +285,16 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     if (supabase) {
       await supabase.auth.signOut();
     }
+    localStorage.removeItem("vegan_tools_public_user");
+    localStorage.removeItem("vegan_tools_public_username");
     localStorage.removeItem("vegan_tools_demo_user");
     setUser(null);
     setSession(null);
     setToken(null);
   };
 
-  const loginAsDemoUser = (name = "Col·laborador/a") => {
-    const demoId = `user-demo-${generateSafeUUID()}`;
-    const demoUser: AuthUser = {
-      id: demoId,
-      name,
-      email: "demo@vegan-tools.app",
-    };
-    // Create a client fake JWT token
-    const header = btoa(JSON.stringify({ alg: "HS256", typ: "JWT" }));
-    const payload = btoa(
-      JSON.stringify({
-        sub: demoId,
-        email: "demo@vegan-tools.app",
-        user_metadata: { full_name: name },
-      })
-    );
-    const demoToken = `${header}.${payload}.demo_sig`;
-
-    localStorage.setItem(
-      "vegan_tools_demo_user",
-      JSON.stringify({ user: demoUser, token: demoToken })
-    );
-    setUser(demoUser);
-    setToken(demoToken);
+  const loginAsDemoUser = (name = "usuari_comunitat") => {
+    loginWithUsername(name);
   };
 
   return (
@@ -246,6 +310,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         signInWithPassword,
         signUpWithPassword,
         signOut,
+        loginWithUsername,
+        updateUsername,
         loginAsDemoUser,
       }}
     >
@@ -265,6 +331,8 @@ const defaultAuthValue: AuthContextValue = {
   signInWithPassword: async () => ({}),
   signUpWithPassword: async () => ({}),
   signOut: async () => {},
+  loginWithUsername: () => {},
+  updateUsername: () => {},
   loginAsDemoUser: () => {},
 };
 

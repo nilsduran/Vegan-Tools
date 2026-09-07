@@ -50,13 +50,13 @@ export function AuthDialog({
     signInWithMagicLink,
     signInWithPassword,
     signUpWithPassword,
-    loginAsDemoUser,
+    loginWithUsername,
   } = useAuth();
 
+  const [username, setUsername] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-  const [name, setName] = useState("");
-  const [mode, setMode] = useState<"magic_link" | "password" | "signup">("magic_link");
+  const [mode, setMode] = useState<"username" | "magic_link" | "password" | "signup">("username");
   const [loading, setLoading] = useState(false);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
   const [successMsg, setSuccessMsg] = useState<string | null>(null);
@@ -68,7 +68,9 @@ export function AuthDialog({
     setSuccessMsg(null);
     setLoading(true);
     try {
-      const res = provider === "google" ? await signInWithGoogle() : await signInWithApple();
+      const res = provider === "google"
+        ? await signInWithGoogle(username)
+        : await signInWithApple(username);
       if (res.error) {
         setErrorMsg(res.error);
       } else {
@@ -82,14 +84,25 @@ export function AuthDialog({
 
   const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
-    if (!email.trim()) return;
     setErrorMsg(null);
     setSuccessMsg(null);
     setLoading(true);
 
     try {
-      if (mode === "magic_link") {
-        const res = await signInWithMagicLink(email);
+      if (mode === "username") {
+        if (!username.trim()) {
+          setErrorMsg(tx("Choose a public username"));
+          return;
+        }
+        loginWithUsername(username);
+        setSuccessMsg(tx("Session started."));
+        setTimeout(() => {
+          onSuccess?.();
+          onClose();
+        }, 500);
+      } else if (mode === "magic_link") {
+        if (!email.trim()) return;
+        const res = await signInWithMagicLink(email, username);
         if (res.error) {
           setErrorMsg(res.error);
         } else {
@@ -100,6 +113,7 @@ export function AuthDialog({
           }, 1800);
         }
       } else if (mode === "password") {
+        if (!email.trim()) return;
         const res = await signInWithPassword(email, password);
         if (res.error) {
           setErrorMsg(res.error);
@@ -108,7 +122,11 @@ export function AuthDialog({
           onClose();
         }
       } else {
-        const res = await signUpWithPassword(email, password, name);
+        if (!email.trim() || !username.trim()) {
+          setErrorMsg(tx("Choose a public username"));
+          return;
+        }
+        const res = await signUpWithPassword(email, password, username);
         if (res.error) {
           setErrorMsg(res.error);
         } else {
@@ -185,8 +203,18 @@ export function AuthDialog({
           <span>{tx("or with email")}</span>
         </div>
 
-        {/* 2. Mode tabs: Magic link vs Password */}
+        {/* 2. Mode tabs: Username vs Magic link vs Password vs Signup */}
         <div className="auth-mode-tabs">
+          <button
+            type="button"
+            className={mode === "username" ? "active" : ""}
+            onClick={() => {
+              setMode("username");
+              setErrorMsg(null);
+            }}
+          >
+            {tx("Username")}
+          </button>
           <button
             type="button"
             className={mode === "magic_link" ? "active" : ""}
@@ -221,33 +249,44 @@ export function AuthDialog({
 
         {/* 3. Form */}
         <form onSubmit={(e) => void handleSubmit(e)} className="auth-form">
-          {mode === "signup" && (
+          {/* Public username field (Always visible on username & signup modes) */}
+          {(mode === "username" || mode === "signup") && (
             <div className="auth-field">
-              <label htmlFor="auth-name">{tx("Your name or alias")}</label>
+              <label htmlFor="auth-username">{tx("Choose a public username")}</label>
+              <div style={{ position: "relative", display: "flex", alignItems: "center" }}>
+                <span style={{ position: "absolute", left: "0.75rem", fontWeight: 700, color: "#059669" }}>@</span>
+                <input
+                  id="auth-username"
+                  type="text"
+                  required
+                  value={username}
+                  onChange={(e) => setUsername(e.target.value.toLowerCase().replace(/[^a-z0-9_.-]/g, ""))}
+                  placeholder="nom_usuari (ex: carla_vegan)"
+                  maxLength={25}
+                  style={{ paddingLeft: "1.85rem" }}
+                />
+              </div>
+              <p style={{ margin: "0.25rem 0 0 0", fontSize: "0.76rem", color: "#64748b" }}>
+                {tx("This username will identify your reviews to the community.")}
+              </p>
+            </div>
+          )}
+
+          {mode !== "username" && (
+            <div className="auth-field">
+              <label htmlFor="auth-email">{tx("Email address")}</label>
               <input
-                id="auth-name"
-                type="text"
-                value={name}
-                onChange={(e) => setName(e.target.value)}
-                placeholder="Ex: Carla BCN"
-                maxLength={50}
+                id="auth-email"
+                type="email"
+                required
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                placeholder="tu@exemple.cat"
               />
             </div>
           )}
 
-          <div className="auth-field">
-            <label htmlFor="auth-email">{tx("Email address")}</label>
-            <input
-              id="auth-email"
-              type="email"
-              required
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              placeholder="tu@exemple.cat"
-            />
-          </div>
-
-          {mode !== "magic_link" && (
+          {mode !== "magic_link" && mode !== "username" && (
             <div className="auth-field">
               <label htmlFor="auth-password">{tx("Password")}</label>
               <input
@@ -265,6 +304,12 @@ export function AuthDialog({
           <button type="submit" className="auth-submit-btn" disabled={loading}>
             {loading ? (
               <Loader2 className="animate-spin" aria-hidden="true" />
+            ) : mode === "username" ? (
+              <span>
+                {username.trim()
+                  ? `${tx("Start as")} @${username.trim()}`
+                  : tx("Continue with username")}
+              </span>
             ) : mode === "magic_link" ? (
               <>
                 <Mail aria-hidden="true" />

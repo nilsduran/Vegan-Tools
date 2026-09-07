@@ -26,40 +26,235 @@ function distanceInMeters(left: L.LatLng, right: L.LatLng): number {
   return earthRadius * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
 }
 
-export function getCuisineIcon(restaurant: RestaurantCandidate): string {
+export function getCuisineIcons(restaurant: RestaurantCandidate): string[] {
   const name = (restaurant.name || "").toLowerCase();
   const tags = (restaurant.tags ?? []).map((t) => t.toLowerCase());
   const cuisine = (restaurant.cuisine ?? "").toLowerCase();
-  const text = `${name} ${tags.join(" ")} ${cuisine}`;
+  const notes = ("notes" in restaurant && typeof (restaurant as Record<string, unknown>).notes === "string"
+    ? (restaurant as Record<string, unknown>).notes as string
+    : "").toLowerCase();
+  const text = `${name} ${tags.join(" ")} ${cuisine} ${notes}`;
 
-  // Direct specific match for prominent featured places
-  if (name.includes("asante") || text.includes("brunch") || text.includes("breakfast") || text.includes("esmorzar")) return "☕";
-  if (name.includes("vrutal") || name.includes("mad mad") || name.includes("quinoa") || text.includes("burger") || text.includes("hamburg")) return "🍔";
-  if (name.includes("blu bar") || text.includes("pizza") || text.includes("pizzeria") || text.includes("itali")) return "🍕";
-  if (name.includes("gallo santo") || text.includes("taco") || text.includes("mexic") || text.includes("burrito") || text.includes("quesadilla")) return "🌮";
-  if (name.includes("desoriente") || text.includes("sushi") || text.includes("japan") || text.includes("japones") || text.includes("asian") || text.includes("asiat")) return "🍣";
-  if (text.includes("ramen") || text.includes("noodle") || text.includes("thai") || text.includes("viet") || text.includes("wok")) return "🍜";
-  if (name.includes("good shit") || text.includes("kebab") || text.includes("falafel") || text.includes("shawarma") || text.includes("doner") || text.includes("döner")) return "🥙";
-  if (name.includes("hanai") || text.includes("bakery") || text.includes("pastiss") || text.includes("pasteler") || text.includes("croissant") || text.includes("cake") || text.includes("ice_cream") || text.includes("gelat") || text.includes("pastry")) return "🥐";
-  if (text.includes("cafe") || text.includes("cafeter") || text.includes("coffee") || text.includes("morgentau")) return "☕";
-  if (name.includes("bubita") || text.includes("paella") || text.includes("arros") || text.includes("rice")) return "🥘";
-  if (text.includes("curry") || text.includes("india") || text.includes("masala")) return "🍛";
-  if (text.includes("tapas") || text.includes("tapa") || text.includes("pinchos") || text.includes("bistrot") || text.includes("bar") || text.includes("mediterranean") || text.includes("spanish")) return "🥗";
+  const icons: string[] = [];
+  const add = (emoji: string) => {
+    if (!icons.includes(emoji) && icons.length < 2) {
+      icons.push(emoji);
+    }
+  };
 
-  return restaurant.isVegan ? "🌱" : "🍽️";
+  // 1. Specific cuisines & prominent categories
+  if (
+    name.includes("gallo santo") ||
+    text.includes("taco") ||
+    text.includes("mexic") ||
+    text.includes("burrito") ||
+    text.includes("quesadilla") ||
+    text.includes("guacamole")
+  ) {
+    add("🌮");
+  }
+  if (
+    name.includes("blu bar") ||
+    text.includes("pizza") ||
+    text.includes("pizzeria") ||
+    text.includes("focaccia") ||
+    text.includes("calzone")
+  ) {
+    add("🍕");
+  }
+  if (
+    name.includes("vrutal") ||
+    name.includes("mad mad") ||
+    name.includes("quinoa") ||
+    name.includes("junk food") ||
+    text.includes("burger") ||
+    text.includes("hamburg") ||
+    text.includes("fries") ||
+    text.includes("patates")
+  ) {
+    add("🍔");
+  }
+  if (
+    name.includes("roots & rolls") ||
+    name.includes("desoriente") ||
+    text.includes("sushi") ||
+    text.includes("maki") ||
+    text.includes("nigiri") ||
+    text.includes("japan") ||
+    text.includes("japones")
+  ) {
+    add("🍣");
+  }
+  if (
+    text.includes("ramen") ||
+    text.includes("noodle") ||
+    text.includes("thai") ||
+    text.includes("viet") ||
+    text.includes("pho") ||
+    text.includes("pad thai") ||
+    text.includes("wok") ||
+    text.includes("asian") ||
+    text.includes("asiat")
+  ) {
+    add("🍜");
+  }
+  if (
+    name.includes("good shit") ||
+    text.includes("falafel") ||
+    text.includes("kebab") ||
+    text.includes("shawarma") ||
+    text.includes("hummus") ||
+    text.includes("pita") ||
+    text.includes("doner") ||
+    text.includes("döner") ||
+    text.includes("orient") ||
+    text.includes("lebanese") ||
+    text.includes("libanes")
+  ) {
+    add("🥙");
+  }
+  if (
+    name.includes("besneta") ||
+    name.includes("hanai") ||
+    text.includes("bakery") ||
+    text.includes("pastiss") ||
+    text.includes("pasteler") ||
+    text.includes("croissant") ||
+    text.includes("cake") ||
+    text.includes("pastry") ||
+    text.includes("dolç") ||
+    text.includes("pastissos") ||
+    text.includes("forn") ||
+    text.includes("boulangerie")
+  ) {
+    add("🥐");
+  }
+  if (
+    text.includes("ice_cream") ||
+    text.includes("gelat") ||
+    text.includes("helad") ||
+    text.includes("gelateria")
+  ) {
+    add("🍦");
+  }
+  if (
+    name.includes("asante") ||
+    text.includes("brunch") ||
+    text.includes("breakfast") ||
+    text.includes("esmorzar") ||
+    text.includes("cafe") ||
+    text.includes("cafeter") ||
+    text.includes("coffee") ||
+    text.includes("matcha") ||
+    text.includes("chai")
+  ) {
+    add("☕");
+  }
+  if (
+    name.includes("bubita") ||
+    text.includes("paella") ||
+    text.includes("arros") ||
+    text.includes("arroz") ||
+    text.includes("rice")
+  ) {
+    add("🥘");
+  }
+  if (
+    text.includes("curry") ||
+    text.includes("india") ||
+    text.includes("masala") ||
+    text.includes("tandoori") ||
+    text.includes("nepal")
+  ) {
+    add("🍛");
+  }
+  if (
+    name.includes("perra verde") ||
+    name.includes("cactuscat") ||
+    text.includes("tapas") ||
+    text.includes("tapa") ||
+    text.includes("pinchos") ||
+    text.includes("bistrot") ||
+    text.includes("mediterranean") ||
+    text.includes("mediterran") ||
+    text.includes("spanish") ||
+    text.includes("catalan")
+  ) {
+    add("🥗");
+  }
+  if (
+    text.includes("pasta") ||
+    text.includes("lasagn") ||
+    text.includes("spaghetti") ||
+    text.includes("ravioli") ||
+    text.includes("gnocchi")
+  ) {
+    add("🍝");
+  }
+  if (
+    name.includes("ale & hop") ||
+    text.includes("beer") ||
+    text.includes("cervesa") ||
+    text.includes("cerveza") ||
+    text.includes("brew") ||
+    text.includes("craft beer") ||
+    text.includes("pub")
+  ) {
+    add("🍺");
+  }
+  if (text.includes("cocktail") || text.includes("coctel") || text.includes("copas") || text.includes("bar")) {
+    add("🍸");
+  }
+  if (
+    text.includes("salad") ||
+    text.includes("amanida") ||
+    text.includes("ensalada") ||
+    text.includes("bowl") ||
+    text.includes("healthy") ||
+    text.includes("raw") ||
+    text.includes("organic") ||
+    text.includes("macrobiotic")
+  ) {
+    add("🥗");
+  }
+  if (
+    text.includes("dumpling") ||
+    text.includes("gyoza") ||
+    text.includes("dim sum") ||
+    text.includes("chinese") ||
+    text.includes("xines")
+  ) {
+    add("🥟");
+  }
+
+  // 2. Fallbacks if no specific cuisine matched
+  if (icons.length === 0) {
+    if (restaurant.isVegan) {
+      icons.push("🌱");
+    } else if (restaurant.isVegetarian) {
+      icons.push("🌿");
+    } else {
+      icons.push("🍽️");
+    }
+  }
+
+  return icons;
 }
 
-// Custom marker: round bubble with sharp thin needle base and large legible rating badge
+export function getCuisineIcon(restaurant: RestaurantCandidate): string {
+  return getCuisineIcons(restaurant)[0] ?? "🍽️";
+}
+
+// Custom modern gastronomic marker: circular dome + needle tip + top-right star badge
 function createRestaurantIcon(
   restaurant: RestaurantCandidate,
   isSelected: boolean,
   isHovered: boolean = false,
 ) {
-  const isHigh = isSelected || isHovered;
   const isFeatured = Boolean(restaurant.isFeatured);
 
   // Palette: Gold (Featured) / Forest Green (100% Vegan) / Amber (Vegetarian) / Cobalt Blue (Vegan Options)
-  const baseColor = isFeatured
+  const pinColor = isFeatured
     ? "#ca8a04" // Gold for Top Picks
     : restaurant.isVegan
       ? "#047857" // Forest emerald for 100% Vegan
@@ -67,53 +262,48 @@ function createRestaurantIcon(
         ? "#d97706" // Amber for Vegetarian
         : "#2563eb"; // Cobalt Blue for Vegan Options
 
-  const lighterBorderColor = isFeatured
-    ? "#fef08a" // Light gold
-    : restaurant.isVegan
-      ? "#a7f3d0" // Light emerald/mint
-      : restaurant.isVegetarian
-        ? "#fde68a" // Light amber
-        : "#bfdbfe"; // Light blue
-
-  const pinColor = baseColor;
-  const strokeColor = isSelected ? lighterBorderColor : isHovered ? lighterBorderColor : "#ffffff";
-  const strokeWidth = isHigh ? 2.5 : 2.0;
-  const width = isHigh ? 44 : 38;
-  const height = isHigh ? 56 : 48;
-  const cuisineIcon = getCuisineIcon(restaurant);
+  const strokeColor = isSelected ? "#fef08a" : isHovered ? "#ffffff" : "#ffffff";
+  const icons = getCuisineIcons(restaurant);
 
   const hasRating =
     typeof restaurant.rating === "number" &&
     Number.isFinite(restaurant.rating) &&
     restaurant.rating > 0;
   const ratingLabel = isFeatured
-    ? `★ ${restaurant.rating?.toFixed(1) || "5.0"}`
+    ? `${restaurant.rating?.toFixed(1) || "5.0"}`
     : (hasRating ? restaurant.rating!.toFixed(1) : "");
 
-  // Large, highly legible badge at the base (with real 10-11px font)
-  const ratingCapsule = hasRating || isFeatured
-    ? `<rect x="${isFeatured ? 6 : 9}" y="32" width="${isFeatured ? 28 : 22}" height="14" rx="7" fill="#ffffff" stroke="${pinColor}" stroke-width="1.6"/>
-       <text x="20" y="42.5" text-anchor="middle" font-family="system-ui, -apple-system, sans-serif" font-size="${isFeatured ? 8.5 : 9.5}" font-weight="800" fill="${pinColor}">${ratingLabel}</text>`
+  // Render cuisine emojis using HTML to guarantee native OS emoji rendering
+  const emojisHtml = icons.length === 1
+    ? `<span class="pin-cuisine-emoji single">${icons[0]}</span>`
+    : `<span class="pin-cuisine-emoji multi">${icons[0]}</span><span class="pin-cuisine-emoji multi second">${icons[1]}</span>`;
+
+  // Rating pill placed at the top-right of the dome so it never covers the needle or label
+  const ratingPillHtml = (hasRating || isFeatured)
+    ? `<div class="vegan-map-pin-rating" style="color: ${pinColor}; border-color: ${pinColor};">
+         ★ ${ratingLabel}
+       </div>`
     : "";
 
-  const svgHtml = `
-    <div style="width: ${width}px; height: ${height}px; margin: 0; padding: 0; display: block; line-height: 0; transform-origin: bottom center; ${
-      isSelected ? "transform: scale(1.11); filter: drop-shadow(0 0 10px rgba(0,0,0,0.5)) drop-shadow(0 6px 16px rgba(0,0,0,0.35)); z-index: 1000;" : isHovered ? "transform: scale(1.08); filter: drop-shadow(0 4px 12px rgba(0,0,0,0.35));" : ""
-    }">
-      <svg viewBox="0 0 40 50" width="${width}" height="${height}" fill="none" xmlns="http://www.w3.org/2000/svg" style="display: block; filter: drop-shadow(0 3px 8px rgba(0,0,0,0.32));">
-        <!-- Gastronomic map marker: circular dome + thin needle base -->
-        <path d="M20 2C10 2 2 10 2 20c0 7.5 4.5 14 11 16.8L20 48l7-11.2c6.5-2.8 11-9.3 11-16.8C38 10 30 2 20 2z" fill="${pinColor}" stroke="${strokeColor}" stroke-width="${strokeWidth}" stroke-linejoin="round"/>
-        <!-- Inner white disc for crisp cuisine icon -->
-        <circle cx="20" cy="19" r="13" fill="#ffffff"/>
-        <text x="20" y="25" text-anchor="middle" font-size="16">${cuisineIcon}</text>
-        ${ratingCapsule}
-      </svg>
+  const html = `
+    <div class="vegan-map-pin-wrapper ${isSelected ? "selected" : ""} ${isHovered ? "hovered" : ""}">
+      <div class="vegan-map-pin-body" style="background-color: ${pinColor}; border-color: ${strokeColor};">
+        <div class="vegan-map-pin-disc">
+          ${emojisHtml}
+        </div>
+      </div>
+      <div class="vegan-map-pin-needle" style="border-top-color: ${pinColor};"></div>
+      ${ratingPillHtml}
     </div>
   `;
 
+  // Width: 38px, Height: 46px (dome 36px + needle 10px - 2px overlap = 44px + margins)
+  const width = 38;
+  const height = 46;
+
   return L.divIcon({
-    html: svgHtml,
-    className: `vegan-tools-map-pin-container ${isHovered ? "hovered" : ""} ${isSelected ? "selected" : ""}`,
+    html,
+    className: "vegan-map-pin-leaflet-icon",
     iconSize: [width, height],
     iconAnchor: [width / 2, height],
     popupAnchor: [0, -height],
@@ -240,7 +430,7 @@ export function RestaurantMap({
         marker.bindTooltip(restaurant.name, {
           permanent: true,
           direction: "bottom",
-          offset: [0, 8],
+          offset: [0, 4],
           className: isSelected
             ? "map-pin-name-tooltip selected"
             : isHovered
@@ -302,16 +492,30 @@ export function RestaurantMap({
       attributionControl: true,
     });
 
-    // CARTO Voyager (Warm, elegant and clean gastronomy basemap)
+    // Basemap: Use CARTO Voyager if an API key is provided, Geoapify if key provided, otherwise official OpenStreetMap standard tiles (watermark-free)
     const cartoKey = (import.meta.env.VITE_CARTO_API_KEY as string | undefined)?.trim();
-    const cartoTileUrl = cartoKey
-      ? `https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png?api_key=${cartoKey}`
-      : "https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png";
+    const geoapifyKey = (import.meta.env.VITE_GEOAPIFY_API_KEY as string | undefined)?.trim();
 
-    L.tileLayer(cartoTileUrl, {
-      attribution:
-        '&copy; <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noreferrer">OpenStreetMap</a> contributors, &copy; <a href="https://carto.com/attributions" target="_blank" rel="noreferrer">CARTO</a>',
-      subdomains: "abcd",
+    let tileUrl = "https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png";
+    let attribution =
+      '&copy; <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noreferrer">OpenStreetMap</a> contributors';
+    let subdomains: string | string[] = "abc";
+
+    if (cartoKey) {
+      tileUrl = `https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png?api_key=${cartoKey}`;
+      attribution =
+        '&copy; <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noreferrer">OpenStreetMap</a> contributors, &copy; <a href="https://carto.com/attributions" target="_blank" rel="noreferrer">CARTO</a>';
+      subdomains = "abcd";
+    } else if (geoapifyKey) {
+      tileUrl = `https://maps.geoapify.com/v1/tile/osm-bright/{z}/{x}/{y}.png?apiKey=${geoapifyKey}`;
+      attribution =
+        'Powered by <a href="https://www.geoapify.com/" target="_blank">Geoapify</a> | &copy; <a href="https://www.openstreetmap.org/copyright" target="_blank">OpenStreetMap</a> contributors';
+      subdomains = "abcd";
+    }
+
+    L.tileLayer(tileUrl, {
+      attribution,
+      subdomains,
       maxNativeZoom: 19,
       maxZoom: 20,
     }).addTo(map);

@@ -8,6 +8,7 @@ import { useEffect, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import type { RestaurantReview } from "@vegan-tools/domain";
 import {
+  Edit2,
   ExternalLink,
   Leaf,
   Loader2,
@@ -27,7 +28,7 @@ import { t, tx, useLanguage } from "../i18n";
 export function ProfilePage() {
   const language = useLanguage();
   const navigate = useNavigate();
-  const { user, token, signOut } = useAuth();
+  const { user, token, signOut, updateUsername } = useAuth();
 
   const [reviews, setReviews] = useState<RestaurantReview[]>([]);
   const [loadingReviews, setLoadingReviews] = useState(false);
@@ -73,15 +74,46 @@ export function ProfilePage() {
       <header className="profile-header-card">
         <div className="profile-user-info">
           <div className="profile-avatar">
-            {user?.name ? user.name.charAt(0).toUpperCase() : <User size={28} />}
+            {user?.username ? user.username.charAt(0).toUpperCase() : <User size={28} />}
           </div>
           <div className="profile-user-details">
-            <h1>
-              {user ? user.name : tx("My Profile")}
-            </h1>
-            <p>
-              {user?.email || tx("Sign in to manage your reviews")}
-            </p>
+            {user ? (
+              <>
+                <div style={{ display: "flex", alignItems: "center", gap: "0.5rem" }}>
+                  <h1 style={{ margin: 0 }}>@{user.username}</h1>
+                  <button
+                    type="button"
+                    className="profile-edit-username-btn"
+                    onClick={() => {
+                      const updated = prompt(tx("Choose a public username"), user.username);
+                      if (updated && updated.trim()) {
+                        updateUsername(updated.trim());
+                      }
+                    }}
+                    title={tx("Edit username")}
+                    style={{
+                      background: "none",
+                      border: "none",
+                      color: "#059669",
+                      cursor: "pointer",
+                      padding: "0.2rem",
+                      display: "inline-flex",
+                      alignItems: "center",
+                    }}
+                  >
+                    <Edit2 size={16} />
+                  </button>
+                </div>
+                <p style={{ margin: "0.25rem 0 0 0", color: "#64748b", fontSize: "0.85rem" }}>
+                  {tx("Public community profile for restaurant reviews")}
+                </p>
+              </>
+            ) : (
+              <>
+                <h1>{tx("My Profile")}</h1>
+                <p>{tx("Choose a username to publish and manage your reviews")}</p>
+              </>
+            )}
           </div>
         </div>
 

@@ -91,12 +91,13 @@ export function RestaurantReviews({ restaurant }: RestaurantReviewsProps) {
     setFormError(null);
     setSubmitting(true);
     try {
+      const displayName = customName.trim() || (user.username ? `@${user.username}` : user.name);
       const res = await submitRestaurantReview(
         restaurant.id,
         {
           leavesScore,
           comment: comment.trim(),
-          userName: customName.trim() || user.name,
+          userName: displayName,
         },
         token
       );
@@ -185,7 +186,7 @@ export function RestaurantReviews({ restaurant }: RestaurantReviewsProps) {
               {myReview ? tx("Edit your review") : tx("Rate the vegan experience")}
             </h4>
             <span className="composer-user-hint">
-              {tx("As")} <strong>{user?.name}</strong>
+              {tx("As")} <strong>{user?.username ? `@${user.username}` : user?.name}</strong>
             </span>
           </div>
 

@@ -440,6 +440,18 @@ const caPhrases = {
   "OpenStreetMap pins and reviewed vegan menus": "Pins d'OpenStreetMap i cartes veganes revisades",
   "Zero tolerance for images of animal cruelty or meat. 100% plant-based sanctuary for animal liberation.":
     "Tolerància zero amb imatges de carn o crueltat animal. Santuari 100% vegetal per a l'alliberament animal.",
+  "Public username": "Nom d'usuari públic",
+  "Choose a public username": "Tria un nom d'usuari públic",
+  "This username will identify your reviews to the community.":
+    "Aquest nom identificarà les teves ressenyes davant la comunitat.",
+  "Public community profile for restaurant reviews":
+    "Perfil comunitari públic per a ressenyes de restaurants",
+  "Choose a username to publish and manage your reviews":
+    "Tria un nom d'usuari per publicar i gestionar les teves ressenyes",
+  "Edit username": "Edita el nom d'usuari",
+  "Start as": "Comença com a",
+  "Continue with username": "Continua amb nom d'usuari",
+  "Username": "Nom d'usuari",
 } as const;
 
 function getInitialLanguage(): Language {
