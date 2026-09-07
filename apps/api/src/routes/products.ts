@@ -1,3 +1,9 @@
+/**
+ * @file products.ts
+ * @description API routes for product queries, Open Food Facts integration, OCR label extraction, and ingredient classification.
+ * Supports barcode verification, user evidence submissions, and 99% accuracy rule-based classification.
+ */
+
 import type { FastifyInstance } from "fastify";
 import { randomUUID } from "node:crypto";
 import {

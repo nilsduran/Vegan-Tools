@@ -1,3 +1,10 @@
+/**
+ * @file MenuReaderPage.tsx
+ * @description Interactive menu reader and restaurant exploration view.
+ * Combines map browsing, restaurant details pane, manual and automated menu scanning (PDFs/photos),
+ * menu caching, and dish classification rendering.
+ */
+
 import { useEffect, useRef, useState, type FormEvent } from "react";
 import { useSearchParams } from "react-router-dom";
 import {

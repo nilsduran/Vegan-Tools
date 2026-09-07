@@ -1,3 +1,10 @@
+/**
+ * @file schemas.ts
+ * @description Core Zod schemas and TypeScript domain contracts for Vegan Tools.
+ * Defines models for product classification, ingredients, restaurant metadata,
+ * discovered menus, dishes, and community reviews.
+ */
+
 import { z } from "zod";
 
 export const dietVerdictSchema = z.preprocess(

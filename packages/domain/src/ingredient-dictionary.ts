@@ -1,3 +1,9 @@
+/**
+ * @file ingredient-dictionary.ts
+ * @description Curated multilingual multilingual database of ingredients, food additives (E-numbers),
+ * status definitions (vegan, vegetarian, non-vegetarian, ambiguous), rationale, and plant-based substitutes.
+ */
+
 import type { IngredientStatus } from "./schemas.js";
 
 export interface IngredientDefinition {

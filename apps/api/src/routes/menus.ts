@@ -1,3 +1,9 @@
+/**
+ * @file menus.ts
+ * @description API endpoints for restaurant menu discovery, AI scraping/analysis, dish classification,
+ * user-submitted corrections/patches, dish feedback polishing, and custom restaurant notes.
+ */
+
 import type { FastifyInstance } from "fastify";
 import {
   dishFeedbackRequestSchema,

@@ -1,3 +1,10 @@
+/**
+ * @file server.ts
+ * @description API production server entry point.
+ * Loads multi-level environment configurations (`.env`), instantiates persistent stores/caches,
+ * initializes the Fastify app instance, and binds to the designated host and port.
+ */
+
 import { config } from "dotenv";
 import { dirname, resolve } from "node:path";
 import { fileURLToPath } from "node:url";

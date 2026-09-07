@@ -1,3 +1,9 @@
+/**
+ * @file featured-restaurants.ts
+ * @description Bundled static datasets of 100% verified vegan restaurants across cities (Barcelona, Girona, London, Berlin, etc.).
+ * Provides instant offline and low-latency access to verified vegan venues.
+ */
+
 import type { RestaurantCandidate } from "./schemas.js";
 import barcelonaData from "./data/featured/barcelona.json" with { type: "json" };
 import gironaData from "./data/featured/girona.json" with { type: "json" };

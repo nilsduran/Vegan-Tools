@@ -1,3 +1,10 @@
+/**
+ * @file RestaurantDetailPane.tsx
+ * @description Detailed inspection pane for selected restaurant venues.
+ * Displays opening hours, contact details, turn-by-turn navigation links, public transit estimates,
+ * menu trigger actions, and community review threads.
+ */
+
 import { useEffect, useState } from "react";
 import type { RestaurantCandidate } from "@vegan-tools/domain";
 import {

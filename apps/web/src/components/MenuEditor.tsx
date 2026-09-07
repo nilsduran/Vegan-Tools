@@ -1,3 +1,10 @@
+/**
+ * @file MenuEditor.tsx
+ * @description Interactive menu management component.
+ * Wraps `MenuView` with cache status indicators, source document previewing (PDF page thumbnails/photos),
+ * forced re-analysis triggers, and source editing actions.
+ */
+
 import { useEffect, useMemo, useRef, useState } from "react";
 import type { MenuDraft } from "@vegan-tools/domain";
 import { Clock3, RefreshCw } from "lucide-react";

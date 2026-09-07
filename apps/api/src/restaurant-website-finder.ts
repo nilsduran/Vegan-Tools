@@ -1,3 +1,9 @@
+/**
+ * @file restaurant-website-finder.ts
+ * @description Official restaurant domain resolver using Gemini Search Grounding.
+ * Filters out third-party platforms (TripAdvisor, Instagram, Yelp) to discover authentic direct homepages.
+ */
+
 import { GoogleGenAI } from "@google/genai";
 import type { RestaurantCandidate } from "@vegan-tools/domain";
 

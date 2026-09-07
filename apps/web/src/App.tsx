@@ -1,3 +1,10 @@
+/**
+ * @file App.tsx
+ * @description Root application shell and routing architecture.
+ * Configures lazy-loaded page routes, suspense boundaries, navigation bar, language switcher,
+ * and authentication context.
+ */
+
 import { lazy, Suspense } from "react";
 import { Capacitor } from "@capacitor/core";
 import { CookingPot, Home, Leaf, MapPin, ScanBarcode, User } from "lucide-react";

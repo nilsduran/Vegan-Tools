@@ -1,3 +1,10 @@
+/**
+ * @file HomePage.tsx
+ * @description Main dashboard for Vegan Tools with responsive dual layout:
+ * - Mobile (<980px): Touch-first culinary action hub with quick tools, horizontal venue carousels, and recipe card.
+ * - Desktop (>=980px): The StoryGraph style two-column layout with main activity cards, instant E-number checker widget, and Safe Space pledge.
+ */
+
 import { useState, useEffect, type FormEvent } from "react";
 import {
   ArrowRight,

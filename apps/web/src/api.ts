@@ -1,3 +1,10 @@
+/**
+ * @file api.ts
+ * @description Frontend HTTP client for the Vegan Tools backend API.
+ * Encapsulates endpoints for product lookups, OCR extractions, menu parsing, restaurant searches,
+ * and community review transactions with runtime Zod response validation and offline fallbacks.
+ */
+
 import {
   ingredientAnalysisSchema,
   menuDraftSchema,

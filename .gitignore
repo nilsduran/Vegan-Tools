@@ -10,3 +10,4 @@ apps/web/android/
 apps/web/ios/
 *.log
 *.tsbuildinfo
+brain-screenshots/

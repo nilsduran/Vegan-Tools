@@ -1,3 +1,10 @@
+/**
+ * @file menu-analyzer.ts
+ * @description Gemini multimodal AI analyzer for restaurant menus (PDFs, images, and text).
+ * Extracts dish titles, descriptions, and prices, and performs ethical vegan status classification
+ * (`vegan`, `vegetarian`, `non-vegan`, `uncertain`) with reasoning and modification advice.
+ */
+
 import { randomUUID } from "node:crypto";
 import { GoogleGenAI, Type } from "@google/genai";
 import {

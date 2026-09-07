@@ -1,3 +1,9 @@
+/**
+ * @file PublicMenuPage.tsx
+ * @description Standalone public view for shared restaurant menus accessible via permalink slugs.
+ * Renders categorized menu sections and dietary dish indicators without administrative controls.
+ */
+
 import { useQuery } from "@tanstack/react-query";
 import { LoaderCircle } from "lucide-react";
 import { useParams } from "react-router-dom";

@@ -1,3 +1,9 @@
+/**
+ * @file reviews.ts
+ * @description API endpoints for community restaurant reviews, ratings, and ethical moderation.
+ * Handles review creation, updates, helpfulness voting, and summary metric aggregation.
+ */
+
 import type { FastifyInstance } from "fastify";
 import { randomUUID } from "node:crypto";
 import {

@@ -1,3 +1,10 @@
+/**
+ * @file MenuView.tsx
+ * @description Comprehensive menu display component.
+ * Renders categorized menu items with dietary badges (vegan, vegetarian, adaptable),
+ * price tags, allergen warnings, ingredient rationale, and dish correction / feedback triggers.
+ */
+
 import { useMemo, useState } from "react";
 import {
   informativeMenuReason,

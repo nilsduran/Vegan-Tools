@@ -1,3 +1,10 @@
+/**
+ * @file recipe.ts
+ * @description Culinary recipe parsing and plant-based ingredient veganizer.
+ * Analyzes unstructured recipe text, detects animal-derived products, and provides
+ * contextual plant-based substitutions (dairy, eggs, meat, honey, fats).
+ */
+
 import { CLASSIFIER_VERSION, classifyIngredients } from "./classifier.js";
 import type {
   IngredientFinding,

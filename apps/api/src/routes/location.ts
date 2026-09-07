@@ -1,3 +1,9 @@
+/**
+ * @file location.ts
+ * @description Manages IP-based approximate geolocation and edge proxy headers (Cloudflare, Vercel).
+ * Provides low-latency location fallbacks so users can discover nearby restaurants without manual entry.
+ */
+
 import type { FastifyInstance } from "fastify";
 
 export async function locationRoutes(app: FastifyInstance) {

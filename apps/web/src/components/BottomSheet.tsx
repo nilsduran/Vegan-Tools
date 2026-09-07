@@ -1,3 +1,9 @@
+/**
+ * @file BottomSheet.tsx
+ * @description Mobile bottom sheet component with fluid snap points (collapsed, half, expanded).
+ * Supports touch and pointer drag gestures, velocity-based snapping, and accessible keyboard navigation.
+ */
+
 import { useCallback, useRef, useState, type PointerEvent, type ReactNode } from "react";
 import { tx } from "../i18n";
 

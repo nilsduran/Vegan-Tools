@@ -1,3 +1,9 @@
+/**
+ * @file recipes.ts
+ * @description API endpoint for culinary recipe veganization.
+ * Takes traditional recipes and uses the domain knowledge base to identify animal ingredients and suggest plant-based substitutes.
+ */
+
 import type { FastifyInstance } from "fastify";
 import { veganizeRecipe } from "@vegan-tools/domain";
 

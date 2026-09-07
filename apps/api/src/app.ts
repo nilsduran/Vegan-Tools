@@ -1,3 +1,10 @@
+/**
+ * @file app.ts
+ * @description Central Fastify application factory (`buildApp`).
+ * Configures global middleware (CORS, multipart, Swagger documentation), dependency injection,
+ * and mounts modular route controllers (location, recipes, products, reviews, restaurants, menus).
+ */
+
 import Fastify from "fastify";
 import cors from "@fastify/cors";
 import multipart from "@fastify/multipart";

@@ -1,3 +1,10 @@
+/**
+ * @file RestaurantMap.tsx
+ * @description Interactive Leaflet map for discovering vegan & vegan-friendly dining options.
+ * Handles marker clustering, user geolocation tracking, viewport boundary queries,
+ * cuisine-specific icon badges, and selection events.
+ */
+
 import { useCallback, useEffect, useRef, useState } from "react";
 import L from "leaflet";
 import "leaflet/dist/leaflet.css";

@@ -1,3 +1,9 @@
+/**
+ * @file ProductScannerPage.tsx
+ * @description Packaged food product scanner supporting barcode scanning (camera/manual GTIN),
+ * photo ingredient OCR, text ingredient classification, and Safe Space non-vegan image protection.
+ */
+
 import { useCallback, useEffect, useState } from "react";
 import { useMutation, useQuery } from "@tanstack/react-query";
 import { useNavigate, useParams } from "react-router-dom";

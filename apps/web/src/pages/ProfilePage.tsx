@@ -1,3 +1,9 @@
+/**
+ * @file ProfilePage.tsx
+ * @description User account dashboard, review management, and privacy-first authentication view.
+ * Enables community contributors to view their published reviews, inspect contribution history, and manage sessions.
+ */
+
 import { useEffect, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import type { RestaurantReview } from "@vegan-tools/domain";

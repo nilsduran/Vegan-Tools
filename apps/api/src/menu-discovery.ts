@@ -1,3 +1,10 @@
+/**
+ * @file menu-discovery.ts
+ * @description Automated menu crawler and asset fetcher for restaurant websites.
+ * Crawls homepage links for PDF/HTML menus with built-in SSRF protection (DNS resolution validation,
+ * private IP filtering) and size limits.
+ */
+
 import { lookup } from "node:dns/promises";
 import { isIP } from "node:net";
 

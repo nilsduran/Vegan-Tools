@@ -1,3 +1,10 @@
+/**
+ * @file restaurants.ts
+ * @description API endpoints for discovering, searching, and detailing vegan & vegan-friendly restaurants.
+ * Orchestrates multi-provider geospatial search (Geoapify, Photon, Nominatim, Overpass), curated datasets,
+ * opening hours evaluation, and website domain resolution.
+ */
+
 import type { FastifyInstance } from "fastify";
 import {
   restaurantCandidateSchema,

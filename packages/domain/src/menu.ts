@@ -1,3 +1,9 @@
+/**
+ * @file menu.ts
+ * @description Domain utilities for formatting, deduplicating, and displaying restaurant menu items,
+ * dish descriptions, and vegan/vegetarian diagnostic explanations.
+ */
+
 import type { DietVerdict } from "./schemas.js";
 
 interface MenuExplanationInput {

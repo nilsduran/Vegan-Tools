@@ -1,3 +1,9 @@
+/**
+ * @file gtin.ts
+ * @description Barcode / Global Trade Item Number (GTIN) normalization and checksum verification.
+ * Supports standard GTIN formats (EAN-8, UPC-A/GTIN-12, EAN-13, and ITF-14) using the Modulo-10 check digit algorithm.
+ */
+
 export function normalizeGtin(input: string): string {
   return input.replace(/\D/g, "");
 }

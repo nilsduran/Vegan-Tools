@@ -1,3 +1,9 @@
+/**
+ * @file i18n.ts
+ * @description Centralized internationalization module supporting Catalan (`ca`) and English (`en`).
+ * Manages locale persistence, UI translation keys, reactive language switching, and normalized terminology.
+ */
+
 import { useSyncExternalStore } from "react";
 
 export type Language = "en" | "ca";

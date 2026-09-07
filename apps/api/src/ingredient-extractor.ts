@@ -1,3 +1,9 @@
+/**
+ * @file ingredient-extractor.ts
+ * @description Vision AI service using Gemini to extract raw ingredient text lists
+ * from packaged food photos and product labels.
+ */
+
 import { GoogleGenAI } from "@google/genai";
 
 export interface IngredientImage {

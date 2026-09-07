@@ -1,3 +1,10 @@
+/**
+ * @file RecipeVeganizerPage.tsx
+ * @description Culinary recipe converter interface.
+ * Parses recipe inputs, highlights animal ingredients, recommends culinary plant-based substitutes,
+ * and generates a converted vegan version with one-click copy.
+ */
+
 import { useState } from "react";
 import { useMutation } from "@tanstack/react-query";
 import { ArrowRight, Check, CookingPot, Copy, LoaderCircle } from "lucide-react";
