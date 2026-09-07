@@ -654,7 +654,7 @@ export async function restaurantRoutes(
         geoapifyQuery = inferredRestaurantQuery;
         inferredNear = inferredTextNear;
       } else if (isGenericQuery) {
-        inferredNear = request.query.near?.trim() || defaultNear;
+        inferredNear = request.query.near?.trim() || (hasLocation ? undefined : defaultNear);
       } else {
         inferredNear = request.query.near?.trim() || undefined;
         geoapifyQuery = query;

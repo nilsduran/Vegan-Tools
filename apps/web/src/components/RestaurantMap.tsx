@@ -9,7 +9,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import L from "leaflet";
 import "leaflet/dist/leaflet.css";
 import { Crosshair, LoaderCircle, Maximize2, Search } from "lucide-react";
-import { FEATURED_RESTAURANTS_BARCELONA, type RestaurantCandidate } from "@vegan-tools/domain";
+import type { RestaurantCandidate } from "@vegan-tools/domain";
 import { getApproximateLocation } from "../api";
 import { clusterPoints } from "../utils/cluster";
 import { tx, useLanguage } from "../i18n";
@@ -26,7 +26,7 @@ function distanceInMeters(left: L.LatLng, right: L.LatLng): number {
   return earthRadius * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
 }
 
-export function getCuisineIcons(restaurant: RestaurantCandidate): string[] {
+export function getCuisineIcon(restaurant: RestaurantCandidate): string {
   const name = (restaurant.name || "").toLowerCase();
   const tags = (restaurant.tags ?? []).map((t) => t.toLowerCase());
   const cuisine = (restaurant.cuisine ?? "").toLowerCase();
@@ -35,14 +35,7 @@ export function getCuisineIcons(restaurant: RestaurantCandidate): string[] {
     : "").toLowerCase();
   const text = `${name} ${tags.join(" ")} ${cuisine} ${notes}`;
 
-  const icons: string[] = [];
-  const add = (emoji: string) => {
-    if (!icons.includes(emoji) && icons.length < 2) {
-      icons.push(emoji);
-    }
-  };
-
-  // 1. Specific cuisines & prominent categories
+  // 1. Tacos / Mexican
   if (
     name.includes("gallo santo") ||
     text.includes("taco") ||
@@ -51,8 +44,10 @@ export function getCuisineIcons(restaurant: RestaurantCandidate): string[] {
     text.includes("quesadilla") ||
     text.includes("guacamole")
   ) {
-    add("🌮");
+    return "🌮";
   }
+
+  // 2. Pizza
   if (
     name.includes("blu bar") ||
     text.includes("pizza") ||
@@ -60,8 +55,10 @@ export function getCuisineIcons(restaurant: RestaurantCandidate): string[] {
     text.includes("focaccia") ||
     text.includes("calzone")
   ) {
-    add("🍕");
+    return "🍕";
   }
+
+  // 3. Burger
   if (
     name.includes("vrutal") ||
     name.includes("mad mad") ||
@@ -72,8 +69,10 @@ export function getCuisineIcons(restaurant: RestaurantCandidate): string[] {
     text.includes("fries") ||
     text.includes("patates")
   ) {
-    add("🍔");
+    return "🍔";
   }
+
+  // 4. Sushi & Japanese
   if (
     name.includes("roots & rolls") ||
     name.includes("desoriente") ||
@@ -83,8 +82,10 @@ export function getCuisineIcons(restaurant: RestaurantCandidate): string[] {
     text.includes("japan") ||
     text.includes("japones")
   ) {
-    add("🍣");
+    return "🍣";
   }
+
+  // 5. Ramen & Asian noodles
   if (
     text.includes("ramen") ||
     text.includes("noodle") ||
@@ -96,60 +97,94 @@ export function getCuisineIcons(restaurant: RestaurantCandidate): string[] {
     text.includes("asian") ||
     text.includes("asiat")
   ) {
-    add("🍜");
+    return "🍜";
   }
+
+  // 6. Kebab
+  if (
+    text.includes("kebab") ||
+    text.includes("shawarma") ||
+    text.includes("doner") ||
+    text.includes("döner")
+  ) {
+    return "🥙";
+  }
+
+  // 7. Falafel & Middle Eastern
   if (
     name.includes("good shit") ||
     text.includes("falafel") ||
-    text.includes("kebab") ||
-    text.includes("shawarma") ||
     text.includes("hummus") ||
     text.includes("pita") ||
-    text.includes("doner") ||
-    text.includes("döner") ||
     text.includes("orient") ||
     text.includes("lebanese") ||
     text.includes("libanes")
   ) {
-    add("🥙");
+    return "🧆";
   }
+
+  // 8. Brunch (sandwich icon)
+  if (
+    name.includes("asante") ||
+    text.includes("brunch") ||
+    text.includes("breakfast") ||
+    text.includes("esmorzar")
+  ) {
+    return "🥪";
+  }
+
+  // 9. Fleca / Bakery (bread icon)
+  if (
+    text.includes("bakery") ||
+    text.includes("fleca") ||
+    text.includes("forn") ||
+    text.includes("panader") ||
+    text.includes("boulangerie") ||
+    text.includes("bread") ||
+    text.includes(" pa ")
+  ) {
+    return "🥖";
+  }
+
+  // 10. Pastisseria / Pastry (croissant icon)
   if (
     name.includes("besneta") ||
     name.includes("hanai") ||
-    text.includes("bakery") ||
     text.includes("pastiss") ||
     text.includes("pasteler") ||
     text.includes("croissant") ||
     text.includes("cake") ||
     text.includes("pastry") ||
     text.includes("dolç") ||
-    text.includes("pastissos") ||
-    text.includes("forn") ||
-    text.includes("boulangerie")
+    text.includes("pastissos")
   ) {
-    add("🥐");
+    return "🥐";
   }
+
+  // 11. Ice cream / Gelateria
   if (
     text.includes("ice_cream") ||
     text.includes("gelat") ||
     text.includes("helad") ||
     text.includes("gelateria")
   ) {
-    add("🍦");
+    return "🍦";
   }
+
+  // 12. Coffee / Cafeteria
   if (
-    name.includes("asante") ||
-    text.includes("brunch") ||
-    text.includes("breakfast") ||
-    text.includes("esmorzar") ||
     text.includes("cafe") ||
+    text.includes("cafè") ||
     text.includes("cafeter") ||
     text.includes("coffee") ||
     text.includes("matcha") ||
-    text.includes("chai")
+    text.includes("chai") ||
+    text.includes("morgentau")
   ) {
-    add("☕");
+    return "☕";
   }
+
+  // 13. Paella / Rice
   if (
     name.includes("bubita") ||
     text.includes("paella") ||
@@ -157,8 +192,10 @@ export function getCuisineIcons(restaurant: RestaurantCandidate): string[] {
     text.includes("arroz") ||
     text.includes("rice")
   ) {
-    add("🥘");
+    return "🥘";
   }
+
+  // 14. Curry / Indian
   if (
     text.includes("curry") ||
     text.includes("india") ||
@@ -166,8 +203,21 @@ export function getCuisineIcons(restaurant: RestaurantCandidate): string[] {
     text.includes("tandoori") ||
     text.includes("nepal")
   ) {
-    add("🍛");
+    return "🍛";
   }
+
+  // 15. Pasta / Italian
+  if (
+    text.includes("pasta") ||
+    text.includes("lasagn") ||
+    text.includes("spaghetti") ||
+    text.includes("ravioli") ||
+    text.includes("gnocchi")
+  ) {
+    return "🍝";
+  }
+
+  // 16. Tapas
   if (
     name.includes("perra verde") ||
     name.includes("cactuscat") ||
@@ -180,17 +230,10 @@ export function getCuisineIcons(restaurant: RestaurantCandidate): string[] {
     text.includes("spanish") ||
     text.includes("catalan")
   ) {
-    add("🥗");
+    return "🥗";
   }
-  if (
-    text.includes("pasta") ||
-    text.includes("lasagn") ||
-    text.includes("spaghetti") ||
-    text.includes("ravioli") ||
-    text.includes("gnocchi")
-  ) {
-    add("🍝");
-  }
+
+  // 17. Beer / Craft beer
   if (
     name.includes("ale & hop") ||
     text.includes("beer") ||
@@ -200,11 +243,15 @@ export function getCuisineIcons(restaurant: RestaurantCandidate): string[] {
     text.includes("craft beer") ||
     text.includes("pub")
   ) {
-    add("🍺");
+    return "🍺";
   }
+
+  // 18. Cocktails / Bar
   if (text.includes("cocktail") || text.includes("coctel") || text.includes("copas") || text.includes("bar")) {
-    add("🍸");
+    return "🍸";
   }
+
+  // 19. Salads / Healthy
   if (
     text.includes("salad") ||
     text.includes("amanida") ||
@@ -215,8 +262,10 @@ export function getCuisineIcons(restaurant: RestaurantCandidate): string[] {
     text.includes("organic") ||
     text.includes("macrobiotic")
   ) {
-    add("🥗");
+    return "🥗";
   }
+
+  // 20. Dumplings
   if (
     text.includes("dumpling") ||
     text.includes("gyoza") ||
@@ -224,28 +273,18 @@ export function getCuisineIcons(restaurant: RestaurantCandidate): string[] {
     text.includes("chinese") ||
     text.includes("xines")
   ) {
-    add("🥟");
+    return "🥟";
   }
 
-  // 2. Fallbacks if no specific cuisine matched
-  if (icons.length === 0) {
-    if (restaurant.isVegan) {
-      icons.push("🌱");
-    } else if (restaurant.isVegetarian) {
-      icons.push("🌿");
-    } else {
-      icons.push("🍽️");
-    }
-  }
-
-  return icons;
+  // Fallback for unclassified venues: cutlery (🍽️)
+  return "🍽️";
 }
 
-export function getCuisineIcon(restaurant: RestaurantCandidate): string {
-  return getCuisineIcons(restaurant)[0] ?? "🍽️";
+export function getCuisineIcons(restaurant: RestaurantCandidate): string[] {
+  return [getCuisineIcon(restaurant)];
 }
 
-// Custom modern gastronomic marker: circular dome + needle tip + top-right star badge
+// Custom modern gastronomic marker: circular dome + sleek needle tip + top centered rating badge
 function createRestaurantIcon(
   restaurant: RestaurantCandidate,
   isSelected: boolean,
@@ -263,7 +302,7 @@ function createRestaurantIcon(
         : "#2563eb"; // Cobalt Blue for Vegan Options
 
   const strokeColor = isSelected ? "#fef08a" : isHovered ? "#ffffff" : "#ffffff";
-  const icons = getCuisineIcons(restaurant);
+  const icon = getCuisineIcon(restaurant);
 
   const hasRating =
     typeof restaurant.rating === "number" &&
@@ -273,12 +312,10 @@ function createRestaurantIcon(
     ? `${restaurant.rating?.toFixed(1) || "5.0"}`
     : (hasRating ? restaurant.rating!.toFixed(1) : "");
 
-  // Render cuisine emojis using HTML to guarantee native OS emoji rendering
-  const emojisHtml = icons.length === 1
-    ? `<span class="pin-cuisine-emoji single">${icons[0]}</span>`
-    : `<span class="pin-cuisine-emoji multi">${icons[0]}</span><span class="pin-cuisine-emoji multi second">${icons[1]}</span>`;
+  // Render exactly one prominent cuisine emoji
+  const emojisHtml = `<span class="pin-cuisine-emoji single">${icon}</span>`;
 
-  // Rating pill placed at the top-right of the dome so it never covers the needle or label
+  // Rating pill centered horizontally directly above the dome
   const ratingPillHtml = (hasRating || isFeatured)
     ? `<div class="vegan-map-pin-rating" style="color: ${pinColor}; border-color: ${pinColor};">
          ★ ${ratingLabel}
@@ -297,9 +334,9 @@ function createRestaurantIcon(
     </div>
   `;
 
-  // Width: 38px, Height: 46px (dome 36px + needle 10px - 2px overlap = 44px + margins)
+  // Width: 38px, Height: 41px (dome 36px + needle 6px - 1px overlap = 41px)
   const width = 38;
-  const height = 46;
+  const height = 41;
 
   return L.divIcon({
     html,
@@ -387,13 +424,8 @@ export function RestaurantMap({
     const zoom = map.getZoom();
     const clusterRadius = zoom >= 14 ? 0 : zoom === 13 ? 14 : zoom === 12 ? 22 : 32;
 
-    const existingIds = new Set(restaurants.map((r) => r.id));
-    const combinedRestaurants = [
-      ...restaurants,
-      ...FEATURED_RESTAURANTS_BARCELONA.filter((f) => !existingIds.has(f.id)),
-    ];
-
-    const validRestaurants = combinedRestaurants.filter(
+    // Use the restaurants provided by the parent component
+    const validRestaurants = restaurants.filter(
       (r) =>
         r.placeType !== "city" &&
         typeof r.latitude === "number" &&
@@ -430,7 +462,7 @@ export function RestaurantMap({
         marker.bindTooltip(restaurant.name, {
           permanent: true,
           direction: "bottom",
-          offset: [0, 4],
+          offset: [0, 6],
           className: isSelected
             ? "map-pin-name-tooltip selected"
             : isHovered
@@ -492,8 +524,7 @@ export function RestaurantMap({
       attributionControl: true,
     });
 
-    // Basemap: Use CARTO Voyager if an API key is provided, Geoapify if key provided, otherwise official OpenStreetMap standard tiles (watermark-free)
-    const cartoKey = (import.meta.env.VITE_CARTO_API_KEY as string | undefined)?.trim();
+    // Basemap: Geoapify if key provided, otherwise official OpenStreetMap standard tiles (watermark-free)
     const geoapifyKey = (import.meta.env.VITE_GEOAPIFY_API_KEY as string | undefined)?.trim();
 
     let tileUrl = "https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png";
@@ -501,12 +532,7 @@ export function RestaurantMap({
       '&copy; <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noreferrer">OpenStreetMap</a> contributors';
     let subdomains: string | string[] = "abc";
 
-    if (cartoKey) {
-      tileUrl = `https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png?api_key=${cartoKey}`;
-      attribution =
-        '&copy; <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noreferrer">OpenStreetMap</a> contributors, &copy; <a href="https://carto.com/attributions" target="_blank" rel="noreferrer">CARTO</a>';
-      subdomains = "abcd";
-    } else if (geoapifyKey) {
+    if (geoapifyKey) {
       tileUrl = `https://maps.geoapify.com/v1/tile/osm-bright/{z}/{x}/{y}.png?apiKey=${geoapifyKey}`;
       attribution =
         'Powered by <a href="https://www.geoapify.com/" target="_blank">Geoapify</a> | &copy; <a href="https://www.openstreetmap.org/copyright" target="_blank">OpenStreetMap</a> contributors';
@@ -628,27 +654,33 @@ export function RestaurantMap({
     };
   }, [onUserCoordsChange]);
 
+  const lastSelectedRestaurantIdRef = useRef<string | undefined>(undefined);
+
   // Update Markers when renderClustersAndMarkers changes
   useEffect(() => {
-    const map = mapInstanceRef.current;
-    if (!map) return;
-
     renderClustersAndMarkers();
+  }, [renderClustersAndMarkers]);
 
-    // If selectedRestaurant is provided, center and fly smoothly to it
-    if (
-      selectedRestaurant &&
-      typeof selectedRestaurant.latitude === "number" &&
-      typeof selectedRestaurant.longitude === "number" &&
-      Number.isFinite(selectedRestaurant.latitude) &&
-      Number.isFinite(selectedRestaurant.longitude) &&
-      !(selectedRestaurant.latitude === 0 && selectedRestaurant.longitude === 0)
-    ) {
-      map.flyTo([selectedRestaurant.latitude, selectedRestaurant.longitude], 16, {
-        duration: 0.8,
-      });
+  // If selectedRestaurant changes to a new venue, center and fly smoothly to it
+  useEffect(() => {
+    const map = mapInstanceRef.current;
+    if (!map || !selectedRestaurant) return;
+
+    if (selectedRestaurant.id !== lastSelectedRestaurantIdRef.current) {
+      lastSelectedRestaurantIdRef.current = selectedRestaurant.id;
+      if (
+        typeof selectedRestaurant.latitude === "number" &&
+        typeof selectedRestaurant.longitude === "number" &&
+        Number.isFinite(selectedRestaurant.latitude) &&
+        Number.isFinite(selectedRestaurant.longitude) &&
+        !(selectedRestaurant.latitude === 0 && selectedRestaurant.longitude === 0)
+      ) {
+        map.flyTo([selectedRestaurant.latitude, selectedRestaurant.longitude], 16, {
+          duration: 0.8,
+        });
+      }
     }
-  }, [renderClustersAndMarkers, selectedRestaurant]);
+  }, [selectedRestaurant]);
 
   // Handle user geolocation strictly on demand
   const handleLocateMe = () => {

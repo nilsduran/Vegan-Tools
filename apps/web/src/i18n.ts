@@ -452,6 +452,23 @@ const caPhrases = {
   "Start as": "Comença com a",
   "Continue with username": "Continua amb nom d'usuari",
   "Username": "Nom d'usuari",
+  "Brunch": "Brunch",
+  "Coffee & Cafe": "Cafeteria",
+  "Cafeteria": "Cafeteria",
+  "Bakery": "Fleca",
+  "Pastry shop": "Pastisseria",
+  "Burgers": "Hamburgueseria",
+  "Pizza": "Pizzeria",
+  "Japanese & Sushi": "Japonès & Sushi",
+  "Asian & Ramen": "Asiàtic / Ramen",
+  "Falafel & Middle Eastern": "Falafel & Orient",
+  "Paella & Rice": "Paella & Arrossos",
+  "Indian Cuisine": "Cuina Índia",
+  "Craft Beer": "Cervesa artesana",
+  "Cocktails & Bar": "Cocteleria / Bar",
+  "Salads & Bowls": "Amanides & Bowls",
+  "Dumplings & Gyoza": "Dumplings & Gyoza",
+  "Dining": "Restauració",
 } as const;
 
 function getInitialLanguage(): Language {

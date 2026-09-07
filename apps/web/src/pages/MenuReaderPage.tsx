@@ -316,6 +316,9 @@ export function MenuReaderPage() {
       });
       const safe = Array.isArray(results) ? results : [];
       setRestaurantResults(safe);
+      if (selectedRestaurant && !safe.some((r) => r.id === selectedRestaurant.id)) {
+        handleSelectRestaurant(undefined);
+      }
       if (safe.length === 0) {
         setRestaurantError(tx("No matching restaurant was found in this area."));
       } else {

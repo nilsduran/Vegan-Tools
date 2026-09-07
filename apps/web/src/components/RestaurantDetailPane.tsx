@@ -92,51 +92,132 @@ function formatDisplayAddress(address: string): string {
     .trim();
 }
 
-// Extract cuisine tags from restaurant cuisine, tags or name
-function getCuisineTag(restaurant: RestaurantCandidate): { icon: string; label: string } | undefined {
+// Extract cuisine tags from restaurant cuisine, tags, notes or name (each distinct category gets its own tag)
+export function getCuisineTags(restaurant: RestaurantCandidate): Array<{ icon: string; label: string }> {
   const name = (restaurant.name || "").toLowerCase();
   const tags = (restaurant.tags ?? []).map((t) => t.toLowerCase());
   const cuisine = (restaurant.cuisine ?? "").toLowerCase();
-  const text = `${name} ${tags.join(" ")} ${cuisine}`;
+  const notes = ("notes" in restaurant && typeof (restaurant as Record<string, unknown>).notes === "string"
+    ? (restaurant as Record<string, unknown>).notes as string
+    : "").toLowerCase();
+  const text = `${name} ${tags.join(" ")} ${cuisine} ${notes}`;
 
+  const result: Array<{ icon: string; label: string }> = [];
+  const addedLabels = new Set<string>();
+
+  const addTag = (icon: string, label: string) => {
+    if (!addedLabels.has(label)) {
+      addedLabels.add(label);
+      result.push({ icon, label });
+    }
+  };
+
+  // 1. Brunch (sandwich icon)
   if (name.includes("asante") || text.includes("brunch") || text.includes("breakfast") || text.includes("esmorzar")) {
-    return { icon: "☕", label: "Brunch & Cafè" };
-  }
-  if (name.includes("vrutal") || name.includes("mad mad") || name.includes("quinoa") || text.includes("burger") || text.includes("hamburg")) {
-    return { icon: "🍔", label: "Hamburgueseria" };
-  }
-  if (name.includes("blu bar") || text.includes("pizza") || text.includes("pizzeria") || text.includes("itali")) {
-    return { icon: "🍕", label: "Pizzeria / Italià" };
-  }
-  if (name.includes("gallo santo") || text.includes("taco") || text.includes("mexic") || text.includes("burrito") || text.includes("quesadilla")) {
-    return { icon: "🌮", label: "Mexicà" };
-  }
-  if (name.includes("desoriente") || text.includes("sushi") || text.includes("japan") || text.includes("japones")) {
-    return { icon: "🍣", label: "Japonès & Sushi" };
-  }
-  if (text.includes("ramen") || text.includes("noodle") || text.includes("asian") || text.includes("asiat") || text.includes("thai") || text.includes("viet") || text.includes("wok")) {
-    return { icon: "🍜", label: "Asiàtic / Ramen" };
-  }
-  if (name.includes("good shit") || text.includes("kebab") || text.includes("falafel") || text.includes("shawarma") || text.includes("doner") || text.includes("döner")) {
-    return { icon: "🥙", label: "Kebab & Falafel" };
-  }
-  if (name.includes("hanai") || text.includes("bakery") || text.includes("pastiss") || text.includes("pasteler") || text.includes("croissant") || text.includes("cake") || text.includes("ice_cream") || text.includes("gelat") || text.includes("pastry")) {
-    return { icon: "🥐", label: "Pastisseria / Forn" };
-  }
-  if (text.includes("cafe") || text.includes("cafeter") || text.includes("coffee") || text.includes("morgentau")) {
-    return { icon: "☕", label: "Cafeteria" };
-  }
-  if (name.includes("bubita") || text.includes("paella") || text.includes("arros") || text.includes("rice")) {
-    return { icon: "🥘", label: "Paella & Tapes" };
-  }
-  if (text.includes("curry") || text.includes("india") || text.includes("masala")) {
-    return { icon: "🍛", label: "Cuina Índia" };
-  }
-  if (text.includes("tapas") || text.includes("tapa") || text.includes("pinchos") || text.includes("bistrot") || text.includes("bar") || text.includes("mediterranean") || text.includes("spanish")) {
-    return { icon: "🥗", label: "Tapes & Mercat" };
+    addTag("🥪", "Brunch");
   }
 
-  return undefined;
+  // 2. Coffee & Cafeteria (coffee cup icon)
+  if (text.includes("cafe") || text.includes("cafè") || text.includes("cafeter") || text.includes("coffee") || text.includes("matcha") || text.includes("chai") || text.includes("morgentau")) {
+    addTag("☕", "Cafeteria");
+  }
+
+  // 3. Fleca / Bakery (bread icon)
+  if (text.includes("bakery") || text.includes("fleca") || text.includes("forn") || text.includes("panader") || text.includes("boulangerie") || text.includes("bread") || text.includes(" pa ")) {
+    addTag("🥖", "Fleca");
+  }
+
+  // 4. Pastisseria / Pastry (croissant icon)
+  if (name.includes("besneta") || name.includes("hanai") || text.includes("pastiss") || text.includes("pasteler") || text.includes("croissant") || text.includes("cake") || text.includes("pastry") || text.includes("dolç") || text.includes("pastissos")) {
+    addTag("🥐", "Pastisseria");
+  }
+
+  // 5. Gelateria / Ice cream
+  if (text.includes("ice_cream") || text.includes("gelat") || text.includes("helad") || text.includes("gelateria")) {
+    addTag("🍦", "Gelateria");
+  }
+
+  // 6. Burgers
+  if (name.includes("vrutal") || name.includes("mad mad") || name.includes("quinoa") || text.includes("burger") || text.includes("hamburg") || text.includes("junk food")) {
+    addTag("🍔", "Burgers");
+  }
+
+  // 7. Pizza
+  if (name.includes("blu bar") || text.includes("pizza") || text.includes("pizzeria")) {
+    addTag("🍕", "Pizza");
+  }
+
+  // 8. Italian / Pasta
+  if ((text.includes("itali") || text.includes("pasta") || text.includes("lasagn") || text.includes("spaghetti") || text.includes("ravioli")) && !text.includes("pizza")) {
+    addTag("🍝", "Italian");
+  }
+
+  // 9. Mexican / Tacos
+  if (name.includes("gallo santo") || text.includes("taco") || text.includes("mexic") || text.includes("burrito") || text.includes("quesadilla") || text.includes("guacamole")) {
+    addTag("🌮", "Mexican");
+  }
+
+  // 10. Japanese & Sushi
+  if (name.includes("roots & rolls") || name.includes("desoriente") || text.includes("sushi") || text.includes("maki") || text.includes("nigiri") || text.includes("japan") || text.includes("japones")) {
+    addTag("🍣", "Japanese & Sushi");
+  }
+
+  // 11. Asian & Ramen
+  if (text.includes("ramen") || text.includes("noodle") || text.includes("thai") || text.includes("viet") || text.includes("pho") || text.includes("pad thai") || text.includes("wok") || (text.includes("asian") && !text.includes("sushi"))) {
+    addTag("🍜", "Asian & Ramen");
+  }
+
+  // 12. Kebab
+  if (text.includes("kebab") || text.includes("shawarma") || text.includes("doner") || text.includes("döner")) {
+    addTag("🥙", "Kebab");
+  }
+
+  // 13. Falafel & Middle Eastern
+  if (name.includes("good shit") || text.includes("falafel") || text.includes("hummus") || text.includes("pita") || text.includes("orient") || text.includes("lebanese") || text.includes("libanes")) {
+    addTag("🧆", "Falafel & Middle Eastern");
+  }
+
+  // 14. Paella & Rice
+  if (name.includes("bubita") || text.includes("paella") || text.includes("arros") || text.includes("arroz") || text.includes("rice")) {
+    addTag("🥘", "Paella & Rice");
+  }
+
+  // 15. Indian Cuisine
+  if (text.includes("curry") || text.includes("india") || text.includes("masala") || text.includes("tandoori") || text.includes("nepal")) {
+    addTag("🍛", "Indian Cuisine");
+  }
+
+  // 16. Tapas
+  if (name.includes("perra verde") || name.includes("cactuscat") || text.includes("tapas") || text.includes("tapa") || text.includes("pinchos") || text.includes("bistrot") || text.includes("mediterranean") || text.includes("spanish")) {
+    addTag("🥗", "Tapas");
+  }
+
+  // 17. Beer / Craft beer
+  if (name.includes("ale & hop") || text.includes("craft beer") || text.includes("cervesa") || text.includes("cerveza") || text.includes("brew") || text.includes("pub")) {
+    addTag("🍺", "Craft Beer");
+  }
+
+  // 18. Cocktails & Bar
+  if (text.includes("cocktail") || text.includes("coctel") || text.includes("copas") || text.includes("bar")) {
+    addTag("🍸", "Cocktails & Bar");
+  }
+
+  // 19. Salads & Bowls
+  if (text.includes("salad") || text.includes("amanida") || text.includes("ensalada") || text.includes("bowl") || text.includes("raw") || text.includes("organic")) {
+    addTag("🥗", "Salads & Bowls");
+  }
+
+  // 20. Dumplings & Gyoza
+  if (text.includes("dumpling") || text.includes("gyoza") || text.includes("dim sum") || text.includes("chinese") || text.includes("xines")) {
+    addTag("🥟", "Dumplings & Gyoza");
+  }
+
+  // Fallback if none matched
+  if (result.length === 0) {
+    result.push({ icon: "🍽️", label: "Dining" });
+  }
+
+  return result;
 }
 
 export function RestaurantDetailPane({
@@ -178,7 +259,7 @@ export function RestaurantDetailPane({
   }, [userCoords, restaurant.latitude, restaurant.longitude]);
 
   const badge = getVeganBadge(restaurant);
-  const cuisine = getCuisineTag(restaurant);
+  const cuisineTags = getCuisineTags(restaurant);
 
   const [loadingMenu, setLoadingMenu] = useState(false);
 
@@ -193,12 +274,12 @@ export function RestaurantDetailPane({
               <Leaf aria-hidden="true" />
               <span>{badge.label}</span>
             </span>
-            {cuisine && (
-              <span className="cuisine-badge">
+            {cuisineTags.map((cuisine) => (
+              <span key={cuisine.label} className="cuisine-badge">
                 <span aria-hidden="true" style={{ marginRight: "0.25rem" }}>{cuisine.icon}</span>
                 <span>{tx(cuisine.label)}</span>
               </span>
-            )}
+            ))}
           </div>
           <h2>{restaurant.name}</h2>
         </div>
