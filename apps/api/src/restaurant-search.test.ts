@@ -1,4 +1,4 @@
-import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
 import { buildApp } from "./app.js";
 import { MemoryRepository } from "./store.js";
 
@@ -171,6 +171,10 @@ describe("Universal Restaurant Search across multiple cities", () => {
       }),
     );
   });
+
+  beforeAll(async () => {
+    await getApp();
+  }, 30000);
 
   afterEach(() => {
     vi.unstubAllGlobals();

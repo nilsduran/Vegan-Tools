@@ -1,0 +1,34 @@
+[
+  {
+    "id": "featured-gir-bionectar",
+    "name": "Bionèctar Organic Living Food",
+    "address": "Carrer Francesc Ciurana, 22, 17001 Girona",
+    "latitude": 41.9796,
+    "longitude": 2.8182,
+    "websiteUrl": "https://www.bionectar.org",
+    "mapUrl": "https://www.openstreetmap.org/?mlat=41.9796&mlon=2.8182#map=17/41.9796/2.8182",
+    "provider": "curated",
+    "cuisine": "mediterranean",
+    "tags": ["vegan", "mediterranean", "gluten_free", "organic", "featured"],
+    "isVegan": true,
+    "isFeatured": true,
+    "rating": 4.9,
+    "openingHours": "Mo-Sa 12:30-16:30, 19:30-22:30"
+  },
+  {
+    "id": "featured-gir-greta",
+    "name": "Greta",
+    "address": "Carrer de la Cort Reial, 26, 17004 Girona",
+    "latitude": 41.9863,
+    "longitude": 2.8252,
+    "websiteUrl": "https://www.restaurantgreta.com/cat/catala-carta-restaurant-greta",
+    "mapUrl": "https://www.openstreetmap.org/?mlat=41.9863&mlon=2.8252#map=17/41.9863/2.8252",
+    "provider": "curated",
+    "cuisine": "mediterranean",
+    "tags": ["vegan", "mediterranean", "catalan", "featured"],
+    "isVegan": true,
+    "isFeatured": true,
+    "rating": 4.8,
+    "openingHours": "Tu-Sa 13:00-16:00, 20:00-23:30"
+  }
+]

@@ -1,0 +1,18 @@
+[
+  {
+    "id": "featured-tgn-el-vergel",
+    "name": "El Vergel Veggie Restaurant",
+    "address": "Carrer Major, 11, 43003 Tarragona",
+    "latitude": 41.1172,
+    "longitude": 1.2573,
+    "websiteUrl": "https://www.el-vergel.com",
+    "mapUrl": "https://www.openstreetmap.org/?mlat=41.1172&mlon=1.2573#map=17/41.1172/1.2573",
+    "provider": "curated",
+    "cuisine": "mediterranean",
+    "tags": ["vegan", "mediterranean", "restaurant", "featured"],
+    "isVegan": true,
+    "isFeatured": true,
+    "rating": 4.8,
+    "openingHours": "Tu-Su 13:00-16:00, 20:30-23:30"
+  }
+]

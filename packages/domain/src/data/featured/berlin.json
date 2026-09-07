@@ -1,0 +1,34 @@
+[
+  {
+    "id": "featured-ber-brammibals",
+    "name": "Brammibal's Plant-Based Donuts",
+    "address": "Maybachufer 8, 12047 Berlin",
+    "latitude": 52.4939,
+    "longitude": 13.4244,
+    "websiteUrl": "https://www.brammibalsdonuts.com",
+    "mapUrl": "https://www.openstreetmap.org/?mlat=52.4939&mlon=13.4244#map=17/52.4939/13.4244",
+    "provider": "curated",
+    "cuisine": "cafe_bakery",
+    "tags": ["vegan", "cafe_bakery", "donuts", "featured"],
+    "isVegan": true,
+    "isFeatured": true,
+    "rating": 4.9,
+    "openingHours": "Mo-Su 10:00-20:00"
+  },
+  {
+    "id": "featured-ber-1990",
+    "name": "1990 Vegan Living",
+    "address": "Krossener Str. 19, 10245 Berlin",
+    "latitude": 52.5113,
+    "longitude": 13.4589,
+    "websiteUrl": "https://restaurant-1990.de",
+    "mapUrl": "https://www.openstreetmap.org/?mlat=52.5113&mlon=13.4589#map=17/52.5113/13.4589",
+    "provider": "curated",
+    "cuisine": "asian",
+    "tags": ["vegan", "vietnamese", "asian", "tapas", "featured"],
+    "isVegan": true,
+    "isFeatured": true,
+    "rating": 4.8,
+    "openingHours": "Mo-Su 12:00-23:00"
+  }
+]

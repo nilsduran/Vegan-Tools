@@ -1,0 +1,33 @@
+[
+  {
+    "id": "featured-vic-nyamera",
+    "name": "La Nyàmera",
+    "address": "Carrer de Sant Sadurní, 8, 08500 Vic",
+    "latitude": 41.9298,
+    "longitude": 2.2536,
+    "websiteUrl": "https://www.lanyamera.cat",
+    "mapUrl": "https://www.openstreetmap.org/?mlat=41.9298&mlon=2.2536#map=17/41.9298/2.2536",
+    "provider": "curated",
+    "cuisine": "catalan",
+    "tags": ["vegan", "catalan", "mediterranean", "featured"],
+    "isVegan": true,
+    "isFeatured": true,
+    "rating": 4.9,
+    "openingHours": "We-Su 13:00-16:00, 20:00-23:00"
+  },
+  {
+    "id": "featured-vic-el-taller",
+    "name": "El Taller - Espai Vegà",
+    "address": "Plaça Major, 12, 08500 Vic",
+    "latitude": 41.9304,
+    "longitude": 2.2547,
+    "mapUrl": "https://www.openstreetmap.org/?mlat=41.9304&mlon=2.2547#map=17/41.9304/2.2547",
+    "provider": "curated",
+    "cuisine": "cafe_bakery",
+    "tags": ["vegan", "cafe_bakery", "featured"],
+    "isVegan": true,
+    "isFeatured": true,
+    "rating": 4.8,
+    "openingHours": "Tu-Sa 09:00-20:00"
+  }
+]

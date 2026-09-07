@@ -1,14 +1,25 @@
+import { lazy, Suspense } from "react";
 import { Capacitor } from "@capacitor/core";
 import { CookingPot, Home, Leaf, MapPin, ScanBarcode, User } from "lucide-react";
 import { NavLink, Route, Routes } from "react-router-dom";
 import { setLanguage, t, tx, useLanguage } from "./i18n";
-import { HomePage } from "./pages/HomePage";
-import { MenuReaderPage } from "./pages/MenuReaderPage";
-import { ProductScannerPage } from "./pages/ProductScannerPage";
-import { PublicMenuPage } from "./pages/PublicMenuPage";
-import { RecipeVeganizerPage } from "./pages/RecipeVeganizerPage";
-import { ProfilePage } from "./pages/ProfilePage";
 import { AuthProvider } from "./auth";
+
+const HomePage = lazy(() => import("./pages/HomePage").then((m) => ({ default: m.HomePage })));
+const MenuReaderPage = lazy(() => import("./pages/MenuReaderPage").then((m) => ({ default: m.MenuReaderPage })));
+const ProductScannerPage = lazy(() => import("./pages/ProductScannerPage").then((m) => ({ default: m.ProductScannerPage })));
+const PublicMenuPage = lazy(() => import("./pages/PublicMenuPage").then((m) => ({ default: m.PublicMenuPage })));
+const RecipeVeganizerPage = lazy(() => import("./pages/RecipeVeganizerPage").then((m) => ({ default: m.RecipeVeganizerPage })));
+const ProfilePage = lazy(() => import("./pages/ProfilePage").then((m) => ({ default: m.ProfilePage })));
+
+function PageLoader() {
+  return (
+    <div className="page-loading-skeleton" role="status" aria-live="polite">
+      <div className="page-loading-spinner" />
+      <span className="sr-only">Carregant…</span>
+    </div>
+  );
+}
 
 function FlagUK() {
   return (
@@ -86,16 +97,18 @@ export function App() {
         </header>
 
         <main>
-          <Routes>
-            <Route path="/" element={<HomePage />} />
-            <Route path="/map" element={<MenuReaderPage />} />
-            <Route path="/menus" element={<MenuReaderPage />} />
-            <Route path="/scanner" element={<ProductScannerPage />} />
-            <Route path="/product/:gtin" element={<ProductScannerPage />} />
-            <Route path="/recipes" element={<RecipeVeganizerPage />} />
-            <Route path="/profile" element={<ProfilePage />} />
-            <Route path="/m/:slug" element={<PublicMenuPage />} />
-          </Routes>
+          <Suspense fallback={<PageLoader />}>
+            <Routes>
+              <Route path="/" element={<HomePage />} />
+              <Route path="/map" element={<MenuReaderPage />} />
+              <Route path="/menus" element={<MenuReaderPage />} />
+              <Route path="/scanner" element={<ProductScannerPage />} />
+              <Route path="/product/:gtin" element={<ProductScannerPage />} />
+              <Route path="/recipes" element={<RecipeVeganizerPage />} />
+              <Route path="/profile" element={<ProfilePage />} />
+              <Route path="/m/:slug" element={<PublicMenuPage />} />
+            </Routes>
+          </Suspense>
         </main>
 
         {/* Mobile Bottom Navigation */}

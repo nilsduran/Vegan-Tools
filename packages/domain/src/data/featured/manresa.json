@@ -1,0 +1,17 @@
+[
+  {
+    "id": "featured-manresa-espai-organic",
+    "name": "Espai Orgànic",
+    "address": "Carrer del Born, 28, 08241 Manresa",
+    "latitude": 41.7245,
+    "longitude": 1.8268,
+    "mapUrl": "https://www.openstreetmap.org/?mlat=41.7245&mlon=1.8268#map=17/41.7245/1.8268",
+    "provider": "curated",
+    "cuisine": "cafe_bakery",
+    "tags": ["vegan", "cafe_bakery", "mediterranean", "featured"],
+    "isVegan": true,
+    "isFeatured": true,
+    "rating": 4.7,
+    "openingHours": "Mo-Sa 09:00-20:00"
+  }
+]

@@ -28,6 +28,26 @@ export default defineConfig({
       },
     }),
   ],
+  build: {
+    rollupOptions: {
+      output: {
+        manualChunks: (id) => {
+          if (id.includes("node_modules/leaflet") || id.includes("node_modules/react-leaflet")) {
+            return "vendor-leaflet";
+          }
+          if (id.includes("node_modules/@undecaf/barcode-detector-polyfill")) {
+            return "vendor-barcode";
+          }
+          if (id.includes("node_modules/lucide-react")) {
+            return "vendor-icons";
+          }
+          if (id.includes("node_modules/@tanstack/")) {
+            return "vendor-query";
+          }
+        },
+      },
+    },
+  },
   server: {
     port: 5173,
     host: true,

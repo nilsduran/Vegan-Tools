@@ -88,14 +88,14 @@ Tasques de baixa dificultat que resolen deute tècnic menor, inconsistències vi
 Tasques que requereixen disseny d'enginyeria, modificació d'esquemes o canvis estructurals que tenen un impacte estratègic clau en el rendiment, la seguretat i el valor del producte.
 
 ### 📦 Rendiment Web & Frontend
-1. **Code-splitting i optimització del paquet de producció (Vite)**:
-   - *Problema*: La compilació actual genera un paquet monolític de més de 700 kB (`index.js`).
-   - *Acció*: Implementar càrrega mandrosa (`React.lazy()`) per a les pàgines (`MenuReaderPage`, `ProductScannerPage`, `RecipeVeganizerPage`, `ProfilePage`) i configurar `rollupOptions.output.manualChunks` per aïllar dependències pesades (Leaflet, polyfill de codi de barres, icones Lucide).
+1. **✅ [COMPLETAT] Code-splitting i optimització del paquet de producció (Vite)**:
+   - *Problema*: La compilació anterior generava un paquet monolític de més de 710 kB (`index.js`).
+   - *Solució*: Implementada càrrega mandrosa (`React.lazy()`) amb `<Suspense fallback={<PageLoader />}>` per a totes les pàgines i configurat `manualChunks` a `vite.config.ts`. El paquet inicial s'ha reduït a 260 kB (85 kB gzipped), aïllant Leaflet (`vendor-leaflet`, 149 kB), Barcode polyfill (`vendor-barcode`, 6.5 kB) i icones (`vendor-icons`, 13 kB).
 
 ### 🏛️ Dades i Catàleg de Destacats
-2. **Desacoblament dels Restaurants Destacats (*Curated Top Picks*) en fitxers JSON per ciutat**:
-   - *Problema*: Actualment `CURATED_RESTAURANTS` a `apps/api` barreja locals vegans i no vegans, mentre que `FEATURED_RESTAURANTS_BARCELONA` a `packages/domain` està codificat en TypeScript i només cobreix Barcelona.
-   - *Acció*: Modularitzar en fitxers JSON nets per ciutat (`data/featured/barcelona.json`, `data/featured/girona.json`, `data/featured/london.json`), garantint que **el 100% dels destacats siguin estrictament vegans** amb el pin daurat distintiu.
+2. **✅ [COMPLETAT] Desacoblament dels Restaurants Destacats (*Curated Top Picks*) en fitxers JSON per ciutat**:
+   - *Problema*: Anteriorment `CURATED_RESTAURANTS` a `apps/api` barrejava locals carnis/no vegans, mentre que els destacats de Barcelona estaven codificats rígidament en TypeScript.
+   - *Solució*: Modularitzat en fitxers JSON independents (`barcelona.json`, `girona.json`, `vic.json`, `tarragona.json`, `manresa.json`, `london.json`, `berlin.json`, `paris.json`), garantint per contracte que **el 100% dels destacats siguin estrictament vegans (`isVegan: true`)** i unificant `CURATED_RESTAURANTS` directament des de la font de domini.
 
 ### 🧹 Backend Fastify & Seguretat
 3. **Modularització del monòlit `apps/api/src/app.ts` (>2.470 línies)**:

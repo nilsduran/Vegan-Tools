@@ -1,0 +1,50 @@
+[
+  {
+    "id": "featured-lon-purezza",
+    "name": "Purezza Camden",
+    "address": "43 Parkway, London NW1 7PN",
+    "latitude": 51.5386,
+    "longitude": -0.1442,
+    "websiteUrl": "https://purezza.co.uk",
+    "mapUrl": "https://www.openstreetmap.org/?mlat=51.5386&mlon=-0.1442#map=17/51.5386/-0.1442",
+    "provider": "curated",
+    "cuisine": "pizza",
+    "tags": ["vegan", "pizza", "italian", "gluten_free", "featured"],
+    "isVegan": true,
+    "isFeatured": true,
+    "rating": 4.9,
+    "openingHours": "Mo-Su 12:00-22:30"
+  },
+  {
+    "id": "featured-lon-mildreds",
+    "name": "Mildreds Soho",
+    "address": "45 Lexington St, London W1F 9AN",
+    "latitude": 51.5134,
+    "longitude": -0.1378,
+    "websiteUrl": "https://www.mildreds.co.uk",
+    "mapUrl": "https://www.openstreetmap.org/?mlat=51.5134&mlon=-0.1378#map=17/51.5134/-0.1378",
+    "provider": "curated",
+    "cuisine": "asian",
+    "tags": ["vegan", "asian", "international", "featured"],
+    "isVegan": true,
+    "isFeatured": true,
+    "rating": 4.8,
+    "openingHours": "Mo-Su 09:00-23:00"
+  },
+  {
+    "id": "featured-lon-unity-diner",
+    "name": "Unity Diner",
+    "address": "50 Wentworth St, London E1 7AL",
+    "latitude": 51.5168,
+    "longitude": -0.0718,
+    "websiteUrl": "https://www.unitydiner.co.uk",
+    "mapUrl": "https://www.openstreetmap.org/?mlat=51.5168&mlon=-0.0718#map=17/51.5168/-0.0718",
+    "provider": "curated",
+    "cuisine": "burger",
+    "tags": ["vegan", "burger", "non_profit", "cocktails", "featured"],
+    "isVegan": true,
+    "isFeatured": true,
+    "rating": 4.9,
+    "openingHours": "Tu-Fr 12:00-22:00; Sa 12:00-22:30; Su 12:00-21:00"
+  }
+]
