@@ -413,6 +413,27 @@ const caPhrases = {
   "Take photo with native camera": "Fes una foto nativa (sense permisos de navegador)",
   "Master vegan recipes and smart converter to adapt traditional dishes, sauces and pastries.":
     "Receptari mestre i veganitzador intel·ligent per transformar canelons, crema catalana o rebosteria.",
+  "What do you want to eat today?": "Què vols menjar avui?",
+  "What do you want to eat today in": "Què vols menjar avui a",
+  "Scan product": "Escanejar producte",
+  "Find restaurants": "Trobar restaurants",
+  "Scan label or barcode": "Escanejar etiqueta o codi de barres",
+  "Explore restaurants on map": "Explorar restaurants al mapa",
+  "Featured 100% vegan places": "Destacats 100% vegans propers",
+  "Veganize a recipe": "Veganitza una recepta",
+  "Paste any traditional recipe to get plant-based substitutions and tips instantly.":
+    "Enganxa qualsevol recepta tradicional per obtenir substitucions vegetals i consells a l'instant.",
+  "Community & Values": "Comunitat i Valors",
+  "Quick E-number & additive checker": "Cercador ràpid d'additius i codis E",
+  "Check an E-number (e.g. E120, E904, E471)...": "Comprova un codi E (ex: E120, E904, E471)...",
+  "Check": "Comprova",
+  "Recent community activity": "Activitat recent de la comunitat",
+  "See all on map": "Veure'ls tots al mapa",
+  "View full guide": "Veure guia completa",
+  "Identify animal derivatives and E-numbers instantly": "Detecta derivats animals i codis E a l'instant",
+  "OpenStreetMap pins and reviewed vegan menus": "Pins d'OpenStreetMap i cartes veganes revisades",
+  "Zero tolerance for images of animal cruelty or meat. 100% plant-based sanctuary for animal liberation.":
+    "Tolerància zero amb imatges de carn o crueltat animal. Santuari 100% vegetal per a l'alliberament animal.",
 } as const;
 
 function getInitialLanguage(): Language {
