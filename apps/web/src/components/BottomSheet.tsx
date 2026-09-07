@@ -1,4 +1,4 @@
-import { useCallback, useRef, useState, type PointerEvent, type ReactNode, type TouchEvent } from "react";
+import { useCallback, useRef, useState, type PointerEvent, type ReactNode } from "react";
 import { tx } from "../i18n";
 
 export type SnapPoint = "collapsed" | "half" | "expanded";
@@ -135,24 +135,6 @@ export function BottomSheet({
     onDragEnd(e.clientY);
   };
 
-  // Native touch event fallback for environments/devices that rely on TouchEvent
-  const handleTouchStart = (e: TouchEvent<HTMLDivElement>) => {
-    const target = e.target as HTMLElement;
-    if (target.closest("button") || target.closest("input") || target.closest("a")) return;
-    const touch = e.touches[0];
-    if (touch) onDragStart(touch.clientY);
-  };
-
-  const handleTouchMove = (e: TouchEvent<HTMLDivElement>) => {
-    const touch = e.touches[0];
-    if (touch) onDragMove(touch.clientY);
-  };
-
-  const handleTouchEnd = (e: TouchEvent<HTMLDivElement>) => {
-    const touch = e.changedTouches[0] || e.touches[0];
-    if (touch) onDragEnd(touch.clientY);
-  };
-
   const handleKeyDown = (e: React.KeyboardEvent) => {
     if (e.key === "ArrowUp") {
       e.preventDefault();
@@ -183,10 +165,6 @@ export function BottomSheet({
         onPointerMove={handlePointerMove}
         onPointerUp={handlePointerUp}
         onPointerCancel={handlePointerUp}
-        onTouchStart={handleTouchStart}
-        onTouchMove={handleTouchMove}
-        onTouchEnd={handleTouchEnd}
-        onClick={cycleSnapPoint}
         onKeyDown={handleKeyDown}
         role="button"
         tabIndex={0}
@@ -208,9 +186,6 @@ export function BottomSheet({
         onPointerMove={handlePointerMove}
         onPointerUp={handlePointerUp}
         onPointerCancel={handlePointerUp}
-        onTouchStart={handleTouchStart}
-        onTouchMove={handleTouchMove}
-        onTouchEnd={handleTouchEnd}
       >
         {header}
       </div>

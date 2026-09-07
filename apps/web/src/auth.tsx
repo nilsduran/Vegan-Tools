@@ -7,6 +7,7 @@ import {
 } from "react";
 import { createClient, type SupabaseClient, type User, type Session } from "@supabase/supabase-js";
 import { generateSafeUUID } from "./utils/uuid";
+import { tx } from "./i18n";
 
 export interface AuthUser {
   id: string;
@@ -113,7 +114,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const signInWithGoogle = async (): Promise<{ error?: string }> => {
     if (!supabase) {
-      loginAsDemoUser("Usuari Google");
+      loginAsDemoUser(tx("Google User"));
       return {};
     }
     const { error } = await supabase.auth.signInWithOAuth({
@@ -127,7 +128,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const signInWithApple = async (): Promise<{ error?: string }> => {
     if (!supabase) {
-      loginAsDemoUser("Usuari Apple");
+      loginAsDemoUser(tx("Apple User"));
       return {};
     }
     const { error } = await supabase.auth.signInWithOAuth({
@@ -144,7 +145,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   ): Promise<{ error?: string; message?: string }> => {
     if (!supabase) {
       loginAsDemoUser(email.split("@")[0]);
-      return { message: "Sessió iniciada en mode desenvolupament." };
+      return { message: tx("Session started in demo mode.") };
     }
     const { error } = await supabase.auth.signInWithOtp({
       email: email.trim(),
@@ -153,7 +154,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       },
     });
     if (error) return { error: error.message };
-    return { message: "Hem enviat un enllaç d'accés al teu correu electrònic." };
+    return { message: tx("We sent an access link to your email.") };
   };
 
   const signInWithPassword = async (

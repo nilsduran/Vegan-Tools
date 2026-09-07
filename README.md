@@ -74,12 +74,10 @@ npm run dev
 
 ## Technical Documentation & Architecture
 
-For in-depth developer documentation, database schemas, and deployment instructions, see:
-- 🏛️ [Architecture & Engineering Guide](docs/architecture.md) — System architecture, menu discovery lifecycle flowchart, security/SSRF, API reference, and deployment.
-- 🗺️ [Project Roadmap](docs/roadmap.md) — Active development milestones, feature releases, and long-term vision.
-- 🎯 [Reliability & Classification Methodology](docs/reliability.md) — Testing benchmarks, evidence hierarchy, and ingredient evaluation principles.
-- 🐛 [Bug & Incident Tracking](docs/bugs.md) — Known issues, root causes, and regression prevention rules.
-- 🌐 [Market Research & Provider Landscape](docs/market-research.md) — Comparative analysis of places and discovery providers.
+For in-depth developer documentation, database schemas, ethical principles, and deployment instructions, see the three core documentation pillars:
+- 🗺️ [Project Roadmap & Prioritization](docs/roadmap.md) — Active development milestones, feature releases, and four-level prioritization matrix.
+- 🏛️ [Architecture & Engineering Guide](docs/architecture.md) — System architecture, menu discovery lifecycle, classification methodology, security/SSRF, API reference, and deployment.
+- 💚 [Ethical Manifesto & Safe Space Policy](docs/values.md) — Anti-speciesist core values, user safety, non-violence media policy, and zero-tracking privacy.
 
 ---
 

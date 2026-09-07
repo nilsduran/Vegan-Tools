@@ -1716,6 +1716,32 @@
   justify-content: center;
 }
 
+.detail-suggest-row {
+  display: flex;
+  justify-content: center;
+  margin-top: 0.15rem;
+}
+
+.detail-suggest-btn {
+  background: transparent;
+  border: 0;
+  color: #64748b;
+  font-size: 0.75rem;
+  font-weight: 600;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  padding: 0.3rem 0.6rem;
+  border-radius: 0.5rem;
+  transition: color 0.15s ease, background-color 0.15s ease;
+}
+
+.detail-suggest-btn:hover {
+  color: #0f172a;
+  background: #f1f5f9;
+}
+
 /* Bottom Sheet Handle & Container */
 .bottom-sheet-handle-bar {
   display: none;
@@ -1763,10 +1789,21 @@
 
 /* Mobile Responsiveness for Map Layout: Bottom Sheet */
 @media (max-width: 768px) {
+  .fullscreen-map-page {
+    height: calc(100dvh - 64px - 58px - env(safe-area-inset-bottom, 0px)) !important;
+    overflow: hidden !important;
+    margin: 0 !important;
+  }
+
   .map-view-hero {
-    height: 84vh;
-    min-height: 520px;
-    margin-top: 0.5rem;
+    height: 100% !important;
+    min-height: 0 !important;
+    margin: 0 !important;
+    flex: 1;
+  }
+
+  .bottom-menu-upload {
+    display: none;
   }
 
   /* Prevent iOS Safari auto-zoom on input focus */

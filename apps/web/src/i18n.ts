@@ -219,11 +219,11 @@ const caPhrases = {
   "Could not submit dish correction.": "No s'ha pogut desar la correcció del plat.",
   "Could not update restaurant notes.": "No s'han pogut actualitzar les notes del restaurant.",
   "No animal-derived ingredients are listed in the menu description.":
-    "La descripció del menú no indica cap ingredient d'origen animal.",
+    "La descripció de la carta no indica cap ingredient d'origen animal.",
   "The menu marks this as vegan, but it does not provide enough ingredient detail for an independent explanation.":
-    "El menú ho marca com a vegà, però no dona prou detalls dels ingredients per verificar-ho de manera independent.",
+    "La carta ho marca com a vegà, però no dona prou detalls dels ingredients per verificar-ho de manera independent.",
   "The menu marks this as vegetarian, but it does not list enough ingredients to identify the animal-derived component.":
-    "El menú ho marca com a vegetarià, però no indica prou ingredients per identificar el component d'origen animal.",
+    "La carta ho marca com a vegetarià, però no indica prou ingredients per identificar el component d'origen animal.",
   "Search area": "Cerca en aquesta zona",
   "Search for a restaurant or explore the map.": "Cerca un restaurant o explora el mapa.",
   "Near me": "A prop meu",
@@ -370,6 +370,49 @@ const caPhrases = {
   "Maximum limit of 8 files reached.": "S'ha assolit el límit màxim de 8 fitxers.",
   "Clear": "Neteja",
   "Finding menu on website failed.": "No s'ha pogut obtenir la carta des del lloc web.",
+  "Suggest an edit": "Suggereix un canvi",
+  "Edit suggested successfully. Thank you!": "Suggeriment enviat correctament. Gràcies!",
+  "Sensitive content: tap to reveal": "Contingut sensible: toca per mostrar",
+  "Sensitive content": "Contingut sensible",
+  "Google User": "Usuari Google",
+  "Apple User": "Usuari Apple",
+  "Session started in demo mode.": "Sessió iniciada en mode desenvolupament.",
+  "We sent an access link to your email.": "Hem enviat un enllaç d'accés al teu correu electrònic.",
+  "Gastronomic map with collaborative OpenStreetMap pins, cuisine filters and menu analysis.":
+    "Mapa gastronòmic amb pins col·laboratius d'OpenStreetMap, filtres per cuina i anàlisi de cartes.",
+  "Ethical tools for your daily vegan journey": "Eines ètiques per al teu dia a dia vegà",
+  "100% Safe Space": "Espai Segur 100%",
+  "Privacy & Zero Tracking": "Privacitat i Zero Tracking",
+  "99% Evidence Standard": "Precisió del 99%",
+  "Profile": "Perfil",
+  "Language": "Idioma",
+  "Ethical Commitment & Safe Space": "Compromís Ètic i Antiespecista",
+  "Zero tolerance for images of animal cruelty or meat.": "Tolerància zero amb imatges de carn o crueltat animal.",
+  "No tracking cookies or invasive profiling.": "Sense cookies publicitàries ni perfils invasius de geolocalització.",
+  "Scientific evidence hierarchy to verify ingredients.": "Jerarquia d'evidències contrastades per avalar cada ingredient.",
+  "Check ingredients in seconds, discover vegan-friendly restaurants on the map and veganize any recipe with ease.":
+    "Comprova ingredients amb la càmera, descobreix restaurants 100% vegans i adapta qualsevol recepta en segons.",
+  "Search restaurant, city or barcode…": "Cerca un restaurant, ciutat o codi de barres…",
+  "Scan barcodes or take photos of ingredient labels to instantly flag animal derivatives and E-numbers.":
+    "Escaneja el codi de barres o fes una foto a l'etiqueta d'ingredients per detectar additius i derivats animals.",
+  "My Profile": "El meu perfil",
+  "Sign in to manage your reviews": "Inicia sessió per gestionar les teves ressenyes",
+  "Sign out": "Tancar sessió",
+  "review": "ressenya",
+  "reviews": "ressenyes",
+  "Want to save and manage your reviews?": "Vols desar i gestionar les teves ressenyes?",
+  "Sign in to rate your vegan experience at restaurants and help the whole community.":
+    "Inicia sessió per valorar la teva experiència vegana a restaurants i ajudar a tota la comunitat.",
+  "Sign in / Create account": "Iniciar sessió / Crear compte",
+  "You have not reviewed any restaurants yet.": "Encara no has valorat cap restaurant.",
+  "Explore the interactive map and rate places with leaves!":
+    "Explora el mapa interactiu i valora els locals amb fulles!",
+  "Explore Map": "Explorar mapa",
+  "Restaurant on map": "Restaurant al mapa",
+  "I enabled it / Retry": "Ja he donat permís / Reintentar",
+  "Take photo with native camera": "Fes una foto nativa (sense permisos de navegador)",
+  "Master vegan recipes and smart converter to adapt traditional dishes, sauces and pastries.":
+    "Receptari mestre i veganitzador intel·ligent per transformar canelons, crema catalana o rebosteria.",
 } as const;
 
 function getInitialLanguage(): Language {

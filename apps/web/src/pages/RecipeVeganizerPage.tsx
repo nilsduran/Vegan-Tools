@@ -230,14 +230,13 @@ export function RecipeVeganizerPage() {
       text: string;
       selections: Record<string, string>;
     }) => veganizeRecipe(text, selections),
-    onSuccess: (result) => setVeganizedText(result.veganizedText),
+    onSuccess: (result) => setVeganizedText(localizeGeneratedText(result.veganizedText, language)),
   });
 
   const handleCopy = async () => {
-    const textToCopy = localizeGeneratedText(veganizedText, language);
-    if (!textToCopy) return;
+    if (!veganizedText) return;
     try {
-      await navigator.clipboard.writeText(textToCopy);
+      await navigator.clipboard.writeText(veganizedText);
       setCopied(true);
       window.setTimeout(() => setCopied(false), 2000);
     } catch {
@@ -289,7 +288,7 @@ export function RecipeVeganizerPage() {
           value={recipeText}
           onChange={(event) => setRecipeText(event.target.value)}
           placeholder={RECIPE_EXAMPLES[0]?.text[language] ?? ""}
-          rows={11}
+          rows={7}
         />
         <div className="form-actions">
           <button
@@ -332,7 +331,7 @@ export function RecipeVeganizerPage() {
             </p>
             <textarea
               aria-label={tx("Veganized recipe")}
-              value={localizeGeneratedText(veganizedText, language)}
+              value={veganizedText}
               onChange={(event) => setVeganizedText(event.target.value)}
               rows={14}
             />

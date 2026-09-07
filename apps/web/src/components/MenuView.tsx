@@ -29,7 +29,7 @@ import { isPresentableMenuSource } from "../menu-source";
 import { DishCorrectionDialog } from "./DishCorrectionDialog";
 import { RestaurantNotesDialog } from "./RestaurantNotesDialog";
 
-type DietFilter = "vegan" | "vegetarian" | "meat";
+type DietFilter = "vegan" | "vegetarian" | "non_vegan";
 type Modification = { target: "vegan" | "vegetarian"; note: string; noteCa?: string };
 
 function verdictGroup(verdict: DietVerdict): DietFilter | "unknown" {
@@ -37,7 +37,7 @@ function verdictGroup(verdict: DietVerdict): DietFilter | "unknown" {
   if (verdict === "vegetarian" || verdict === "probably_vegetarian") {
     return "vegetarian";
   }
-  if (verdict === "non_vegetarian") return "meat";
+  if (verdict === "non_vegetarian") return "non_vegan";
   return "unknown";
 }
 
@@ -166,7 +166,7 @@ export function MenuView({
     () => ({
       vegan: allItems.filter((item) => verdictGroup(item.verdict) === "vegan").length,
       vegetarian: allItems.filter((item) => verdictGroup(item.verdict) === "vegetarian").length,
-      meat: allItems.filter((item) => verdictGroup(item.verdict) === "meat").length,
+      non_vegan: allItems.filter((item) => verdictGroup(item.verdict) === "non_vegan").length,
     }),
     [allItems],
   );
@@ -180,7 +180,7 @@ export function MenuView({
         verdictGroup(item.verdict) !== "vegetarian" &&
         itemModifications(item).some((entry) => entry.target === "vegetarian")
       ).length,
-      meat: 0,
+      non_vegan: 0,
     }),
     [allItems],
   );
@@ -222,7 +222,7 @@ export function MenuView({
   }> = [
     { value: "vegan", label: t("vegan"), Icon: Leaf },
     { value: "vegetarian", label: t("vegetarian"), Icon: Egg },
-    { value: "meat", label: tx("Non-vegan"), Icon: Utensils },
+    { value: "non_vegan", label: tx("Non-vegan"), Icon: Utensils },
   ];
 
   const communityNotes = language === "ca" && menu.communityNotesCa?.trim()

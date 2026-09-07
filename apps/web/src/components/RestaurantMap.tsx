@@ -42,31 +42,31 @@ export function getCuisineIcon(restaurant: RestaurantCandidate): string {
   return restaurant.isVegan ? "🌱" : "🍽️";
 }
 
-// Custom marker: HappyCow-style round bubble with sharp thin needle base and large legible rating badge
+// Custom marker: round bubble with sharp thin needle base and large legible rating badge
 function createRestaurantIcon(
   restaurant: RestaurantCandidate,
   isSelected: boolean,
   isHovered: boolean = false,
 ) {
   const isHigh = isSelected || isHovered;
-  const isFeatured = (restaurant as { isFeatured?: boolean }).isFeatured ?? false;
+  const isFeatured = Boolean(restaurant.isFeatured);
 
-  // Palette 1: Gold / Forest Green / Botanical Purple / Slate Grey
+  // Palette: Gold (Featured) / Forest Green (100% Vegan) / Amber (Vegetarian) / Cobalt Blue (Vegan Options)
   const baseColor = isFeatured
     ? "#ca8a04" // Gold for Top Picks
     : restaurant.isVegan
       ? "#047857" // Forest emerald for 100% Vegan
       : restaurant.isVegetarian
-        ? "#7c3aed" // Botanical Purple for Vegetarian
-        : "#475569"; // Slate Grey for Vegan Options
+        ? "#d97706" // Amber for Vegetarian
+        : "#2563eb"; // Cobalt Blue for Vegan Options
 
   const lighterBorderColor = isFeatured
     ? "#fef08a" // Light gold
     : restaurant.isVegan
       ? "#a7f3d0" // Light emerald/mint
       : restaurant.isVegetarian
-        ? "#ddd6fe" // Light purple/lavender
-        : "#cbd5e1"; // Light slate grey
+        ? "#fde68a" // Light amber
+        : "#bfdbfe"; // Light blue
 
   const pinColor = baseColor;
   const strokeColor = isSelected ? lighterBorderColor : isHovered ? lighterBorderColor : "#ffffff";
@@ -94,7 +94,7 @@ function createRestaurantIcon(
       isSelected ? "transform: scale(1.11); filter: drop-shadow(0 0 10px rgba(0,0,0,0.5)) drop-shadow(0 6px 16px rgba(0,0,0,0.35)); z-index: 1000;" : isHovered ? "transform: scale(1.08); filter: drop-shadow(0 4px 12px rgba(0,0,0,0.35));" : ""
     }">
       <svg viewBox="0 0 40 50" width="${width}" height="${height}" fill="none" xmlns="http://www.w3.org/2000/svg" style="display: block; filter: drop-shadow(0 3px 8px rgba(0,0,0,0.32));">
-        <!-- HappyCow style: large circular dome + sharp thin needle base -->
+        <!-- Gastronomic map marker: circular dome + thin needle base -->
         <path d="M20 2C10 2 2 10 2 20c0 7.5 4.5 14 11 16.8L20 48l7-11.2c6.5-2.8 11-9.3 11-16.8C38 10 30 2 20 2z" fill="${pinColor}" stroke="${strokeColor}" stroke-width="${strokeWidth}" stroke-linejoin="round"/>
         <!-- Inner white disc for crisp cuisine icon -->
         <circle cx="20" cy="19" r="13" fill="#ffffff"/>

@@ -26,32 +26,51 @@ function getVeganBadge(restaurant: RestaurantCandidate): {
   label: string;
   className: string;
 } {
-  const name = restaurant.name.toLowerCase();
-  const address = restaurant.address.toLowerCase();
+  const name = (restaurant.name || "").toLowerCase();
+  const tags = (restaurant.tags ?? []).map((t) => t.toLowerCase());
+  const cuisine = (restaurant.cuisine ?? "").toLowerCase();
 
-  if (
+  const isAllVegan =
+    Boolean(restaurant.isVegan) ||
+    tags.includes("vegan") ||
+    tags.includes("diet:vegan=only") ||
+    cuisine === "vegan" ||
     name.includes("vegan") ||
     name.includes("vegà") ||
-    name.includes("plant-based")
-  ) {
+    name.includes("vegano") ||
+    name.includes("vegana") ||
+    name.includes("plant-based") ||
+    name.includes("plant based") ||
+    name.includes("100% vegetal");
+
+  if (isAllVegan) {
     return {
       type: "all_vegan",
-      label: "100% Vegà",
+      label: tx("100% Vegan"),
       className: "badge-all-vegan",
     };
   }
 
-  if (name.includes("vegetarian") || name.includes("vegetarià")) {
+  const isVegetarian =
+    Boolean(restaurant.isVegetarian) ||
+    tags.includes("vegetarian") ||
+    tags.includes("diet:vegetarian=only") ||
+    cuisine === "vegetarian" ||
+    name.includes("vegetarian") ||
+    name.includes("vegetarià") ||
+    name.includes("vegetariano");
+
+  if (isVegetarian) {
     return {
       type: "vegetarian",
-      label: "Vegetarià",
+      label: tx("Vegetarian"),
       className: "badge-vegetarian",
     };
   }
 
   return {
     type: "vegan_options",
-    label: "Opcions veganes",
+    label: tx("Vegan options"),
     className: "badge-vegan-options",
   };
 }
@@ -272,6 +291,24 @@ export function RestaurantDetailPane({
           >
             <Upload aria-hidden="true" />
             <span>{tx("Puja la carta (fotos o PDF)")}</span>
+          </button>
+        </div>
+
+        {/* Suggest edit link */}
+        <div className="detail-suggest-row">
+          <button
+            type="button"
+            className="detail-suggest-btn"
+            onClick={() => {
+              const subject = encodeURIComponent(`Vegan Tools: Suggeriment per a ${restaurant.name}`);
+              const body = encodeURIComponent(
+                `Hola! Vull suggerir una actualització o canvi per a "${restaurant.name}" (${restaurant.address || "adreça desconeguda"}):\n\n[Escriu aquí el suggeriment o novetat]`
+              );
+              window.open(`mailto:hola@vegantools.org?subject=${subject}&body=${body}`, "_blank");
+            }}
+          >
+            <Info aria-hidden="true" size={14} />
+            <span>{tx("Suggest an edit")}</span>
           </button>
         </div>
       </div>

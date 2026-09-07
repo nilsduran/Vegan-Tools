@@ -4,24 +4,46 @@ Aquest document estableix les directrius tècniques, els principis d'arquitectur
 
 ---
 
-## 🧭 1. Documents de Referència Principals
+## 🧭 1. Documents de Referència i Filosofia de Documentació
 
-- 🏛️ **Guia d'Arquitectura i Descoberta de Cartes**: [`docs/architecture.md`](./docs/architecture.md)
-  - Diagrama de flux de descoberta, resolució de webs oficials amb IA, seguretat SSRF i referència completa de l'API.
-- 💚 **Manifest Ètic i Carta de Valors**: [`docs/values.md`](./docs/values.md)
-  - Principis morals, antiespecisme, política d'espai segur (tolerància zero amb imatges d'explotació animal) i governança ètica.
-- 🗺️ **Full de Ruta (Roadmap)**: [`docs/roadmap.md`](./docs/roadmap.md)
-  - Estat actual de cada fase de desenvolupament, funcionalitats pendents, llançament de la beta, disseny de la UI i plans d'arquitectura.
-- 🐛 **Registre d'Incidències i Bug Tracking**: [`docs/bugs.md`](./docs/bugs.md)
-  - Llista exhaustiva de bugs coneguts, incidències d'UX, causes arrels i mesures de resolució per evitar regressions.
-- 🎯 **Metodologia de Fiabilitat**: [`docs/reliability.md`](./docs/reliability.md)
-  - Jerarquia d'evidències i estàndard del 99% de precisió en veredictes dietètics.
-- 🌐 **Anàlisi de Mercat i Proveïdors**: [`docs/market-research.md`](./docs/market-research.md)
-  - Comparativa de proveïdors de dades de llocs (Geoapify, OpenStreetMap, Overture, Google Places).
+Per evitar la dispersió en múltiples fitxers obsolets o secundaris, el repositori concentra el coneixement clau en **3 pilars documentals actius**:
+
+1. 🗺️ **Full de Ruta i Backlog Prioritzat**: [`docs/roadmap.md`](./docs/roadmap.md)
+   - L'única font de veritat sobre l'estat del desenvolupament, deute tècnic i tasques pendents, ordenades estrictament pels 4 nivells de priorització.
+2. 🏛️ **Guia d'Arquitectura i Descoberta**: [`docs/architecture.md`](./docs/architecture.md)
+   - Diagrames de flux, resolució de dominis amb IA, jerarquia d'evidències (precisió 99%), seguretat SSRF i referència de l'API.
+3. 💚 **Manifest Ètic i Carta de Valors**: [`docs/values.md`](./docs/values.md)
+   - Principis morals antiespecistes, política estricta d'espai segur (tolerància zero amb imatges d'explotació animal) i privacitat zero-tracking.
+
+*(Tots els documents secundaris anteriors com `bugs.md`, `reliability.md`, `osm-audit-results.md` i `market-research.md` s'han integrat i eliminat per mantenir la documentació neta i sense duplicitats).*
 
 ---
 
-## 🏗️ 2. Arquitectura del Projecte (Monorepo)
+## 🎯 2. Matriu de Priorització en 4 Nivells (Ordre d'Execució)
+
+Qualsevol tasca, millora o correcció s'ha de classificar i abordar seguint aquesta jerarquia estricta de **Dificultat i Importància**:
+
+```
+🟢 NIVELL 1 ──> 🟡 NIVELL 2 ──> 🟠 NIVELL 3 ──> 🔵 NIVELL 4
+(Quick Wins)     (Poliment)      (Arquitectura)   (Llarg Termini)
+```
+
+1. 🟢 **Nivell 1: Canvis petits i senzills però importants** (*Quick Wins d'Alt Impacte*):
+   - Correccions immediates d'errors visuals o de classificació (ex: etiquetes 100% vegà a restaurants, salts de BottomSheet, protecció Safe Space d'imatges).
+   - Màxim retorn per hora de desenvolupament: arreglen bugs crítics o inconsistències ètiques amb canvis de poques línies.
+2. 🟡 **Nivell 2: Canvis petits i no tant importants** (*Poliment i Deute Tècnic Menor*):
+   - Neteja de tipus TypeScript redundants, unificació d'esdeveniments mòbils (PointerEvents), centralització de cadenes i estils CSS.
+   - Deute tècnic menor que millora l'ergonomia del codi sense alterar la lògica troncal.
+3. 🟠 **Nivell 3: Canvis mitjans-grans importants** (*Arquitectura, Seguretat i Funcionalitats Clau*):
+   - Optimització de paquets (code-splitting), modularització de l'API (`apps/api/src/app.ts`), protecció SSRF/DNS rebinding, i funcionalitats nuclears pendents (plats adaptables, preferències d'al·lèrgies).
+   - Requereixen disseny d'enginyeria i pla previ d'implementació.
+4. 🔵 **Nivell 4: Canvis grans o molt grans però no prioritaris** (*Expansió Futura i Llarg Termini*):
+   - Projectes de gran envergadura (unificació de base de dades SQL, mode fosc, mode cuina pas a pas, capa de santuaris, subdominis d'idioma).
+   - Es posposen fins a la consolidació total dels nivells 1 a 3.
+
+---
+
+## 🏗️ 3. Arquitectura del Projecte (Monorepo)
 
 - **`packages/domain`**: Tipus TypeScript, esquemes Zod i lògica pura de domini (classificació d'ingredients, esquemes de restaurants, etc.).
 - **`apps/api`**: Servidor backend Fastify (Node.js/TypeScript) amb cerca de restaurants (Geoapify + Komoot Photon + Nominatim + Overpass), resolució de dominis oficials amb Gemini Search Grounding, OCR d'ingredients i memòria cau de cartes.

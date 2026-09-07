@@ -221,9 +221,9 @@ const exactGeneratedCa: Record<string, string> = {
   "Vegetarian rather than vegan because the dish contains egg.":
     "Vegetarià abans que vegà perquè el plat conté ou.",
   "The menu does not provide enough ingredient detail for a reliable classification.":
-    "El menú no ofereix prou detalls dels ingredients per a una classificació fiable.",
+    "La carta no ofereix prou detalls dels ingredients per a una classificació fiable.",
   "Not vegetarian because the menu indicates an animal-derived ingredient, but does not identify it clearly.":
-    "No és vegetarià perquè el menú indica un ingredient d'origen animal, però no l'identifica amb claredat.",
+    "No és vegetarià perquè la carta indica un ingredient d'origen animal, però no l'identifica amb claredat.",
   "Vegan substitution notes:": "Notes de substitució vegana:",
 };
 

@@ -5,6 +5,7 @@ import {
   Camera,
   ClipboardCheck,
   ExternalLink,
+  EyeOff,
   ImagePlus,
   LoaderCircle,
   RotateCcw,
@@ -132,6 +133,7 @@ export function ProductScannerPage() {
   const [photoUrl, setPhotoUrl] = useState("");
   const [remotePhotoUrl, setRemotePhotoUrl] = useState("");
   const [recentScans, setRecentScans] = useState<RecentScanItem[]>(getStoredRecentScans);
+  const [revealedImages, setRevealedImages] = useState<Record<string, boolean>>({});
   const lookup = useQuery({
     queryKey: ["product", routeGtin],
     queryFn: () => getProduct(routeGtin ?? ""),
@@ -283,7 +285,31 @@ export function ProductScannerPage() {
           {lookup.data && (
             <article className="product-result">
               {lookup.data.imageUrl && (
-                <img src={lookup.data.imageUrl} alt="" referrerPolicy="no-referrer" />
+                <div
+                  className={`product-result-media ${
+                    lookup.data.verdict === "non_vegetarian" && !revealedImages[lookup.data.gtin]
+                      ? "is-sensitive-blurred"
+                      : ""
+                  }`}
+                >
+                  <img src={lookup.data.imageUrl} alt="" referrerPolicy="no-referrer" />
+                  {lookup.data.verdict === "non_vegetarian" && !revealedImages[lookup.data.gtin] && (
+                    <button
+                      type="button"
+                      className="sensitive-overlay-btn"
+                      onClick={() => {
+                        if (lookup.data?.gtin) {
+                          const gtin = lookup.data.gtin;
+                          setRevealedImages((prev) => ({ ...prev, [gtin]: true }));
+                        }
+                      }}
+                      title={tx("Sensitive content: tap to reveal")}
+                    >
+                      <EyeOff aria-hidden="true" size={15} />
+                      <span>{tx("Sensitive content: tap to reveal")}</span>
+                    </button>
+                  )}
+                </div>
               )}
               <div className="product-result-body">
                 <VerdictBadge verdict={lookup.data.verdict} />

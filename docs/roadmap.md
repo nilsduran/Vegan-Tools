@@ -1,83 +1,159 @@
-# Vegan Tools — Full de Ruta (Roadmap) & Visió Estratègica
+# Vegan Tools — Full de Ruta (Roadmap) & Priorització Estratègica
 
-Aquest document estableix l'estat del desenvolupament, les fites assolides i la planificació estratègica de **Vegan Tools**, organitzada en **Funcionalitats** i **Consideracions**.
+Aquest document estableix l'estat del desenvolupament, les fites consolidades i la planificació d'enginyeria de **Vegan Tools**, ordenada estrictament segons la matriu de **Dificultat i Importància**:
 
----
-
-## 🌟 Funcionalitats
-
-### 🗺️ 1. Mapa Interactiu i Descoberta Gastronòmica (`/map`)
-Estat: **Fases 1 a 4 Completades i Estabilitzades** (Branca activa: `feature/interactive-map`).
-- **Renderitzat Cartogràfic**: Leaflet + CARTO Voyager, ancoratge fix de pins (`iconAnchor`), eliminació de salts en fer zoom i agrupament dinàmic (*Marker Clustering*).
-- **Cerca Universal**: Cerca intel·ligent per nom comercial, carrer i ciutats globals amb *debounce* de 300ms, biaix de proximitat suau (`lat/lng`) i viatges instantanis a ciutats.
-- **Fitxa de Detall del Restaurant (`RestaurantDetailPane`)**: Distància a peu exacta, fila d'accions (`Carta`, `Web`, `Indicacions`), càrrega instantània de cartes en memòria cau (<5ms) i deep-linking a la URL (`?place=id`).
-- **UI Mòbil / Bottom Sheet**: Panell compacte inferior flotant amb marges, alçada ajustada (`84vh`), suport tàctil (*Pointer & Touch Events*), bloqueig en repòs i col·lapse automàtic en tocar el mapa.
-- **Barra de Filtres Ràpids**: `🍃 4+ fulles`, `🌱 100% Vegà`, `🌿 Opcions veganes`, `🚫🌾 Sense gluten`, `🍕 Italià`, `🍜 Asiàtic`, `🍣 Sushi`, `🍔 Burger`, `🥙 Kebab`, `🥗 Vegetarià`, `🍢 Tapes`, etc.
-- **⭐ Restaurants Destacats (*Curated Top Picks*)**: Llista curada de 20 a 50 establiments d'excel·lència gastronòmica per gran ciutat. **Requisit estricte**: Tots els destacats han de ser **exclusivament 100% vegans** i estaran identificats al mapa amb un marcador/pin **daurat distintiu** (sense cap altre color secundari).
-  - *Format de Dades per al Roadmap*: Modularitzar la col·lecció en fitxers **JSON nets i desacoblats per ciutat** (ex: `data/featured/barcelona.json`, `data/featured/girona.json`, `data/featured/london.json`) perquè siguin fàcilment editables, auditables i exportables.
-- **📱 Testing Manual i Exploratori en Mòbil (Pendent)**:
-  - Sessió de proves manuals en dispositius reals (iOS Safari i Android Chrome) per verificar gestos tàctils, estats del BottomSheet (`collapsed`, `half`, `expanded`), botons de trucada/indicacions/carta i rendiment general del mapa.
-
-### 🏛️ 2. Arquitectura de Base de Dades Unificada & Pàgines de Restaurant
-Estat: **Disseny d'Enginyeria & Model ER**.
-- **Model Relacional Sòlid**: Superar els repositoris fragmentats en memòria i consolidar l'esquema (`restaurants`, `restaurant_media`, `restaurant_reviews`, `restaurant_menus`, `dishes`, `community_tags`) amb suport per a SQLite/libSQL en local i PostgreSQL/Supabase en producció.
-- **Pàgines de Perfil de Restaurant Dedicades (`/restaurant/:id`)**: Fitxa completa per a cada negoci amb galeria d'imatges d'**espai segur** (zero carn/explotació animal), història del local, desglossament d'horaris per dia de la setmana, carta interactiva analitzada i ressenyes ètiques.
-- **💬 Sistema de Ressenyes Ètiques & Valoració de Fulles Decimals**: Opinions de la comunitat, valoració botànica amb precisió decimal (1.0 a 5.0 fulles, ex: `4.5`, `4.8`), recomanacions de plats concrets i política d'espai segur estricta (tolerància zero amb imatges de carn o explotació animal).
-
-### 🍳 3. Receptari Mestre & Veganitzador Intel·ligent (`/recipes`)
-Estat: **Veganitzador actiu; Hub de receptes en expansió**.
-- **Veganitzador per IA & Regles Culinàries**: Substitució precisa d'ingredients animals per alternatives reals contrastades.
-- **Hub de Receptes Mestres Veganes**: Formatges vegans artesans, rebosteria sense ou ni llet, plats tradicionals catalans i internacionals amb filtres per al·lèrgens (sense gluten, sense fruita seca, sense soja).
-- **Mode Cuina**: Instruccions pas a pas a pantalla completa amb temporitzadors integrats i generador de llista de la compra.
-
-### 🔍 4. Escàner d'Ingredients & Auditoria de Productes (`/`)
-Estat: **Operatiu amb Open Food Facts & OCR d'Etiquetes**.
-- **Classificació d'Additius i Traçabilitat**: Detecció d'additius ocults (E120, carmí, albúmina, sèrum de llet, gelatina, additius de peix) amb jerarquia d'evidències del 99% de precisió.
-- **📷 Gestió Guiada de Permisos de Càmera**: Suport interactiu per a iOS Safari i Android Chrome amb diàleg d'ajuda pas a pas i alternativa de càmera nativa (`capture="environment"`).
-- **Historial Local i Mode Desconnectat**: Consulta ràpida de productes recents sense emmagatzemar perfils d'usuari permanents.
-
-### 👤 5. Perfils d'Usuari, Preferències & Configuració (`/profile`)
-Estat: **Disseny & Autenticació Bàsica**.
-- **Preferències Dietètiques i d'Al·lèrgies**: Filtre personalitzat automàtic (sense gluten, sense soja, sense fruits secs, només 100% vegà).
-- **🎨 Temes Visuals (Mode Clar / Mode Fosc)**: Suport per a commutació entre **Mode Clar** (*Light*) i **Mode Fosc** (*Dark*) amb sincronització automàtica segons la preferència del sistema (`prefers-color-scheme`).
-- **Llista de Restaurants Guardats i Preferits**: Marcadors personals al mapa de locals per visitar o favorits.
-- **Historial d'Aportacions i Ressenyes**: Gestió i edició de les pròpies ressenyes creades a restaurants amb la seva puntuació de fulles i comentaris.
-- **Privacitat Estricta**: Opció d'ús 100% anònim / local sense compte o amb autenticació Supabase sense rastreig.
-
-### 📚 6. Hub de Recursos, Nutrició i Santuaris (`/resources`)
-Estat: **Disseny de Continguts**.
-- Guia de nutrició basada en evidències (B12, ferro, proteïnes vegetals, omega-3).
-- Catàleg de documentals, llibres i respostes a preguntes freqüents sobre antiespecisme.
-- Directori i mapa de santuaris d'animals i refugis.
-
-### 🧹 7. Refactorització Modular del Backend Fastify (`apps/api`)
-Estat: **Planificat**.
-- Modularitzar el fitxer monolític `app.ts` (>2.000 línies) en controladors i rutes aïllades (`/routes/restaurants.ts`, `/routes/menus.ts`, `/routes/reviews.ts`, `/routes/veganizer.ts`).
+1. 🟢 **Nivell 1: Canvis petits i senzills però importants** (*Quick Wins d'Alt Impacte*)
+2. 🟡 **Nivell 2: Canvis petits i no tant importants** (*Poliment, Neteja i Deute Tècnic Menor*)
+3. 🟠 **Nivell 3: Canvis mitjans-grans importants** (*Arquitectura, Seguretat i Funcionalitats Clau*)
+4. 🔵 **Nivell 4: Canvis grans o molt grans però no prioritaris** (*Expansió Futura i Llarg Termini*)
 
 ---
 
-## 💡 Consideracions
+## 🟢 Nivell 1: Canvis Petits i Senzills però Importants (Quick Wins) — ✅ COMPLETAT
 
-1. **🌐 Internacionalització, Enrutament i Subdominis d'Idioma**:
-   - Resolució per subdomini (`ca.vegantools.org` / `en.vegantools.org`) o paràmetre d'idioma a la URL (`?lang=en` o `/en/`, `/ca/`) per compartir enllaços directes i optimització SEO internacional.
-2. **🎨 Revisió Visual del Mapa (Colors, Ratings i Icones)**:
-   - Harmonització de la paleta botànica de colors dels pins (verd bosc per a 100% vegà, ambre per a vegetarià, blau per a opcions).
-   - Disseny unificat del sistema de fulles (🍃 1 a 5) i icones vectorials SVG.
-3. **✨ Ressaltat Bidireccional Pin ↔ Llista (Desktop)**:
-   - En passar el cursor per sobre d'un restaurant a la llista lateral, fer que el seu marcador al mapa s'il·lumini o ressalti visualment.
-4. **🐾 Capa Ètica de Santuaris d'Animals**:
-   - Marcadors diferenciats al mapa per a **Santuaris d'animals i refugis** (d'acord amb el Manifest Ètic a [`docs/values.md`](./values.md)).
-6. **🚩 Botó «Suggereix un canvi» a la Fitxa del Restaurant**:
-   - Formulari ràpid perquè la comunitat pugui notificar canvis d'adreça, tancaments permanents o nous plats vegans.
-7. **📲 PWA & Capacitats Offline**:
-   - Millora del manifest de la PWA per a instal·lació a pantalla d'inici i funcionament bàsic de consulta sense connexió.
-8. **🕒 Estratègia d'Horaris en Segon Pla**:
-   - Recollir i emmagatzemar progressivament horaris reals amb Gemini Search Grounding / webs oficials / Google Places al backend fins a assolir una cobertura massiva (>90%) abans de reactivar el filtre públic «Obert ara».
-9. **✂️ Concisió Visual i Reducció d'Informació Redundant**:
-   - Auditar totes les pantalles per eliminar textos explicatius excessivament llargs, frases repetides i duplicats d'informació a una mateixa pàgina, afavorint una interfície neta, àgil i directa.
-10. **📷 Permisos de Càmera a Safari iOS & Escàner de Codi de Barres**:
-    - Safari a iPhone exigeix exclusivament context HTTPS per habilitar la transmissió directa per streaming de vídeo (`getUserMedia`).
-    - En entorns de desenvolupament local (HTTP via Wi-Fi), s'ha de garantir que el selector d'imatges directe per càmera (`<input type="file" capture="environment">`) funcioni de forma instantània com a alternativa nativa robusta.
+Tasques de baixa complexitat tècnica amb un impacte immediat i directe en la fiabilitat de la informació, l'experiència d'usuari i els principis ètics de l'aplicació.
+
+### 🗺️ Mapa Interactiu (`/map`)
+1. **✅ [COMPLETAT] Corregir la classificació dietètica a la fitxa (`RestaurantDetailPane.tsx`)**:
+   - *Problema*: La funció `getVeganBadge()` només comprova si `restaurant.name` conté la subcadena `"vegan"`, `"vegà"` o `"plant-based"`. Ignora completament `restaurant.isVegan`, `restaurant.tags`, `restaurant.cuisine` i `restaurant.diet`. Locals de referència 100% vegans (*Alive Restaurant*, *Rasoterra*, *Bionèctar*, *Roots & Rolls*, *Flax & Kale*) es mostren erròniament com a «Opcions veganes» (`badge-vegan-options`).
+   - *Solució*: Refactoritzar `getVeganBadge` per prioritzar `restaurant.isVegan === true`, etiquetes `tags.includes("vegan")` i dades estructurades abans de recórrer al nom.
+2. **✅ [COMPLETAT] Corregir els predicats defectuosos als filtres ràpids (`FilterPills.tsx`)**:
+   - *Filtre Restaurant*: La condició `!c.tags?.includes("ice_cream")` fa que pràcticament qualsevol negoci que no sigui una gelateria (cafeteries, fleques, hamburgueseries) coincideixi com a restaurant general.
+   - *Filtre Opcions Veganes*: La regla `(c.tags && c.tags.length > 0 && !c.tags.includes("carnivore_only"))` assigna el distintiu d'opcions veganes a qualsevol local amb una etiqueta qualsevol (com `cafe` o `fast_food`) sense cap verificació d'oferta vegetal real.
+   - *Solució*: Endurir els predicats per exigir tags dietètics contrastats (`diet.vegan`, `diet.vegetarian`, `cuisine`, o plats analitzats).
+3. **✅ [COMPLETAT] Eliminar el doble salt brusc al BottomSheet mòbil (`BottomSheet.tsx`)**:
+   - *Problema*: A la barra de subjecció (`.bottom-sheet-handle-bar`) s'activa tant la detecció de gest a `onDragEnd` (`deltaY < 6 && deltaTime < 220`) com l'esdeveniment natiu de clic (`onClick={cycleSnapPoint}`). Un sol toc dispara `cycleSnapPoint()` dues vegades consecutives, saltant-se l'estat intermedi (`half`) i passant bruscament de `collapsed` a `expanded`.
+   - *Solució*: Eliminar l'esdeveniment `onClick` redundant i controlar el cicle d'estats exclusivament des de la finalització del gest.
+4. **✅ [COMPLETAT] Eliminar les bafarades invasives de validació HTML5 (`SearchTypeahead.tsx`)**:
+   - *Problema*: L'element `<input>` té definits els atributs `required` i `minLength={2}` dins d'un `<form>`. En prémer `Enter` amb un text curt o buit, el navegador llança una bafarada HTML5 emergent que bloqueja la interacció i tapa la pantalla.
+   - *Solució*: Eliminar `required` i `minLength` natius de l'HTML i gestionar la validació de manera silenciosa a `handleSubmit`.
+5. **✅ [COMPLETAT] Harmonització cromàtica dels pins del mapa (`RestaurantMap.tsx`)**:
+   - *Problema*: El codi utilitza actualment lila (`#7c3aed`) per a vegetarià i gris pissarra (`#475569`) per a opcions, discrepant de la guia botànica.
+   - *Solució*: Aplicar la paleta acordada: verd bosc (`#047857`) per a 100% vegà, ambre (`#d97706`) per a vegetarià i blau (`#2563eb`) per a opcions veganes.
+
+### 🍳 Receptari (`/recipes`)
+6. **✅ [COMPLETAT] Eliminar l'anti-patró de React a l'editor del Veganitzador (`RecipeVeganizerPage.tsx`)**:
+   - *Problema*: L'àrea de text editable (`<textarea>`) passa la seva propietat `value` per `localizeGeneratedText(veganizedText, language)` a cada cicle de render. Quan l'usuari intenta editar el text, la funció de traducció el muta en temps real i desplaça el cursor al final de la caixa a cada tecla premuda.
+   - *Solució*: Guardar el text traduït a l'estat quan es rep la resposta de l'API i passar directament `value={veganizedText}` sense transformacions dinàmiques al render.
+
+### 🔍 Escàner & Ètica (`/scanner`, `/`)
+7. **✅ [COMPLETAT] Protecció de l'Espai Segur (Safe Space) per a fotos d'Open Food Facts (`ProductScannerPage.tsx` & `styles.css`)**:
+   - *Problema*: La funció `lookupOpenFoodFacts` retorna directament `imageUrl: product.image_front_url`. Quan s'escaneja un producte carni o pesquer, la fotografia de l'envàs es mostrava sense cap filtre a `ProductScannerPage.tsx`.
+   - *Solució*: Per als productes classificats com a `non_vegetarian`, la imatge es mostra per defecte amb un difuminat protector (`filter: blur(18px)`) i un botó que permet a l'usuari retirar el difuminat per verificar la coincidència del codi de barres.
+8. **✅ [COMPLETAT] Substitució de la icona Apple Touch SVG per PNG (`index.html`)**:
+   - *Problema*: `index.html` tenia definit `<link rel="apple-touch-icon" href="/icon.svg" />`. Safari a iOS no admet fitxers SVG per a icones d'inici i mostra un quadrat negre buit a la pantalla d'inici dels iPhone.
+   - *Solució*: Generar i vincular un fitxer PNG estàndard de 180x180 px (`apple-touch-icon.png`).
+
+### 📱 UI & Navegació Mòbil
+9. **✅ [COMPLETAT] Resolució de la doble barra de navegació mòbil a Capacitor (`App.tsx` / `styles.css`)**:
+   - *Problema*: En plataformes natives es renderitzaven tant `.mobile-bottom-nav` com `.bottom-nav`. A més, `.bottom-nav` tenia definit per CSS `grid-template-columns: repeat(4, 1fr)` mentre hi ha 5 enllaços de navegació, trencant l'alineació visual del cinquè element.
+   - *Solució*: Unificar en un sol component de navegació inferior net amb 5 columnes adaptables.
+10. **✅ [COMPLETAT] Eliminació de mencions no autoritzades a HappyCow (`HomePage.tsx`)**:
+    - *Problema*: La portada afirmava que el mapa té «pins HappyCow», afirmació errònia que generava confusió i riscos de marca registrada.
+    - *Solució*: Substituir la frase per referències transparents a OpenStreetMap i al catàleg curat propi de Vegan Tools.
+
+### 🌐 Internacionalització & Terminologia
+11. **✅ [COMPLETAT] Normalització de terminologia segons AGENTS.md**:
+    - *Problema*: S'havia detectat l'ús del terme prohibit «menú» en diverses cadenes catalanes de `i18n.ts` i `generated-i18n.ts`, i l'ús de la clau interna `"meat"` a `MenuView.tsx`.
+    - *Solució*: Substituir per «carta» i canviar la clau interna a `"non_vegan"`.
+
+### ⚡ Estabilitat del Desenvolupament
+12. **✅ [COMPLETAT] Configuració de timeout a Vitest (`vitest.config.ts`)**:
+    - *Problema*: La manca d'un fitxer de configuració a l'arrel feia que proves pesades com `restaurant-search.test.ts` fallessin per timeout (5.000 ms) sota alta concurrència de CPU a Windows.
+    - *Solució*: Crear `vitest.config.ts` amb `testTimeout: 10000`.
+
+---
+
+## 🟡 Nivell 2: Canvis Petits i No Tant Importants (Poliment i Neteja) — ✅ COMPLETAT
+
+Tasques de baixa dificultat que resolen deute tècnic menor, inconsistències visuals i neteja de codi sense bloquejar el funcionament de l'aplicació.
+
+1. **✅ [COMPLETAT] Neteja de càsting de tipus innecessari a TypeScript (`RestaurantMap.tsx`)**:
+   - Eliminar `(restaurant as { isFeatured?: boolean }).isFeatured`, ja que `isFeatured` ja està definit formalment a `RestaurantCandidateSchema`.
+2. **✅ [COMPLETAT] Unificació de PointerEvents i eliminació de TouchEvents redundants (`BottomSheet.tsx`)**:
+   - Eliminar els controladors `onTouch*` i delegar exclusivament en l'API estàndard de Pointer Events amb captura de punter (`setPointerCapture`).
+3. **✅ [COMPLETAT] Noms de demostració sensibles a l'idioma a l'autenticació (`auth.tsx`)**:
+   - Substituir el text rígid "Usuari Google" / "Usuari Apple" quan no hi ha Supabase per cadenes traduïdes segons l'idioma actiu ("Google User" en anglès).
+4. **✅ [COMPLETAT] Centralització de ternaris dispersos d'idioma**:
+   - Migrar desenes de ternaris inline `language === "ca" ? "..." : "..."` a `App.tsx`, `HomePage.tsx`, `ProfilePage.tsx` i `CameraPermissionModal.tsx` cap al diccionari centralitzat `i18n.ts`.
+5. **✅ [COMPLETAT] Refactorització d'estils en línia a classes de disseny (`HomePage.tsx`, `ProfilePage.tsx`)**:
+   - Substituir l'ús massiu de `style={{ ... }}` per regles dedicades i reutilitzables a `styles.css` (`.home-*` i `.profile-*`).
+6. **✅ [COMPLETAT] Formulari ràpid «Suggereix un canvi» a la fitxa del restaurant**:
+   - Botó i diàleg lleuger perquè qualsevol usuari pugui notificar ràpidament una correcció d'adreça, tancament permanent o novetat a la carta sense necessitat d'editar fitxers font.
+
+---
+
+## 🟠 Nivell 3: Canvis Mitjans-Grans Importants (Arquitectura i Funcionalitats Clau)
+
+Tasques que requereixen disseny d'enginyeria, modificació d'esquemes o canvis estructurals que tenen un impacte estratègic clau en el rendiment, la seguretat i el valor del producte.
+
+### 📦 Rendiment Web & Frontend
+1. **Code-splitting i optimització del paquet de producció (Vite)**:
+   - *Problema*: La compilació actual genera un paquet monolític de més de 700 kB (`index.js`).
+   - *Acció*: Implementar càrrega mandrosa (`React.lazy()`) per a les pàgines (`MenuReaderPage`, `ProductScannerPage`, `RecipeVeganizerPage`, `ProfilePage`) i configurar `rollupOptions.output.manualChunks` per aïllar dependències pesades (Leaflet, polyfill de codi de barres, icones Lucide).
+
+### 🏛️ Dades i Catàleg de Destacats
+2. **Desacoblament dels Restaurants Destacats (*Curated Top Picks*) en fitxers JSON per ciutat**:
+   - *Problema*: Actualment `CURATED_RESTAURANTS` a `apps/api` barreja locals vegans i no vegans, mentre que `FEATURED_RESTAURANTS_BARCELONA` a `packages/domain` està codificat en TypeScript i només cobreix Barcelona.
+   - *Acció*: Modularitzar en fitxers JSON nets per ciutat (`data/featured/barcelona.json`, `data/featured/girona.json`, `data/featured/london.json`), garantint que **el 100% dels destacats siguin estrictament vegans** amb el pin daurat distintiu.
+
+### 🧹 Backend Fastify & Seguretat
+3. **Modularització del monòlit `apps/api/src/app.ts` (>2.470 línies)**:
+   - *Problema*: La funció `buildApp()` conté totes les rutes, controladors, cerques espacials i lògica d'integració en un sol fitxer gegant.
+   - *Acció*: Descompondre en rutes i controladors aïllats:
+     - `/routes/location.ts` (geolocalització aproximada)
+     - `/routes/restaurants.ts` (cerca espacial, resolució de dominis i destacats)
+     - `/routes/menus.ts` (descoberta web, càrrega de fitxers, edició i notes)
+     - `/routes/reviews.ts` (ressenyes ètiques i estadístiques)
+     - `/routes/products.ts` (consulta Open Food Facts i OCR)
+     - `/routes/recipes.ts` (veganitzador culinari)
+4. **Refactorització de la signatura de `buildApp()`**:
+   - *Problema*: Accepta 8 arguments posicionals, obligant a passar cinc `undefined` consecutius a `server.ts`.
+   - *Acció*: Substituir per un patró de dependències net (`options: Partial<AppDependencies> = {}`).
+5. **🔒 Defensa contra DNS Rebinding a la descoberta de cartes (`menu-discovery.ts`)**:
+   - *Problema*: `assertPublicUrl` valida la IP abans de la petició, però `fetch()` torna a resoldre el DNS, permetent que un atacant amb TTL 0 accedeixi a xarxes locals o metadades cloud (`127.0.0.1`, `169.254.169.254`).
+   - *Acció*: Implementar un Dispatcher TCP fixat a la IP validada (undici Agent).
+
+### 🔍 Intel·ligència Artificial i Cartes
+6. **Auditoria ètica de begudes, vins i cerveses a les cartes (`menu-analyzer.ts`)**:
+   - *Problema*: El prompt enviat a Gemini diu literalment `Ignore drinks`, ignorant l'auditoria d'additius d'origen animal com la ictiocol·la, la gelatina animal o l'albúmina en vins i licors.
+   - *Acció*: Permetre l'anàlisi de begudes quan incloguin llistat d'ingredients o informació de clarificació.
+7. **Extracció automàtica de plats adaptables (`modifiableTo`) amb Gemini**:
+   - *Problema*: Gemini no extreu automàticament `modifiableTo` ni `modificationNote`.
+   - *Acció*: Ampliar l'esquema de sortida del model perquè identifiqui plats que la carta original indica com a adaptables.
+
+### 👤 Perfil i Experiència d'Usuari
+8. **Preferències dietètiques i d'al·lèrgies persistents**:
+   - Implementar a `ProfilePage` filtres personals (sense gluten/celiaquia, sense fruits secs, sense soja, només 100% vegà) que s'apliquin automàticament a les cerques del mapa i l'escàner.
+9. **Llista de restaurants guardats i favorits**:
+   - Crear un sistema per marcar restaurants com a preferits o pendents de visitar, funcional tant en local (sense compte) com sincronitzat amb Supabase.
+10. **Pàgines de perfil dedicades per a cada restaurant (`/restaurant/:id`)**:
+    - Crear fitxes independents indexables per a motors de cerca, amb galeria d'imatges d'espai segur, horaris detallats i enllaços directes per compartir.
+11. **Auditoria i revisió periòdica dels pins curats i comunitaris del mapa**:
+     - Establir un procés sistemàtic de verificació periòdica per auditar que els marcadors curats i els resultats d'OpenStreetMap mantinguin informació actualitzada (obertures, tancaments, canvis de carta i oferta vegana) i gestionar correccions reportades per la comunitat.
+
+---
+
+## 🔵 Nivell 4: Canvis Grans o Molt Grans No Immediats (Llarg Termini)
+
+Projectes de gran envergadura o expansions estratègiques de menor urgència operativa immediata, que es desenvoluparan un cop consolidada la base de codi.
+
+1. **🏛️ Consolidació global de la base de dades relacional**:
+   - Migració completa de tots els repositoris fragmentats cap a un model relacional unificat (`restaurants`, `restaurant_media`, `restaurant_reviews`, `restaurant_menus`, `dishes`, `community_tags`) amb suport complet per a SQLite/libSQL en local i PostgreSQL/Supabase en producció.
+2. **🏛️ Unificació del SDK de Supabase al backend**:
+   - Substituir les consultes manuals `fetch` cap a PostgREST a `store.ts` pel client SDK oficial `@supabase/supabase-js`.
+3. **🍳 Hub complet de Receptes Mestres Veganes & Mode Cuina**:
+   - Desenvolupament del directori complet de receptes tradicionals, formatges artesans i rebosteria sense ou/llet, amb instruccions pas a pas a pantalla completa, temporitzadors i generador de llista de la compra.
+4. **🐾 Capa ètica de Santuaris d'Animals i Refugis al mapa**:
+   - Creació d'un filtre i marcadors cartogràfics propis per a santuaris i projectes de rescat d'animals (amb el tipus `sanctuary` al model de domini).
+5. **📚 Hub de Recursos, Nutrició i Antiespecisme (`/resources`)**:
+   - Desenvolupament de la secció de divulgació ètica, guies nutricionals basades en evidències (B12, ferro, proteïnes) i catàleg de llibres i documentals.
+6. **🎨 Suport complet per a Mode Clar / Mode Fosc**:
+   - Sistema global de commutació de tema visual amb sincronització automàtica segons la preferència del sistema (`prefers-color-scheme`).
+7. **🕒 Estratègia d'horaris en segon pla per reactivar el filtre «Obert ara»**:
+   - Sistema de recol·lecció periòdica d'horaris comercials mitjançant Gemini Search Grounding / webs oficials / Google Places fins a assolir una cobertura massiva (>90%) abans d'activar el filtre públic.
+8. **🌐 Subdominis d'idioma i enrutament internacional**:
+   - Configuració per a resolució d'idiomes mitjançant subdominis (`ca.vegantools.org` / `en.vegantools.org`) o prefixes de ruta per a posicionament SEO global.
 
 ---
 

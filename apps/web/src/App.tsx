@@ -42,7 +42,7 @@ export function App() {
     { to: "/scanner", label: t("scanner"), icon: ScanBarcode },
     { to: "/map", label: t("map"), icon: MapPin },
     { to: "/recipes", label: t("recipes"), icon: CookingPot },
-    { to: "/profile", label: language === "ca" ? "Perfil" : "Profile", icon: User },
+    { to: "/profile", label: tx("Profile"), icon: User },
   ];
   return (
     <AuthProvider>
@@ -53,7 +53,7 @@ export function App() {
             <span>{t("brand")}</span>
           </NavLink>
           {!native && (
-            <nav aria-label={tx("Primary navigation")}>
+            <nav className="desktop-nav" aria-label={tx("Primary navigation")}>
               {links.slice(1).map(({ to, label }) => (
                 <NavLink key={to} to={to}>{label}</NavLink>
               ))}
@@ -98,22 +98,21 @@ export function App() {
           </Routes>
         </main>
 
+        {/* Mobile Bottom Navigation */}
+        <nav className="mobile-bottom-nav" aria-label={tx("App navigation")}>
+          {links.map(({ to, label, icon: Icon }) => (
+            <NavLink key={to} to={to} end={to === "/"}>
+              <Icon aria-hidden="true" />
+              <span>{label}</span>
+            </NavLink>
+          ))}
+        </nav>
+
         <footer className="site-footer">
           <a href="https://nilsduran.github.io" target="_blank" rel="noreferrer">
             © 2026 Nils Duran
           </a>
         </footer>
-
-        {native && (
-          <nav className="bottom-nav" aria-label={tx("App navigation")}>
-            {links.map(({ to, label, icon: Icon }) => (
-              <NavLink key={to} to={to} end={to === "/"}>
-                <Icon aria-hidden="true" />
-                <span>{label}</span>
-              </NavLink>
-            ))}
-          </nav>
-        )}
       </div>
     </AuthProvider>
   );

@@ -1,4 +1,4 @@
-﻿import { useState } from "react";
+import { useState } from "react";
 import { Camera, CameraOff, ChevronRight, HelpCircle, RefreshCw, Smartphone, Upload, X } from "lucide-react";
 import { tx, useLanguage } from "../i18n";
 
@@ -136,7 +136,7 @@ export function CameraPermissionModal({
               }}
             >
               <RefreshCw size={16} aria-hidden="true" />
-              <span>{language === "ca" ? "Ja he donat permís / Reintentar" : "I enabled it / Retry"}</span>
+              <span>{tx("I enabled it / Retry")}</span>
             </button>
 
             {onNativeCapture && (
@@ -155,7 +155,7 @@ export function CameraPermissionModal({
                 }}
               >
                 <Camera size={16} aria-hidden="true" />
-                <span>{language === "ca" ? "Fes una foto nativa (sense permisos de navegador)" : "Take photo with native camera"}</span>
+                <span>{tx("Take photo with native camera")}</span>
                 <input
                   type="file"
                   accept="image/*"

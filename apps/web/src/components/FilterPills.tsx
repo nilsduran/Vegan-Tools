@@ -45,22 +45,20 @@ export const PRIMARY_FILTERS: FilterDefinition[] = [
     icon: "🌿",
     match: (c) => {
       const name = c.name.toLowerCase();
+      const tags = c.tags ?? [];
+      const cuisine = (c.cuisine ?? "").toLowerCase();
       return Boolean(
         c.isVegan ||
           c.isVegetarian ||
-          c.tags?.includes("vegan") ||
-          c.tags?.includes("vegetarian") ||
-          c.cuisine?.toLowerCase().includes("vegan") ||
-          c.cuisine?.toLowerCase().includes("vegetarian") ||
+          tags.some((t) => t.includes("vegan") || t.includes("vegetarian") || t.includes("plant")) ||
+          cuisine.includes("vegan") ||
+          cuisine.includes("vegetarian") ||
           name.includes("vegan") ||
           name.includes("vegà") ||
           name.includes("vegano") ||
           name.includes("vegetari") ||
           name.includes("healthy") ||
-          name.includes("bio") ||
-          name.includes("organic") ||
-          // Any place that isn't strictly non-vegan-only with verified dishes
-          (c.tags && c.tags.length > 0 && !c.tags.includes("carnivore_only")),
+          name.includes("organic"),
       );
     },
   },
@@ -73,14 +71,19 @@ export const CATEGORY_FILTERS: FilterDefinition[] = [
     icon: "🍽️",
     match: (c) => {
       const name = c.name.toLowerCase();
+      const tags = c.tags ?? [];
+      const cuisine = (c.cuisine ?? "").toLowerCase();
       return Boolean(
-        c.tags?.includes("restaurant") ||
-          c.cuisine === "restaurant" ||
-          !c.tags?.includes("ice_cream") ||
+        tags.includes("restaurant") ||
+          cuisine.includes("restaurant") ||
           name.includes("restaurant") ||
           name.includes("restaurante") ||
           name.includes("bistrot") ||
-          name.includes("bar"),
+          name.includes("bistro") ||
+          name.includes("taverna") ||
+          name.includes("trattoria") ||
+          name.includes("brasserie") ||
+          name.includes("cantina"),
       );
     },
   },

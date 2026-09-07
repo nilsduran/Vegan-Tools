@@ -40,7 +40,9 @@ export function SearchTypeahead({
   const handleSubmit = (event: FormEvent) => {
     event.preventDefault();
     inputRef.current?.blur();
-    onSubmitSearch(query);
+    if (query.trim().length > 0) {
+      onSubmitSearch(query);
+    }
   };
 
   const isClearable = query.trim().length > 0 || canClear;
@@ -62,8 +64,6 @@ export function SearchTypeahead({
             autoComplete="off"
             autoCorrect="off"
             spellCheck="false"
-            required
-            minLength={2}
           />
           {isClearable && (
             <button
