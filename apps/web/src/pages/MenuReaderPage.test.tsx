@@ -108,7 +108,7 @@ describe("MenuReaderPage Form UI", () => {
   it("clears search query and results when clicking the X clear button", async () => {
     const candidate: RestaurantCandidate = {
       id: "foursquare-456",
-      name: "Roots Vegan",
+      name: "NonCurated Unique Restaurant",
       address: "Gran Via, Barcelona",
       latitude: 41.388,
       longitude: 2.165,
@@ -117,7 +117,7 @@ describe("MenuReaderPage Form UI", () => {
     };
 
     vi.mocked(api.searchRestaurants).mockImplementation(async (q) => {
-      if (typeof q === "string" && q.includes("Roots")) {
+      if (typeof q === "string" && q.includes("Unique")) {
         return [candidate];
       }
       return [];
@@ -130,12 +130,12 @@ describe("MenuReaderPage Form UI", () => {
     );
 
     const searchInput = screen.getByRole("textbox", { name: /search for a restaurant/i });
-    fireEvent.change(searchInput, { target: { value: "Roots" } });
+    fireEvent.change(searchInput, { target: { value: "Unique" } });
 
     const searchButton = screen.getByRole("button", { name: /search restaurants/i });
     fireEvent.click(searchButton);
 
-    expect(await screen.findByText("Roots Vegan")).toBeDefined();
+    expect(await screen.findByText("NonCurated Unique Restaurant")).toBeDefined();
 
     // Clear button should be visible
     const clearButton = screen.getByRole("button", { name: /clear|neteja|remove|elimina/i });
@@ -145,7 +145,7 @@ describe("MenuReaderPage Form UI", () => {
 
     // Search query and results should be wiped
     expect((searchInput as HTMLInputElement).value).toBe("");
-    expect(screen.queryByText("Roots Vegan")).toBeNull();
+    expect(screen.queryByText("NonCurated Unique Restaurant")).toBeNull();
   });
 
   it("filters restaurants with AND flags and OR categories", async () => {

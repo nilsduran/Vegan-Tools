@@ -161,10 +161,23 @@ export function BottomSheet({
       <div
         className="bottom-sheet-handle-bar"
         style={!allowDrag && snapPoint === "collapsed" ? { display: "none" } : undefined}
+        onClick={cycleSnapPoint}
         onPointerDown={handlePointerDown}
         onPointerMove={handlePointerMove}
         onPointerUp={handlePointerUp}
         onPointerCancel={handlePointerUp}
+        onTouchStart={(e) => {
+          const touch = e.touches[0];
+          if (touch) onDragStart(touch.clientY);
+        }}
+        onTouchMove={(e) => {
+          const touch = e.touches[0];
+          if (touch) onDragMove(touch.clientY);
+        }}
+        onTouchEnd={(e) => {
+          const touch = e.changedTouches[0];
+          if (touch) onDragEnd(touch.clientY);
+        }}
         onKeyDown={handleKeyDown}
         role="button"
         tabIndex={0}

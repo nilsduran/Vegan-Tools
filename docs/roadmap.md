@@ -98,18 +98,18 @@ Tasques que requereixen disseny d'enginyeria, modificació d'esquemes o canvis e
    - *Solució*: Modularitzat en fitxers JSON independents (`barcelona.json`, `girona.json`, `vic.json`, `tarragona.json`, `manresa.json`, `london.json`, `berlin.json`, `paris.json`), garantint per contracte que **el 100% dels destacats siguin estrictament vegans (`isVegan: true`)** i unificant `CURATED_RESTAURANTS` directament des de la font de domini.
 
 ### 🧹 Backend Fastify & Seguretat
-3. **Modularització del monòlit `apps/api/src/app.ts` (>2.470 línies)**:
-   - *Problema*: La funció `buildApp()` conté totes les rutes, controladors, cerques espacials i lògica d'integració en un sol fitxer gegant.
-   - *Acció*: Descompondre en rutes i controladors aïllats:
-     - `/routes/location.ts` (geolocalització aproximada)
-     - `/routes/restaurants.ts` (cerca espacial, resolució de dominis i destacats)
-     - `/routes/menus.ts` (descoberta web, càrrega de fitxers, edició i notes)
-     - `/routes/reviews.ts` (ressenyes ètiques i estadístiques)
-     - `/routes/products.ts` (consulta Open Food Facts i OCR)
+3. **✅ [COMPLETAT] Modularització del monòlit `apps/api/src/app.ts` (>2.470 línies)**:
+   - *Problema*: La funció `buildApp()` contenia totes les rutes, controladors, cerques espacials i lògica d'integració en un sol fitxer gegant.
+   - *Solució*: Descompost en rutes i controladors aïllats sota `apps/api/src/routes/`:
+     - `/routes/location.ts` (geolocalització aproximada per IP i capçals Cloudflare/Vercel)
+     - `/routes/restaurants.ts` (cerca espacial multi-proveïdor, resolució de dominis i destacats)
+     - `/routes/menus.ts` (descoberta web, càrrega de fitxers multipart, edició, republicació i notes)
+     - `/routes/reviews.ts` (ressenyes ètiques i estadístiques comunitàries)
+     - `/routes/products.ts` (consulta Open Food Facts i OCR d'etiquetes)
      - `/routes/recipes.ts` (veganitzador culinari)
-4. **Refactorització de la signatura de `buildApp()`**:
-   - *Problema*: Accepta 8 arguments posicionals, obligant a passar cinc `undefined` consecutius a `server.ts`.
-   - *Acció*: Substituir per un patró de dependències net (`options: Partial<AppDependencies> = {}`).
+4. **✅ [COMPLETAT] Refactorització de la signatura de `buildApp()`**:
+   - *Problema*: Acceptava 8 arguments posicionals, obligant a passar múltiples `undefined` consecutius a `server.ts`.
+   - *Solució*: Substituït per una interfície neta `AppDependencies` amb suport retrocompatible tant per a objecte d'opcions com per a paràmetres posicionals existents.
 5. **🔒 Defensa contra DNS Rebinding a la descoberta de cartes (`menu-discovery.ts`)**:
    - *Problema*: `assertPublicUrl` valida la IP abans de la petició, però `fetch()` torna a resoldre el DNS, permetent que un atacant amb TTL 0 accedeixi a xarxes locals o metadades cloud (`127.0.0.1`, `169.254.169.254`).
    - *Acció*: Implementar un Dispatcher TCP fixat a la IP validada (undici Agent).

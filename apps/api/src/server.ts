@@ -14,15 +14,12 @@ config({
   path: resolve(dirname(fileURLToPath(import.meta.url)), "../.env"),
 });
 
-const app = await buildApp(
-  createRepositoryFromEnvironment(),
-  undefined,
-  undefined,
-  undefined,
-  undefined,
-  createRestaurantMenuCacheFromEnvironment(),
-  createMenuSourceStoreFromEnvironment(),
-);
+const app = await buildApp({
+  repo: createRepositoryFromEnvironment(),
+  restaurantMenuCache: createRestaurantMenuCacheFromEnvironment(),
+  menuSourceStore: createMenuSourceStoreFromEnvironment(),
+});
+
 const port = Number(process.env.PORT ?? 3001);
 
 await app.listen({ port, host: "0.0.0.0" });
