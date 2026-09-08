@@ -14,10 +14,11 @@ jobs:
       - name: Ping Supabase Project
         env:
           SUPABASE_URL: ${{ secrets.SUPABASE_URL || 'https://ictqmbgzaxmixhkazdce.supabase.co' }}
+          SUPABASE_PUBLISHABLE_KEY: ${{ secrets.SUPABASE_PUBLISHABLE_KEY }}
           SUPABASE_ANON_KEY: ${{ secrets.SUPABASE_ANON_KEY }}
           SUPABASE_SECRET_KEY: ${{ secrets.SUPABASE_SECRET_KEY }}
         run: |
-          API_KEY="${SUPABASE_ANON_KEY:-$SUPABASE_SECRET_KEY}"
+          API_KEY="${SUPABASE_PUBLISHABLE_KEY:-${SUPABASE_ANON_KEY:-$SUPABASE_SECRET_KEY}}"
           
           echo "Connecting to Supabase at: $SUPABASE_URL"
 
@@ -39,11 +40,11 @@ jobs:
 
             echo "Keep-alive ping completed successfully."
           else
-            echo "::warning:: Neither SUPABASE_ANON_KEY nor SUPABASE_SECRET_KEY secret is set in GitHub repository secrets."
+            echo "::warning:: Neither SUPABASE_PUBLISHABLE_KEY nor SUPABASE_SECRET_KEY secret is set in GitHub repository secrets."
             echo "Sending unauthenticated ping to project URL..."
             
             HTTP_CODE=$(curl -s -o /dev/null -w "%{http_code}" "$SUPABASE_URL")
             echo "Project root response HTTP code: $HTTP_CODE"
             
-            echo "TIP: For maximum reliability, add SUPABASE_ANON_KEY to your GitHub repository secrets."
+            echo "TIP: For maximum reliability, add SUPABASE_PUBLISHABLE_KEY to your GitHub repository secrets."
           fi
