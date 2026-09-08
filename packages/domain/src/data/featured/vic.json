@@ -13,7 +13,8 @@
     "isVegan": true,
     "isFeatured": true,
     "rating": 4.9,
-    "openingHours": "We-Su 13:00-16:00, 20:00-23:00"
+    "openingHours": "We-Su 13:00-16:00, 20:00-23:00",
+    "imageUrl": "https://images.unsplash.com/photo-1546069901-ba9599a7e63c?auto=format&fit=crop&w=800&q=80"
   },
   {
     "id": "featured-vic-el-taller",
@@ -28,6 +29,7 @@
     "isVegan": true,
     "isFeatured": true,
     "rating": 4.8,
-    "openingHours": "Tu-Sa 09:00-20:00"
+    "openingHours": "Tu-Sa 09:00-20:00",
+    "imageUrl": "https://images.unsplash.com/photo-1509440159596-0249088772ff?auto=format&fit=crop&w=800&q=80"
   }
 ]

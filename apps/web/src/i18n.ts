@@ -284,6 +284,8 @@ const caPhrases = {
   "Vegan": "Vegà",
   "Vegan options": "Opcions veganes",
   "Vegetarian": "Vegetarià",
+  "View full details": "Veure fitxa completa",
+  "Full details": "Fitxa completa",
   "Kebab": "Kebab",
   "4+ leaves": "4+ fulles",
   "Restaurant": "Restaurant",

@@ -13,7 +13,8 @@
     "isVegan": true,
     "isFeatured": true,
     "rating": 4.9,
-    "openingHours": "Mo-Sa 12:30-16:30, 19:30-22:30"
+    "openingHours": "Mo-Sa 12:30-16:30, 19:30-22:30",
+    "imageUrl": "https://images.unsplash.com/photo-1512621776951-a57141f2eefd?auto=format&fit=crop&w=800&q=80"
   },
   {
     "id": "featured-gir-greta",
@@ -29,6 +30,7 @@
     "isVegan": true,
     "isFeatured": true,
     "rating": 4.8,
-    "openingHours": "Tu-Sa 13:00-16:00, 20:00-23:30"
+    "openingHours": "Tu-Sa 13:00-16:00, 20:00-23:30",
+    "imageUrl": "https://images.unsplash.com/photo-1540420773420-3366772f4999?auto=format&fit=crop&w=800&q=80"
   }
 ]

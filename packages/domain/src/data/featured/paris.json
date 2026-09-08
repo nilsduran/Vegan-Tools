@@ -13,7 +13,8 @@
     "isVegan": true,
     "isFeatured": true,
     "rating": 4.9,
-    "openingHours": "We-Sa 12:00-14:30, 19:00-22:30; Su 11:30-15:00"
+    "openingHours": "We-Sa 12:00-14:30, 19:00-22:30; Su 11:30-15:00",
+    "imageUrl": "https://images.unsplash.com/photo-1504674900247-0877df9cc836?auto=format&fit=crop&w=800&q=80"
   },
   {
     "id": "featured-par-land-monkeys",
@@ -29,6 +30,7 @@
     "isVegan": true,
     "isFeatured": true,
     "rating": 4.8,
-    "openingHours": "Mo-Su 07:30-19:30"
+    "openingHours": "Mo-Su 07:30-19:30",
+    "imageUrl": "https://images.unsplash.com/photo-1555507036-ab1f4038808a?auto=format&fit=crop&w=800&q=80"
   }
 ]

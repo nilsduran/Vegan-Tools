@@ -200,7 +200,10 @@ export function RestaurantDetailPage() {
 
           <div className="restaurant-badges-row">
             {restaurant.isVegan && (
-              <span className="detail-badge-vegan">{tx("100% Vegan")}</span>
+              <span className="detail-badge-vegan">{tx("Vegan")}</span>
+            )}
+            {restaurant.isVegetarian && !restaurant.isVegan && (
+              <span className="detail-badge-vegetarian">{tx("Vegetarian")}</span>
             )}
             {openStatus !== undefined && (
               <span

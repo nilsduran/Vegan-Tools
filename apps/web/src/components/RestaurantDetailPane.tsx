@@ -6,6 +6,7 @@
  */
 
 import { useEffect, useState } from "react";
+import { Link } from "react-router-dom";
 import type { RestaurantCandidate } from "@vegan-tools/domain";
 import {
   Clock,
@@ -286,7 +287,15 @@ export function RestaurantDetailPane({
               </span>
             ))}
           </div>
-          <h2>{restaurant.name}</h2>
+          <h2>
+            <Link
+              to={`/restaurant/${encodeURIComponent(restaurant.id)}`}
+              className="detail-pane-title-link"
+              title={tx("View full details")}
+            >
+              {restaurant.name}
+            </Link>
+          </h2>
         </div>
         <button
           type="button"
@@ -372,6 +381,15 @@ export function RestaurantDetailPane({
             <Navigation aria-hidden="true" />
             <span>{tx("Directions")}</span>
           </a>
+
+          <Link
+            to={`/restaurant/${encodeURIComponent(restaurant.id)}`}
+            className="secondary-button action-btn-page"
+            title={tx("View full details")}
+          >
+            <Info aria-hidden="true" />
+            <span>{tx("Full details")}</span>
+          </Link>
         </div>
 
         {/* Add / Upload menu option */}

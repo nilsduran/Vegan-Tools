@@ -13,7 +13,8 @@
     "isVegan": true,
     "isFeatured": true,
     "rating": 4.9,
-    "openingHours": "Mo-Su 10:00-20:00"
+    "openingHours": "Mo-Su 10:00-20:00",
+    "imageUrl": "https://images.unsplash.com/photo-1527515637462-cff94eecc1ac?auto=format&fit=crop&w=800&q=80"
   },
   {
     "id": "featured-ber-1990",
@@ -29,6 +30,7 @@
     "isVegan": true,
     "isFeatured": true,
     "rating": 4.8,
-    "openingHours": "Mo-Su 12:00-23:00"
+    "openingHours": "Mo-Su 12:00-23:00",
+    "imageUrl": "https://images.unsplash.com/photo-1541832676-9b763b0239ab?auto=format&fit=crop&w=800&q=80"
   }
 ]

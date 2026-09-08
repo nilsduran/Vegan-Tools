@@ -4,7 +4,7 @@
  * Enforces authenticated user account. Supports optional visit date, menu dish suggestions, and custom/off-menu dish input.
  */
 
-import { useState } from "react";
+import { useState, useRef, useEffect, type FormEvent, type KeyboardEvent } from "react";
 import { Calendar, Check, Plus, Star, Trash2, X } from "lucide-react";
 import { deleteVisitLog, saveVisitLog, type RestaurantVisitLog } from "../utils/diary";
 import { useAuth } from "../auth";
@@ -48,6 +48,16 @@ export function LogVisitModal({
   const [customDishInput, setCustomDishInput] = useState<string>("");
   const [savedSuccess, setSavedSuccess] = useState(false);
 
+  const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  useEffect(() => {
+    return () => {
+      if (timerRef.current) {
+        clearTimeout(timerRef.current);
+      }
+    };
+  }, []);
+
   if (!isOpen) return null;
 
   const handleAddDish = (dishName?: string) => {
@@ -63,7 +73,7 @@ export function LogVisitModal({
     setDishesList((prev) => prev.filter((d) => d !== dishToRemove));
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = (e: FormEvent) => {
     e.preventDefault();
     if (!user) return;
 
@@ -82,7 +92,7 @@ export function LogVisitModal({
     });
 
     setSavedSuccess(true);
-    setTimeout(() => {
+    timerRef.current = setTimeout(() => {
       setSavedSuccess(false);
       onSaved?.(saved);
       onClose();

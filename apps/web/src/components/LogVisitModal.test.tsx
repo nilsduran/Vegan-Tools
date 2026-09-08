@@ -20,6 +20,7 @@ describe("LogVisitModal", () => {
   };
 
   beforeEach(() => {
+    vi.useFakeTimers();
     localStorage.clear();
     vi.restoreAllMocks();
     vi.spyOn(authModule, "useAuth").mockReturnValue({
@@ -40,6 +41,8 @@ describe("LogVisitModal", () => {
   });
 
   afterEach(() => {
+    vi.runOnlyPendingTimers();
+    vi.useRealTimers();
     cleanup();
   });
 

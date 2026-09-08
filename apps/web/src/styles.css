@@ -2460,6 +2460,29 @@ button:disabled { cursor: not-allowed; opacity: .55; }
   margin-bottom: 1.5rem;
 }
 
+.detail-pane-title-link {
+  color: inherit;
+  text-decoration: none;
+  transition: color 0.15s ease;
+}
+
+.detail-pane-title-link:hover {
+  color: #047857;
+}
+
+.detail-badge-vegetarian {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+  background: #fef3c7;
+  color: #b45309;
+  font-size: 0.78rem;
+  font-weight: 700;
+  padding: 0.25rem 0.65rem;
+  border-radius: 9999px;
+  border: 1px solid #fde68a;
+}
+
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { scroll-behavior: auto !important; animation-duration: .01ms !important; transition-duration: .01ms !important; }
 }
