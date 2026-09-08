@@ -123,18 +123,18 @@ Tasques que requereixen disseny d'enginyeria, modificació d'esquemes o canvis e
    - *Acció*: Implementar un Dispatcher TCP fixat a la IP validada (undici Agent).
 
 ### 🔍 Intel·ligència Artificial i Cartes
-9. **Auditoria ètica de begudes, vins i cerveses a les cartes (`menu-analyzer.ts`)**:
-   - *Problema*: El prompt enviat a Gemini diu literalment `Ignore drinks`, ignorant l'auditoria d'additius d'origen animal com la ictiocol·la, la gelatina animal o l'albúmina en vins i licors.
-   - *Acció*: Permetre l'anàlisi de begudes quan incloguin llistat d'ingredients o informació de clarificació.
+9. **Auditoria ètica de begudes, vins i cerveses com a opció extra (`menu-analyzer.ts`)**:
+   - *Estratègia d'estalvi de tokens*: No s'analitza per defecte per no malgastar recursos. S'activa únicament com a opció secundària/extra si l'usuari ho demana o si la carta és exclusivament de begudes/vins.
 10. **Extracció automàtica de plats adaptables (`modifiableTo`) amb Gemini**:
-    - *Problema*: Gemini no extreu automàticament `modifiableTo` ni `modificationNote`.
-    - *Acció*: Ampliar l'esquema de sortida del model perquè identifiqui plats que la carta original indica com a adaptables.
+    - *Estratègia sòlida i rigorosa*: El model només pot extreure `modifiableTo: "vegan"` i `modificationNote` si el propi text imprès de la carta indica explícitament que és adaptable (ex: "opció vegana disponible", "demanar sense formatge", "opció amb tofu o heura"). Mai s'han d'inventar receptes.
 
 ### 👤 Perfil i Experiència d'Usuari
 11. **⛔ [EXCLÒS PER SEGURETAT MÈDICA] Filtres d'al·lèrgies i anafilaxi**:
     - *Decisió ètica*: Per evitar riscos greus per a la salut de les persones (xocs anafilàctics, contaminació creuada a fàbriques/cuines) per un excés de confiança en la IA o l'OCR, **s'exclou qualsevol garantia o filtre mèdic d'al·lèrgies**. L'app se centra exclusivament en la composició ètica vegana/vegetariana.
-12. **Llista de restaurants guardats i favorits**:
-    - Crear un sistema per marcar restaurants com a preferits o pendents de visitar, funcional tant en local (sense compte) com sincronitzat amb Supabase.
+12. **Diari de visites estil Letterboxd, Top 4 i Favorits (`ProfilePage.tsx`)**:
+    - *Log diari*: Permetre registrar visites a restaurants en diferents dies (màxim 1 cop per dia pel mateix local), de manera que les valoracions i ressenyes puguin evolucionar en el temps.
+    - *Distribució d'estrelles*: Gràfic de barres al perfil amb l'histograma de puntuacions de l'usuari, agrupat en franges de mig punt (0.5, 1.0, 1.5, ... 5.0) però desant la puntuació decimal exacta.
+    - *Top 4 Restaurants*: Destacar els 4 restaurants preferits de l'usuari a la capçalera del seu perfil.
 13. **Pàgines de perfil dedicades per a cada restaurant (`/restaurant/:id`)**:
     - Crear fitxes independents indexables per a motors de cerca, amb galeria d'imatges d'espai segur, horaris detallats i enllaços directes per compartir.
 14. **Auditoria i revisió periòdica dels pins curats i comunitaris del mapa**:
