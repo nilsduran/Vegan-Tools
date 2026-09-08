@@ -131,8 +131,8 @@ Tasques que requereixen disseny d'enginyeria, modificació d'esquemes o canvis e
     - *Acció*: Ampliar l'esquema de sortida del model perquè identifiqui plats que la carta original indica com a adaptables.
 
 ### 👤 Perfil i Experiència d'Usuari
-11. **Preferències dietètiques i d'al·lèrgies persistents**:
-    - Implementar a `ProfilePage` filtres personals (sense gluten/celiaquia, sense fruits secs, sense soja, només 100% vegà) que s'apliquin automàticament a les cerques del mapa i l'escàner.
+11. **⛔ [EXCLÒS PER SEGURETAT MÈDICA] Filtres d'al·lèrgies i anafilaxi**:
+    - *Decisió ètica*: Per evitar riscos greus per a la salut de les persones (xocs anafilàctics, contaminació creuada a fàbriques/cuines) per un excés de confiança en la IA o l'OCR, **s'exclou qualsevol garantia o filtre mèdic d'al·lèrgies**. L'app se centra exclusivament en la composició ètica vegana/vegetariana.
 12. **Llista de restaurants guardats i favorits**:
     - Crear un sistema per marcar restaurants com a preferits o pendents de visitar, funcional tant en local (sense compte) com sincronitzat amb Supabase.
 13. **Pàgines de perfil dedicades per a cada restaurant (`/restaurant/:id`)**:
