@@ -280,7 +280,8 @@ const caPhrases = {
   "Take photo of ingredient label": "Fes foto a l'etiqueta d'ingredients",
   "Recent products": "Productes recents",
   "Clear history": "Neteja l'historial",
-  "100% Vegan": "100% Vegà",
+  "100% Vegan": "Vegà",
+  "Vegan": "Vegà",
   "Vegan options": "Opcions veganes",
   "Vegetarian": "Vegetarià",
   "Kebab": "Kebab",
@@ -472,7 +473,8 @@ const caPhrases = {
   "Grill & BBQ": "Brasa & Grill",
   "Poke & Salads": "Poke & Amanides",
   "Featured": "Destacats",
-  "100% vegans": "100% vegans",
+  "100% vegans": "vegans",
+  "vegans": "vegans",
 } as const;
 
 function getInitialLanguage(): Language {

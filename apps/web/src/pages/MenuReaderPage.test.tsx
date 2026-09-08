@@ -210,8 +210,8 @@ describe("MenuReaderPage Form UI", () => {
     expect(screen.getAllByText("Vegan Ramen Bar").length).toBeGreaterThan(0);
     expect(screen.getAllByText("Classic Italian Trattoria").length).toBeGreaterThan(0);
 
-    // 1. Filter by 100% Vegan (Flag: AND constraint)
-    const veganPill = screen.getByRole("button", { name: /100% vegà|100% vegan/i });
+    // 1. Filter by Vegan
+    const veganPill = screen.getByRole("button", { name: /^vegà$|^vegan$/i });
     fireEvent.click(veganPill);
 
     const resultsList = document.querySelector(".restaurant-results") as HTMLElement;

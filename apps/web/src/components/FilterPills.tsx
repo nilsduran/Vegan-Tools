@@ -23,7 +23,7 @@ export const PRIMARY_FILTERS: FilterDefinition[] = [
   },
   {
     id: "vegan",
-    labelKey: "100% Vegan",
+    labelKey: "Vegan",
     icon: "🌱",
     match: (c) => {
       const name = c.name.toLowerCase();
@@ -40,6 +40,26 @@ export const PRIMARY_FILTERS: FilterDefinition[] = [
       );
     },
   },
+  {
+    id: "vegetarian",
+    labelKey: "Vegetarian",
+    icon: "🥗",
+    match: (c) => {
+      const name = c.name.toLowerCase();
+      return Boolean(
+        c.isVegetarian ||
+          c.tags?.includes("vegetarian") ||
+          c.cuisine?.toLowerCase().includes("vegetarian") ||
+          name.includes("vegetari") ||
+          name.includes("veggie") ||
+          name.includes("vegetariano") ||
+          name.includes("vegetariana"),
+      );
+    },
+  },
+];
+
+export const CATEGORY_FILTERS: FilterDefinition[] = [
   {
     id: "vegan_options",
     labelKey: "Vegan options",
@@ -63,9 +83,6 @@ export const PRIMARY_FILTERS: FilterDefinition[] = [
       );
     },
   },
-];
-
-export const CATEGORY_FILTERS: FilterDefinition[] = [
   {
     id: "restaurant",
     labelKey: "Restaurant",
@@ -290,23 +307,6 @@ export const CATEGORY_FILTERS: FilterDefinition[] = [
           name.includes("burger") ||
           name.includes("hamburgues") ||
           name.includes("junk food"),
-      );
-    },
-  },
-  {
-    id: "vegetarian",
-    labelKey: "Vegetarian",
-    icon: "🥗",
-    match: (c) => {
-      const name = c.name.toLowerCase();
-      return Boolean(
-        c.isVegetarian ||
-          c.tags?.includes("vegetarian") ||
-          c.cuisine?.toLowerCase().includes("vegetarian") ||
-          name.includes("vegetari") ||
-          name.includes("veggie") ||
-          name.includes("vegetariano") ||
-          name.includes("vegetariana"),
       );
     },
   },

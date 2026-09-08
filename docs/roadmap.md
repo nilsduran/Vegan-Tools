@@ -96,9 +96,17 @@ Tasques que requereixen disseny d'enginyeria, modificació d'esquemes o canvis e
 2. **✅ [COMPLETAT] Desacoblament dels Restaurants Destacats (*Curated Top Picks*) en fitxers JSON per ciutat**:
    - *Problema*: Anteriorment `CURATED_RESTAURANTS` a `apps/api` barrejava locals carnis/no vegans, mentre que els destacats de Barcelona estaven codificats rígidament en TypeScript.
    - *Solució*: Modularitzat en fitxers JSON independents (`barcelona.json`, `girona.json`, `vic.json`, `tarragona.json`, `manresa.json`, `london.json`, `berlin.json`, `paris.json`), garantint per contracte que **el 100% dels destacats siguin estrictament vegans (`isVegan: true`)** i unificant `CURATED_RESTAURANTS` directament des de la font de domini.
+3. **✅ [COMPLETAT] Arrodoniment automàtic al hub de ciutat més proper a la portada (`HomePage.tsx`, `featured-restaurants.ts`)**:
+   - Detecció d'ubicació per coordenades GPS o IP que "arrodoneix" a la gran ciutat més propera amb selecció curada de restaurants vegans mitjançant `findClosestCityHub()`. Com a prova local o fallback per defecte arrenca a Barcelona.
+4. **✅ [COMPLETAT] Reordenació del Top 3 de filtres immediats i normalització a «Vegà» (`FilterPills.tsx`, `i18n.ts`)**:
+   - Simplificació de "100% vegà" a "Vegà" (ja s'entén en contraposició a "Opcions veganes").
+   - Top 3 de filtres principals visibles per defecte: **4+ fulles (qualitat)**, **Vegà** i **Vegetarià** (locals sense carn ni peix). El filtre d'**Opcions veganes** es mou al calaix de filtres addicionals per evitar inundar la cerca inicial amb llocs carnis.
+5. **🖼️ Galeria d'imatges d'Espai Segur per a les targetes de restaurants destacats a la portada (`HomePage.tsx`)**:
+   - *Problema*: Les targetes de la pàgina principal actualment només mostren la icona de cuina, oferint una experiència visual bàsica.
+   - *Solució*: Enriquir les targetes amb imatges reals de la carta, plats i façana del restaurant, protegides per la política estricta d'Espai Segur (tolerància zero amb imatges de carn o crueltat).
 
 ### 🧹 Backend Fastify & Seguretat
-3. **✅ [COMPLETAT] Modularització del monòlit `apps/api/src/app.ts` (>2.470 línies)**:
+6. **✅ [COMPLETAT] Modularització del monòlit `apps/api/src/app.ts` (>2.470 línies)**:
    - *Problema*: La funció `buildApp()` contenia totes les rutes, controladors, cerques espacials i lògica d'integració en un sol fitxer gegant.
    - *Solució*: Descompost en rutes i controladors aïllats sota `apps/api/src/routes/`:
      - `/routes/location.ts` (geolocalització aproximada per IP i capçals Cloudflare/Vercel)
@@ -107,30 +115,30 @@ Tasques que requereixen disseny d'enginyeria, modificació d'esquemes o canvis e
      - `/routes/reviews.ts` (ressenyes ètiques i estadístiques comunitàries)
      - `/routes/products.ts` (consulta Open Food Facts i OCR d'etiquetes)
      - `/routes/recipes.ts` (veganitzador culinari)
-4. **✅ [COMPLETAT] Refactorització de la signatura de `buildApp()`**:
+7. **✅ [COMPLETAT] Refactorització de la signatura de `buildApp()`**:
    - *Problema*: Acceptava 8 arguments posicionals, obligant a passar múltiples `undefined` consecutius a `server.ts`.
    - *Solució*: Substituït per una interfície neta `AppDependencies` amb suport retrocompatible tant per a objecte d'opcions com per a paràmetres posicionals existents.
-5. **🔒 Defensa contra DNS Rebinding a la descoberta de cartes (`menu-discovery.ts`)**:
+8. **🔒 Defensa contra DNS Rebinding a la descoberta de cartes (`menu-discovery.ts`)**:
    - *Problema*: `assertPublicUrl` valida la IP abans de la petició, però `fetch()` torna a resoldre el DNS, permetent que un atacant amb TTL 0 accedeixi a xarxes locals o metadades cloud (`127.0.0.1`, `169.254.169.254`).
    - *Acció*: Implementar un Dispatcher TCP fixat a la IP validada (undici Agent).
 
 ### 🔍 Intel·ligència Artificial i Cartes
-6. **Auditoria ètica de begudes, vins i cerveses a les cartes (`menu-analyzer.ts`)**:
+9. **Auditoria ètica de begudes, vins i cerveses a les cartes (`menu-analyzer.ts`)**:
    - *Problema*: El prompt enviat a Gemini diu literalment `Ignore drinks`, ignorant l'auditoria d'additius d'origen animal com la ictiocol·la, la gelatina animal o l'albúmina en vins i licors.
    - *Acció*: Permetre l'anàlisi de begudes quan incloguin llistat d'ingredients o informació de clarificació.
-7. **Extracció automàtica de plats adaptables (`modifiableTo`) amb Gemini**:
-   - *Problema*: Gemini no extreu automàticament `modifiableTo` ni `modificationNote`.
-   - *Acció*: Ampliar l'esquema de sortida del model perquè identifiqui plats que la carta original indica com a adaptables.
+10. **Extracció automàtica de plats adaptables (`modifiableTo`) amb Gemini**:
+    - *Problema*: Gemini no extreu automàticament `modifiableTo` ni `modificationNote`.
+    - *Acció*: Ampliar l'esquema de sortida del model perquè identifiqui plats que la carta original indica com a adaptables.
 
 ### 👤 Perfil i Experiència d'Usuari
-8. **Preferències dietètiques i d'al·lèrgies persistents**:
-   - Implementar a `ProfilePage` filtres personals (sense gluten/celiaquia, sense fruits secs, sense soja, només 100% vegà) que s'apliquin automàticament a les cerques del mapa i l'escàner.
-9. **Llista de restaurants guardats i favorits**:
-   - Crear un sistema per marcar restaurants com a preferits o pendents de visitar, funcional tant en local (sense compte) com sincronitzat amb Supabase.
-10. **Pàgines de perfil dedicades per a cada restaurant (`/restaurant/:id`)**:
+11. **Preferències dietètiques i d'al·lèrgies persistents**:
+    - Implementar a `ProfilePage` filtres personals (sense gluten/celiaquia, sense fruits secs, sense soja, només 100% vegà) que s'apliquin automàticament a les cerques del mapa i l'escàner.
+12. **Llista de restaurants guardats i favorits**:
+    - Crear un sistema per marcar restaurants com a preferits o pendents de visitar, funcional tant en local (sense compte) com sincronitzat amb Supabase.
+13. **Pàgines de perfil dedicades per a cada restaurant (`/restaurant/:id`)**:
     - Crear fitxes independents indexables per a motors de cerca, amb galeria d'imatges d'espai segur, horaris detallats i enllaços directes per compartir.
-11. **Auditoria i revisió periòdica dels pins curats i comunitaris del mapa**:
-     - Establir un procés sistemàtic de verificació periòdica per auditar que els marcadors curats i els resultats d'OpenStreetMap mantinguin informació actualitzada (obertures, tancaments, canvis de carta i oferta vegana) i gestionar correccions reportades per la comunitat.
+14. **Auditoria i revisió periòdica dels pins curats i comunitaris del mapa**:
+    - Establir un procés sistemàtic de verificació periòdica per auditar que els marcadors curats i els resultats d'OpenStreetMap mantinguin informació actualitzada (obertures, tancaments, canvis de carta i oferta vegana) i gestionar correccions reportades per la comunitat.
 
 ---
 

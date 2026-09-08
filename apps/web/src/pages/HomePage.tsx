@@ -26,11 +26,12 @@ import {
 } from "../api";
 import {
   FEATURED_RESTAURANTS_BARCELONA,
+  findClosestCityHub,
   type RestaurantCandidate,
 } from "@vegan-tools/domain";
 
 export function HomePage() {
-  // Location detection
+  // Location detection: starts with Barcelona default hub, snaps to nearest city hub
   const [userCity, setUserCity] = useState<string>("Barcelona");
   const [featuredPlaces, setFeaturedPlaces] = useState<RestaurantCandidate[]>(
     FEATURED_RESTAURANTS_BARCELONA.slice(0, 8),
@@ -39,22 +40,40 @@ export function HomePage() {
 
   useEffect(() => {
     let active = true;
-    getApproximateLocation()
-      .then((loc) => {
-        if (!active) return;
-        if (loc.city) setUserCity(loc.city);
-        return getCuratedRestaurants({
-          latitude: loc.latitude,
-          longitude: loc.longitude,
-        });
-      })
-      .then((curated) => {
-        if (!active || !curated || curated.length === 0) return;
-        setFeaturedPlaces(curated.slice(0, 8));
-      })
-      .catch(() => {
-        // Keep fallback
-      });
+
+    const applyCoords = (latitude: number, longitude: number) => {
+      if (!active) return;
+      const hub = findClosestCityHub(latitude, longitude);
+      setUserCity(hub.name);
+      setFeaturedPlaces(hub.restaurants.slice(0, 8));
+
+      // Also query live curated endpoint for up-to-date hours / reviews
+      getCuratedRestaurants({ latitude, longitude })
+        .then((curated) => {
+          if (!active || !curated || curated.length === 0) return;
+          setFeaturedPlaces(curated.slice(0, 8));
+        })
+        .catch(() => {});
+    };
+
+    // Try browser geolocation if available with quick timeout, else fall back to IP
+    if (typeof navigator !== "undefined" && "geolocation" in navigator && typeof navigator.geolocation.getCurrentPosition === "function") {
+      navigator.geolocation.getCurrentPosition(
+        (pos) => {
+          applyCoords(pos.coords.latitude, pos.coords.longitude);
+        },
+        () => {
+          getApproximateLocation()
+            .then((loc) => applyCoords(loc.latitude, loc.longitude))
+            .catch(() => applyCoords(41.3879, 2.1699));
+        },
+        { timeout: 3000, maximumAge: 300000 },
+      );
+    } else {
+      getApproximateLocation()
+        .then((loc) => applyCoords(loc.latitude, loc.longitude))
+        .catch(() => applyCoords(41.3879, 2.1699));
+    }
 
     getRecentRestaurantMenus()
       .then((recent) => {
@@ -134,13 +153,13 @@ export function HomePage() {
           </Link>
         </section>
 
-        {/* Featured 100% Vegan Places (Horizontal Scroll on Mobile, 4-col Grid on Desktop) */}
+        {/* Featured Vegan Places (Horizontal Scroll on Mobile, 4-col Grid on Desktop) */}
         <section className="home-section" aria-labelledby="featured-places-title">
           <div className="home-section-header">
             <div className="home-section-title-wrap">
               <h2 id="featured-places-title" className="home-section-title">
                 {tx("Featured")}{" "}
-                <span className="hand-drawn-highlight">{tx("100% vegans")}</span>
+                <span className="hand-drawn-highlight">{tx("vegans")}</span>
               </h2>
             </div>
             <Link to="/map" className="home-section-link">

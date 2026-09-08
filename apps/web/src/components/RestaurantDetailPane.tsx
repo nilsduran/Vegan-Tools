@@ -53,7 +53,7 @@ function getVeganBadge(restaurant: RestaurantCandidate): {
   if (isAllVegan) {
     return {
       type: "all_vegan",
-      label: tx("100% Vegan"),
+      label: tx("Vegan"),
       className: "badge-all-vegan",
     };
   }
