@@ -52,21 +52,21 @@ async function run() {
     const mobilePage = await mobileContext.newPage();
 
     console.log("Capturing Mobile Home Page...");
-    await mobilePage.goto(`${baseUrl}/`, { waitUntil: "networkidle" });
+    await mobilePage.goto(`${baseUrl}/`, { waitUntil: "domcontentloaded" });
     await mobilePage.screenshot({
       path: resolve(outputDir, "mobile-home.png"),
       fullPage: true,
     });
 
     console.log("Capturing Mobile Map Page...");
-    await mobilePage.goto(`${baseUrl}/map`, { waitUntil: "networkidle" });
+    await mobilePage.goto(`${baseUrl}/map`, { waitUntil: "domcontentloaded" });
     await mobilePage.waitForTimeout(1500);
     await mobilePage.screenshot({
       path: resolve(outputDir, "mobile-map.png"),
     });
 
     console.log("Capturing Mobile Scanner Page...");
-    await mobilePage.goto(`${baseUrl}/scanner`, { waitUntil: "networkidle" });
+    await mobilePage.goto(`${baseUrl}/scanner`, { waitUntil: "domcontentloaded" });
     await mobilePage.screenshot({
       path: resolve(outputDir, "mobile-scanner.png"),
     });
@@ -82,17 +82,39 @@ async function run() {
     const desktopPage = await desktopContext.newPage();
 
     console.log("Capturing Desktop Home Page...");
-    await desktopPage.goto(`${baseUrl}/`, { waitUntil: "networkidle" });
+    await desktopPage.goto(`${baseUrl}/`, { waitUntil: "domcontentloaded" });
     await desktopPage.screenshot({
       path: resolve(outputDir, "desktop-home.png"),
       fullPage: true,
     });
 
     console.log("Capturing Desktop Map Page...");
-    await desktopPage.goto(`${baseUrl}/map`, { waitUntil: "networkidle" });
+    await desktopPage.goto(`${baseUrl}/map`, { waitUntil: "domcontentloaded" });
     await desktopPage.waitForTimeout(1500);
     await desktopPage.screenshot({
       path: resolve(outputDir, "desktop-map.png"),
+    });
+
+    console.log("Capturing Desktop Map Filters Drawer...");
+    await desktopPage.click(".funnel-pill");
+    await desktopPage.waitForTimeout(400);
+    // Toggle 100% Vegan (green) and Vegan Options (blue)
+    await desktopPage.click(".pill-vegan");
+    await desktopPage.waitForTimeout(200);
+    await desktopPage.click(".pill-vegan-options");
+    await desktopPage.waitForTimeout(300);
+    await desktopPage.screenshot({
+      path: resolve(outputDir, "desktop-map-filters.png"),
+    });
+
+    console.log("Capturing Desktop Map Pin Hover with Tooltip...");
+    await desktopPage.goto(`${baseUrl}/map`, { waitUntil: "domcontentloaded" });
+    await desktopPage.waitForTimeout(1500);
+    const pin = desktopPage.locator(".vegan-map-pin-wrapper").first();
+    await pin.hover();
+    await desktopPage.waitForTimeout(400);
+    await desktopPage.screenshot({
+      path: resolve(outputDir, "desktop-map-hover.png"),
     });
 
     await desktopContext.close();

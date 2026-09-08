@@ -103,4 +103,45 @@ describe("Restaurant Cuisine and Badges Classification", () => {
       ]),
     );
   });
+
+  it("returns olive (🫒) for tapas and pinchos", () => {
+    const r: RestaurantCandidate = {
+      ...baseRestaurant,
+      id: "test-tapas",
+      name: "La Perra Verde Tapas",
+      address: "Carrer 8",
+      tags: ["tapas", "pinchos"],
+    };
+    expect(getCuisineIcon(r)).toBe("🫒");
+    const tags = getCuisineTags(r);
+    expect(tags).toEqual(
+      expect.arrayContaining([{ icon: "🫒", label: "Tapas" }]),
+    );
+  });
+
+  it("returns grill flame (🔥) for steakhouse, BBQ, or brasa (never meat icon)", () => {
+    const r: RestaurantCandidate = {
+      ...baseRestaurant,
+      id: "test-bbq",
+      name: "Vegan BBQ & Grill Smokehouse",
+      address: "Carrer 9",
+      tags: ["bbq", "grill"],
+    };
+    expect(getCuisineIcon(r)).toBe("🔥");
+    const tags = getCuisineTags(r);
+    expect(tags).toEqual(
+      expect.arrayContaining([{ icon: "🔥", label: "Grill & BBQ" }]),
+    );
+  });
+
+  it("returns salad bowl (🥗) for poke bowls and healthy raw food", () => {
+    const r: RestaurantCandidate = {
+      ...baseRestaurant,
+      id: "test-poke",
+      name: "Green Poke Bowl Bar",
+      address: "Carrer 10",
+      tags: ["poke", "bowl", "healthy"],
+    };
+    expect(getCuisineIcon(r)).toBe("🥗");
+  });
 });

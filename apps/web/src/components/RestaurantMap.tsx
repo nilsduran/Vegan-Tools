@@ -217,23 +217,52 @@ export function getCuisineIcon(restaurant: RestaurantCandidate): string {
     return "🍝";
   }
 
-  // 16. Tapas
+  // 16. Tapas & Pinchos (olive icon)
   if (
     name.includes("perra verde") ||
     name.includes("cactuscat") ||
     text.includes("tapas") ||
     text.includes("tapa") ||
-    text.includes("pinchos") ||
+    text.includes("pincho") ||
+    text.includes("pintxo") ||
+    text.includes("platet") ||
     text.includes("bistrot") ||
     text.includes("mediterranean") ||
     text.includes("mediterran") ||
     text.includes("spanish") ||
     text.includes("catalan")
   ) {
+    return "🫒";
+  }
+
+  // 17. BBQ / Grill / Steakhouse (grill flame - never meat)
+  if (
+    text.includes("grill") ||
+    text.includes("bbq") ||
+    text.includes("barbacoa") ||
+    text.includes("steak") ||
+    text.includes("brasa") ||
+    text.includes("parrilla")
+  ) {
+    return "🔥";
+  }
+
+  // 18. Poke bowls & Salads / Healthy (salad bowl icon)
+  if (
+    text.includes("poke") ||
+    text.includes("bowl") ||
+    text.includes("salad") ||
+    text.includes("amanida") ||
+    text.includes("ensalada") ||
+    text.includes("healthy") ||
+    text.includes("raw") ||
+    text.includes("organic") ||
+    text.includes("macrobiotic")
+  ) {
     return "🥗";
   }
 
-  // 17. Beer / Craft beer
+  // 19. Beer / Craft beer
   if (
     name.includes("ale & hop") ||
     text.includes("beer") ||
@@ -246,26 +275,19 @@ export function getCuisineIcon(restaurant: RestaurantCandidate): string {
     return "🍺";
   }
 
-  // 18. Cocktails / Bar
-  if (text.includes("cocktail") || text.includes("coctel") || text.includes("copas") || text.includes("bar")) {
+  // 20. Cocktails / Drinks Bar
+  if (
+    text.includes("cocktail") ||
+    text.includes("coctel") ||
+    text.includes("copas") ||
+    text.includes("drinks") ||
+    tags.includes("bar") ||
+    tags.includes("pub")
+  ) {
     return "🍸";
   }
 
-  // 19. Salads / Healthy
-  if (
-    text.includes("salad") ||
-    text.includes("amanida") ||
-    text.includes("ensalada") ||
-    text.includes("bowl") ||
-    text.includes("healthy") ||
-    text.includes("raw") ||
-    text.includes("organic") ||
-    text.includes("macrobiotic")
-  ) {
-    return "🥗";
-  }
-
-  // 20. Dumplings
+  // 21. Dumplings
   if (
     text.includes("dumpling") ||
     text.includes("gyoza") ||
@@ -462,7 +484,7 @@ export function RestaurantMap({
         marker.bindTooltip(restaurant.name, {
           permanent: true,
           direction: "bottom",
-          offset: [0, 6],
+          offset: [0, 4],
           className: isSelected
             ? "map-pin-name-tooltip selected"
             : isHovered
@@ -473,6 +495,16 @@ export function RestaurantMap({
         marker.on("click", (e) => {
           L.DomEvent.stopPropagation(e);
           onSelectRestaurant(restaurant);
+        });
+
+        marker.on("mouseover", () => {
+          const tooltipEl = marker.getTooltip()?.getElement();
+          if (tooltipEl) tooltipEl.classList.add("hovered");
+        });
+
+        marker.on("mouseout", () => {
+          const tooltipEl = marker.getTooltip()?.getElement();
+          if (tooltipEl) tooltipEl.classList.remove("hovered");
         });
 
         markersGroup.addLayer(marker);
@@ -524,7 +556,7 @@ export function RestaurantMap({
       attributionControl: true,
     });
 
-    // Basemap: Geoapify if key provided, otherwise official OpenStreetMap standard tiles (watermark-free)
+    // Basemap: Geoapify osm-bright-smooth (soft pastel green nature, calm blue water, clean subtle roads) if key provided, otherwise OpenStreetMap
     const geoapifyKey = (import.meta.env.VITE_GEOAPIFY_API_KEY as string | undefined)?.trim();
 
     let tileUrl = "https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png";
@@ -533,7 +565,7 @@ export function RestaurantMap({
     let subdomains: string | string[] = "abc";
 
     if (geoapifyKey) {
-      tileUrl = `https://maps.geoapify.com/v1/tile/osm-bright/{z}/{x}/{y}.png?apiKey=${geoapifyKey}`;
+      tileUrl = `https://maps.geoapify.com/v1/tile/osm-bright-smooth/{z}/{x}/{y}.png?apiKey=${geoapifyKey}`;
       attribution =
         'Powered by <a href="https://www.geoapify.com/" target="_blank">Geoapify</a> | &copy; <a href="https://www.openstreetmap.org/copyright" target="_blank">OpenStreetMap</a> contributors';
       subdomains = "abcd";

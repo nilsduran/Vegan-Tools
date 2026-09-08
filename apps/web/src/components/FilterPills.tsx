@@ -11,7 +11,8 @@ export interface FilterDefinition {
   match: (candidate: RestaurantCandidate) => boolean;
 }
 
-export const FLAG_FILTER_IDS = new Set(["leaves_4plus", "open_now", "vegan"]);
+export const DIET_FILTER_IDS = new Set(["vegan", "vegetarian", "vegan_options"]);
+export const FLAG_FILTER_IDS = new Set(["leaves_4plus", "open_now"]);
 
 export const PRIMARY_FILTERS: FilterDefinition[] = [
   {
@@ -42,7 +43,7 @@ export const PRIMARY_FILTERS: FilterDefinition[] = [
   {
     id: "vegan_options",
     labelKey: "Vegan options",
-    icon: "🌿",
+    icon: "🥕",
     match: (c) => {
       const name = c.name.toLowerCase();
       const tags = c.tags ?? [];
@@ -371,9 +372,11 @@ export const EXTRA_FILTERS = CATEGORY_FILTERS;
 export const ALL_FILTERS = [...PRIMARY_FILTERS, ...CATEGORY_FILTERS];
 
 /**
- * Filter restaurants according to user-selected filter pills.
- * Boolean constraints (100% vegan, open now, 4+ leaves rating) are evaluated with AND.
- * Category & cuisine types (restaurant, cafe, italian, etc.) are evaluated with OR.
+ * Filter restaurants according to user-selected filter pills across 3 dimensions:
+ * 1. Diet (100% vegan, vegetarian, vegan options): evaluated with OR within the diet group.
+ * 2. Quality/Status flags (4+ leaves, open now): evaluated with AND (must satisfy all active flags).
+ * 3. Cuisine/Establishment categories (restaurant, cafe, italian, etc.): evaluated with OR within cuisines.
+ * 4. Across dimensions, all active dimensions must be satisfied (AND across groups).
  */
 export function filterRestaurants(
   candidates: RestaurantCandidate[],
@@ -382,18 +385,29 @@ export function filterRestaurants(
   if (activeFilterIds.length === 0) return candidates;
 
   const activeDefs = ALL_FILTERS.filter((f) => activeFilterIds.includes(f.id));
+  const activeDiets = activeDefs.filter((f) => DIET_FILTER_IDS.has(f.id));
   const activeFlags = activeDefs.filter((f) => FLAG_FILTER_IDS.has(f.id));
-  const activeCategories = activeDefs.filter((f) => !FLAG_FILTER_IDS.has(f.id));
+  const activeCuisines = activeDefs.filter(
+    (f) => !DIET_FILTER_IDS.has(f.id) && !FLAG_FILTER_IDS.has(f.id),
+  );
 
   return candidates.filter((restaurant) => {
-    // 1. All active flag constraints must be satisfied (AND)
-    const matchesAllFlags = activeFlags.every((flagDef) => flagDef.match(restaurant));
-    if (!matchesAllFlags) return false;
+    // 1. Diet constraint: If any diet filter is selected, at least one must match (OR)
+    if (activeDiets.length > 0) {
+      const matchesAnyDiet = activeDiets.some((dietDef) => dietDef.match(restaurant));
+      if (!matchesAnyDiet) return false;
+    }
 
-    // 2. If any category filters are active, at least one must match (OR)
-    if (activeCategories.length > 0) {
-      const matchesAnyCategory = activeCategories.some((catDef) => catDef.match(restaurant));
-      if (!matchesAnyCategory) return false;
+    // 2. Flags constraint: All active flags (4+ leaves, open now) must be satisfied (AND)
+    if (activeFlags.length > 0) {
+      const matchesAllFlags = activeFlags.every((flagDef) => flagDef.match(restaurant));
+      if (!matchesAllFlags) return false;
+    }
+
+    // 3. Cuisine constraint: If any cuisine filter is active, at least one must match (OR)
+    if (activeCuisines.length > 0) {
+      const matchesAnyCuisine = activeCuisines.some((catDef) => catDef.match(restaurant));
+      if (!matchesAnyCuisine) return false;
     }
 
     return true;
@@ -446,7 +460,7 @@ export function FilterPills({
             <button
               key={f.id}
               type="button"
-              className={`filter-pill ${isActive ? "active" : ""}`}
+              className={`filter-pill pill-${f.id.replace(/_/g, "-")} ${isActive ? "active" : ""}`}
               aria-pressed={isActive}
               onClick={() => onToggleFilter(f.id)}
             >
@@ -476,27 +490,28 @@ export function FilterPills({
 
       {expanded && (
         <div className="filter-pills-extra" role="region" aria-label={tx("Filters")}>
-          {hasActiveFilters && (
-            <button
-              type="button"
-              className="filter-pill reset-filter-btn"
-              onClick={() => {
+          <button
+            type="button"
+            className="filter-pill reset-filter-btn"
+            disabled={!hasActiveFilters}
+            onClick={() => {
+              if (hasActiveFilters) {
                 onClearFilters();
-              }}
-              aria-label={tx("Reset filters")}
-              title={tx("Reset filters")}
-            >
-              <RotateCcw size={14} aria-hidden="true" />
-              <span>{tx("Reset filters")}</span>
-            </button>
-          )}
+              }
+            }}
+            aria-label={tx("Reset filters")}
+            title={tx("Reset filters")}
+          >
+            <RotateCcw size={14} aria-hidden="true" />
+            <span>{tx("Reset filters")}</span>
+          </button>
           {CATEGORY_FILTERS.map((f) => {
             const isActive = activeFilters.includes(f.id);
             return (
               <button
                 key={f.id}
                 type="button"
-                className={`filter-pill ${isActive ? "active" : ""}`}
+                className={`filter-pill pill-${f.id.replace(/_/g, "-")} ${isActive ? "active" : ""}`}
                 aria-pressed={isActive}
                 onClick={() => onToggleFilter(f.id)}
               >

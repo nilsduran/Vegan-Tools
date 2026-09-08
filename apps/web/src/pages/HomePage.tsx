@@ -11,14 +11,13 @@ import { useState, useEffect } from "react";
 import {
   ArrowRight,
   CookingPot,
-  Leaf,
   MapPin,
   ScanBarcode,
-  Sparkles,
   Utensils,
 } from "lucide-react";
 import { Link } from "react-router-dom";
 import { tx } from "../i18n";
+import { getCuisineIcon } from "../components/RestaurantMap";
 import {
   getApproximateLocation,
   getCuratedRestaurants,
@@ -139,9 +138,9 @@ export function HomePage() {
         <section className="home-section" aria-labelledby="featured-places-title">
           <div className="home-section-header">
             <div className="home-section-title-wrap">
-              <Sparkles size={18} className="home-icon-sparkle" aria-hidden="true" />
               <h2 id="featured-places-title" className="home-section-title">
-                {tx("Featured 100% vegan places")}
+                {tx("Featured")}{" "}
+                <span className="hand-drawn-highlight">{tx("100% vegans")}</span>
               </h2>
             </div>
             <Link to="/map" className="home-section-link">
@@ -158,23 +157,22 @@ export function HomePage() {
                 className="home-place-card"
               >
                 <div className="home-place-badge-row">
-                  <span className="home-badge-vegan">
-                    <Leaf size={12} aria-hidden="true" />
-                    <span>{tx("100% Vegan")}</span>
+                  <span className="home-place-cuisine-icon" aria-hidden="true">
+                    {getCuisineIcon(place)}
                   </span>
-                  {place.rating && (
+                  {place.rating ? (
                     <span className="home-badge-rating">
                       <span>★</span>
                       <span>{place.rating.toFixed(1)}</span>
                     </span>
+                  ) : (
+                    <span />
                   )}
                 </div>
                 <h3 className="home-place-name">{place.name}</h3>
                 <p className="home-place-address">{place.address}</p>
                 <div className="home-place-footer">
-                  <span className="home-place-cuisine">
-                    {place.cuisine ? place.cuisine.toUpperCase() : "VEGAN"}
-                  </span>
+                  <span />
                   <span className="home-place-action">
                     <span>{tx("Open")}</span>
                     <ArrowRight size={13} aria-hidden="true" />

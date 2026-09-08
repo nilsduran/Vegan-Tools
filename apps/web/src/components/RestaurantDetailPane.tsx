@@ -187,27 +187,32 @@ export function getCuisineTags(restaurant: RestaurantCandidate): Array<{ icon: s
     addTag("🍛", "Indian Cuisine");
   }
 
-  // 16. Tapas
-  if (name.includes("perra verde") || name.includes("cactuscat") || text.includes("tapas") || text.includes("tapa") || text.includes("pinchos") || text.includes("bistrot") || text.includes("mediterranean") || text.includes("spanish")) {
-    addTag("🥗", "Tapas");
+  // 16. Tapas & Pinchos (olive icon)
+  if (name.includes("perra verde") || name.includes("cactuscat") || text.includes("tapas") || text.includes("tapa") || text.includes("pincho") || text.includes("pintxo") || text.includes("platet") || text.includes("bistrot") || text.includes("mediterranean") || text.includes("spanish") || text.includes("catalan")) {
+    addTag("🫒", "Tapas");
   }
 
-  // 17. Beer / Craft beer
+  // 17. BBQ & Grill (grill flame - never meat)
+  if (text.includes("grill") || text.includes("bbq") || text.includes("barbacoa") || text.includes("steak") || text.includes("brasa") || text.includes("parrilla")) {
+    addTag("🔥", "Grill & BBQ");
+  }
+
+  // 18. Poke & Salads
+  if (text.includes("poke") || text.includes("bowl") || text.includes("salad") || text.includes("amanida") || text.includes("ensalada") || text.includes("raw") || text.includes("organic")) {
+    addTag("🥗", "Poke & Salads");
+  }
+
+  // 19. Beer / Craft beer
   if (name.includes("ale & hop") || text.includes("craft beer") || text.includes("cervesa") || text.includes("cerveza") || text.includes("brew") || text.includes("pub")) {
     addTag("🍺", "Craft Beer");
   }
 
-  // 18. Cocktails & Bar
-  if (text.includes("cocktail") || text.includes("coctel") || text.includes("copas") || text.includes("bar")) {
+  // 20. Cocktails & Bar
+  if (text.includes("cocktail") || text.includes("coctel") || text.includes("copas") || text.includes("drinks") || tags.includes("bar") || tags.includes("pub")) {
     addTag("🍸", "Cocktails & Bar");
   }
 
-  // 19. Salads & Bowls
-  if (text.includes("salad") || text.includes("amanida") || text.includes("ensalada") || text.includes("bowl") || text.includes("raw") || text.includes("organic")) {
-    addTag("🥗", "Salads & Bowls");
-  }
-
-  // 20. Dumplings & Gyoza
+  // 21. Dumplings & Gyoza
   if (text.includes("dumpling") || text.includes("gyoza") || text.includes("dim sum") || text.includes("chinese") || text.includes("xines")) {
     addTag("🥟", "Dumplings & Gyoza");
   }

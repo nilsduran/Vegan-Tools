@@ -1048,7 +1048,7 @@ export async function restaurantRoutes(
       if (isGenericQuery && hasLocation && !hasExplicitCity) {
         try {
           const overpassResults = await fetchOverpassRestaurants(latitude, longitude, radiusMeters);
-          if (overpassResults.length > 0 || curatedMatches.length > 0) {
+          if (overpassResults.length > 0) {
             const combined = [...curatedMatches, ...overpassResults];
             const deduplicated = deduplicateRestaurants(combined);
             restaurantSearchCache.set(cacheKey, {

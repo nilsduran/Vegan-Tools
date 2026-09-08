@@ -469,6 +469,10 @@ const caPhrases = {
   "Salads & Bowls": "Amanides & Bowls",
   "Dumplings & Gyoza": "Dumplings & Gyoza",
   "Dining": "Restauració",
+  "Grill & BBQ": "Brasa & Grill",
+  "Poke & Salads": "Poke & Amanides",
+  "Featured": "Destacats",
+  "100% vegans": "100% vegans",
 } as const;
 
 function getInitialLanguage(): Language {
