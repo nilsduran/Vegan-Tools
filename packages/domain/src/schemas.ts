@@ -230,6 +230,7 @@ export const restaurantCandidateSchema = z.object({
   isFeatured: z.boolean().optional(),
   isOpenNow: z.boolean().optional(),
   rating: z.number().optional(),
+  imageUrl: z.string().url().optional(),
   placeType: z.enum(["restaurant", "city", "locality"]).default("restaurant").optional(),
 });
 export type RestaurantCandidate = z.infer<typeof restaurantCandidateSchema>;

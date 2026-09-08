@@ -53,6 +53,8 @@ async function run() {
 
     console.log("Capturing Mobile Home Page...");
     await mobilePage.goto(`${baseUrl}/`, { waitUntil: "domcontentloaded" });
+    await mobilePage.waitForSelector(".home-dashboard-layout", { timeout: 8000 });
+    await mobilePage.waitForTimeout(600);
     await mobilePage.screenshot({
       path: resolve(outputDir, "mobile-home.png"),
       fullPage: true,
@@ -83,6 +85,8 @@ async function run() {
 
     console.log("Capturing Desktop Home Page...");
     await desktopPage.goto(`${baseUrl}/`, { waitUntil: "domcontentloaded" });
+    await desktopPage.waitForSelector(".home-dashboard-layout", { timeout: 8000 });
+    await desktopPage.waitForTimeout(600);
     await desktopPage.screenshot({
       path: resolve(outputDir, "desktop-home.png"),
       fullPage: true,

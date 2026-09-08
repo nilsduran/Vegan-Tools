@@ -7,6 +7,30 @@
 
 import { lookup } from "node:dns/promises";
 import { isIP } from "node:net";
+import { Agent } from "undici";
+
+export const safeMenuAgent = new Agent({
+  connect: {
+    lookup: (hostname, _options, callback) => {
+      lookup(hostname, { all: true })
+        .then((addresses) => {
+          const valid = addresses.find((entry) => !isPrivateAddress(entry.address));
+          if (!valid) {
+            callback(
+              new Error("The restaurant website does not resolve to a public address."),
+              "",
+              4,
+            );
+          } else {
+            callback(null, valid.address, valid.family);
+          }
+        })
+        .catch((err) => {
+          callback(err, "", 4);
+        });
+    },
+  },
+});
 
 export interface DiscoveredMenu {
   upload: {
@@ -96,6 +120,7 @@ async function downloadPublicUrl(initialUrl: URL): Promise<DownloadedPage> {
   for (let redirects = 0; redirects <= 3; redirects += 1) {
     await assertPublicUrl(url);
     const response = await fetch(url, {
+      dispatcher: safeMenuAgent,
       redirect: "manual",
       headers: {
         "User-Agent":
@@ -104,7 +129,7 @@ async function downloadPublicUrl(initialUrl: URL): Promise<DownloadedPage> {
         Accept: "text/html,application/pdf;q=0.9",
       },
       signal: AbortSignal.timeout(8_000),
-    });
+    } as RequestInit & { dispatcher?: unknown });
     if (response.status >= 300 && response.status < 400) {
       const location = response.headers.get("location");
       if (!location) throw new Error("The restaurant website returned an invalid redirect.");

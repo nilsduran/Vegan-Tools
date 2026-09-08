@@ -175,27 +175,39 @@ export function HomePage() {
                 to={`/map?q=${encodeURIComponent(place.name)}`}
                 className="home-place-card"
               >
-                <div className="home-place-badge-row">
-                  <span className="home-place-cuisine-icon" aria-hidden="true">
-                    {getCuisineIcon(place)}
-                  </span>
+                <div className="home-place-cover">
+                  {place.imageUrl ? (
+                    <img
+                      src={place.imageUrl}
+                      alt={place.name}
+                      className="home-place-img"
+                      loading="lazy"
+                    />
+                  ) : (
+                    <div className="home-place-cover-placeholder" aria-hidden="true">
+                      <span>{getCuisineIcon(place)}</span>
+                    </div>
+                  )}
                   {place.rating ? (
-                    <span className="home-badge-rating">
+                    <span className="home-place-rating-badge">
                       <span>★</span>
                       <span>{place.rating.toFixed(1)}</span>
                     </span>
-                  ) : (
-                    <span />
-                  )}
-                </div>
-                <h3 className="home-place-name">{place.name}</h3>
-                <p className="home-place-address">{place.address}</p>
-                <div className="home-place-footer">
-                  <span />
-                  <span className="home-place-action">
-                    <span>{tx("Open")}</span>
-                    <ArrowRight size={13} aria-hidden="true" />
+                  ) : null}
+                  <span className="home-place-cuisine-badge" aria-hidden="true">
+                    {getCuisineIcon(place)}
                   </span>
+                </div>
+                <div className="home-place-content">
+                  <h3 className="home-place-name">{place.name}</h3>
+                  <p className="home-place-address">{place.address.split(",")[0]}</p>
+                  <div className="home-place-footer">
+                    <span className="home-badge-vegan">{tx("Vegan")}</span>
+                    <span className="home-place-action">
+                      <span>{tx("Open")}</span>
+                      <ArrowRight size={13} aria-hidden="true" />
+                    </span>
+                  </div>
                 </div>
               </Link>
             ))}

@@ -58,4 +58,40 @@ describe("menu adaptation guardrails", () => {
       "vegan",
     )).toBe(false);
   });
+
+  it("analyzes fallback demo menu with modifiable dish support", async () => {
+    const originalKey = process.env.GEMINI_API_KEY;
+    const originalGoogleKey = process.env.GOOGLE_API_KEY;
+    delete process.env.GEMINI_API_KEY;
+    delete process.env.GOOGLE_API_KEY;
+
+    try {
+      const { GeminiMenuAnalyzer } = await import("./menu-analyzer.js");
+      const analyzer = new GeminiMenuAnalyzer();
+      const result = await analyzer.analyze(
+        {
+          id: "test-menu",
+          editToken: "token-123",
+          status: "ready",
+          restaurantName: "Demo",
+          sourceLabel: "Uploaded menu",
+          sourceFiles: [],
+          sourceCapturedAt: new Date().toISOString(),
+          originalLanguage: "es",
+          sections: [],
+          createdAt: new Date().toISOString(),
+          originalDeleteAt: new Date().toISOString(),
+        },
+        [{ filename: "menu.pdf", mimetype: "application/pdf", buffer: Buffer.from("test") }],
+        { includeDrinks: false },
+      );
+
+      expect(result.sections.length).toBeGreaterThan(0);
+      expect(result.sections[0]?.items[0]?.name).toBe("Example dish");
+    } finally {
+      if (originalKey) process.env.GEMINI_API_KEY = originalKey;
+      if (originalGoogleKey) process.env.GOOGLE_API_KEY = originalGoogleKey;
+    }
+  });
 });
+

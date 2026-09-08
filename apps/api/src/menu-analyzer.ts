@@ -25,7 +25,7 @@ export interface MenuAnalyzer {
   analyze(
     menu: MenuDraft,
     uploads: Upload[],
-    options?: { highAccuracy?: boolean },
+    options?: { highAccuracy?: boolean; includeDrinks?: boolean },
   ): Promise<MenuDraft>;
 }
 
@@ -33,13 +33,17 @@ export class GeminiMenuAnalyzer implements MenuAnalyzer {
   async analyze(
     menu: MenuDraft,
     uploads: Upload[],
-    options?: { highAccuracy?: boolean },
+    options?: { highAccuracy?: boolean; includeDrinks?: boolean },
   ): Promise<MenuDraft> {
     if (!process.env.GEMINI_API_KEY) {
       return demoMenu(menu, uploads);
     }
 
     const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
+    const drinksInstruction = options?.includeDrinks
+      ? "Extract food items and drinks. For wines, beers and beverages, audit ingredients and clarifiers for animal derivatives (isinglass, gelatin, albumin, carmine E120, honey)."
+      : "Extract every food item from these menu files. Ignore drinks to save tokens and focus strictly on dining.";
+
     const parts = [
       ...uploads.map((upload) => ({
         inlineData: {
@@ -48,7 +52,7 @@ export class GeminiMenuAnalyzer implements MenuAnalyzer {
         },
       })),
       {
-        text: `Extract every food item from these menu files. Ignore drinks.
+        text: `${drinksInstruction}
 Translate display text to English while retaining each original dish name.
 Also translate section names, dish names and dish descriptions to Catalan.
 The "name" must be the full translated dish name as printed, including meaningful qualifiers such as "with pappa al pomodoro and arugula".
@@ -65,6 +69,8 @@ Use an empty string for description or price only when that information is absen
 Never guess that a dish is vegan. Use "unknown" whenever ingredients are incomplete.
 When one menu line contains selectable variants with different dietary implications, split them into separate items. For example, separate dairy ice-cream flavours from lemon or mandarin sorbets; sorbet is only probably vegan or unknown unless its ingredients or vegan marking rule out milk, egg, honey and gelatin.
 Allowed verdicts: vegan, probably_vegan, vegetarian, probably_vegetarian, non_vegetarian, unknown.
+For dishes that are vegetarian, probably_vegetarian, or non_vegetarian: ONLY if the printed menu explicitly states that the dish can be adapted to vegan (for example: "opció vegana disponible", "vegan option available", "ask without cheese", "demanar sense formatge", "canvi de llet per civada o soja", "tofu option"), set "modifiableTo" to "vegan" and put the explicit printed instruction in "modificationNote" (in English) and "modificationNoteCa" (in Catalan).
+NEVER guess or invent cooking modifications if the printed menu does not explicitly mention that the dish can be adapted or customized.
 For PDFs, include the 1-based PDF page number where each dish appears as sourcePage.
 For multiple uploaded images, use the 1-based image position as sourcePage.
 Return JSON matching the supplied schema.${options?.highAccuracy ? "\nExtract with maximum thoroughness. Perform a meticulous, comprehensive scan of all columns, sections, footers, and small print." : ""}`,
@@ -105,6 +111,12 @@ Return JSON matching the supplied schema.${options?.highAccuracy ? "\nExtract wi
                         },
                         reason: { type: Type.STRING },
                         reasonCa: { type: Type.STRING },
+                        modifiableTo: {
+                          type: Type.STRING,
+                          enum: ["vegan", "vegetarian"],
+                        },
+                        modificationNote: { type: Type.STRING },
+                        modificationNoteCa: { type: Type.STRING },
                         sourcePage: { type: Type.INTEGER },
                       },
                       required: ["originalName", "name", "nameCa", "description", "descriptionCa", "price", "verdict", "reason", "reasonCa"],
@@ -149,21 +161,42 @@ Return JSON matching the supplied schema.${options?.highAccuracy ? "\nExtract wi
     if (!response) throw lastError;
 
     const parsed = JSON.parse(response.text ?? "{}") as Record<string, unknown>;
-    const inferredModifications = await inferModifications(ai, models, selectedModel, parsed);
     const analyzed = menuDraftSchema.parse({
       ...menu,
       ...parsed,
       status: "ready",
-      sections: ((parsed.sections as Array<Record<string, unknown>>) ?? []).map((section, sectionIndex) => ({
+      sections: ((parsed.sections as Array<Record<string, unknown>>) ?? []).map((section) => ({
         ...section,
         id: randomUUID(),
-        items: ((section.items as Array<Record<string, unknown>>) ?? []).map((item, itemIndex) => ({
-          description: "",
-          price: "",
-          ...item,
-          modifications: inferredModifications.get(`${sectionIndex}:${itemIndex}`) ?? [],
-          id: randomUUID(),
-        })),
+        items: ((section.items as Array<Record<string, unknown>>) ?? []).map((item) => {
+          const modifiableTo =
+            item.modifiableTo === "vegan" || item.modifiableTo === "vegetarian"
+              ? item.modifiableTo
+              : undefined;
+          const modificationNote =
+            typeof item.modificationNote === "string" && item.modificationNote.trim()
+              ? item.modificationNote.trim()
+              : undefined;
+          const modificationNoteCa =
+            typeof item.modificationNoteCa === "string" && item.modificationNoteCa.trim()
+              ? item.modificationNoteCa.trim()
+              : undefined;
+          const explicitMods =
+            modifiableTo && modificationNote
+              ? [{ target: modifiableTo, note: modificationNote, noteCa: modificationNoteCa }]
+              : [];
+
+          return {
+            description: "",
+            price: "",
+            ...item,
+            modifiableTo,
+            modificationNote,
+            modificationNoteCa,
+            modifications: explicitMods,
+            id: randomUUID(),
+          };
+        }),
       })),
     });
     return {
@@ -191,144 +224,6 @@ Return JSON matching the supplied schema.${options?.highAccuracy ? "\nExtract wi
       })),
     };
   }
-}
-
-async function inferModifications(
-  ai: GoogleGenAI,
-  fallbackModels: string[],
-  preferredModel: string,
-  parsed: Record<string, unknown>,
-) {
-  const sections = (parsed.sections as Array<Record<string, unknown>>) ?? [];
-  const candidates = sections.flatMap((section, sectionIndex) =>
-    ((section.items as Array<Record<string, unknown>>) ?? []).map((item, itemIndex) => ({
-      key: `${sectionIndex}:${itemIndex}`,
-      name: item.name,
-      originalName: item.originalName,
-      description: item.description,
-      verdict: item.verdict,
-      reason: item.reason,
-    })),
-  );
-  const result = new Map<string, Array<{
-    target: "vegan" | "vegetarian";
-    note: string;
-  }>>();
-  if (candidates.length === 0) return result;
-
-  const models = [...new Set([preferredModel, ...fallbackModels])];
-  let response: Awaited<ReturnType<typeof ai.models.generateContent>> | undefined;
-  for (const model of models) {
-    try {
-      response = await ai.models.generateContent({
-        model,
-        contents: [{
-          parts: [{
-            text: `Infer plausible restaurant requests from this extracted menu JSON.
-Use the dish name, description, verdict and reason even when the original menu does not explicitly offer modifications.
-For vegetarian dishes, add a vegan adaptation when animal ingredients could plausibly be omitted or replaced.
-For non-vegetarian dishes, add a vegetarian adaptation when meat or fish could plausibly be omitted or replaced, and a separate vegan adaptation when further dairy or egg changes are needed.
-A dish may have both targets with different notes. Do not add a redundant adaptation to a dish already in that diet.
-Only suggest ordinary kitchen changes: omit one or two secondary ingredients, serve a sauce separately, or replace butter with olive oil.
-Never remove three or more ingredients. Do not suggest an adaptation when the remaining dish would be mostly a bare base, plain starch, bread or tomato sauce.
-Never require a special vegan product or a newly prepared substitute such as plant-based bolognese, vegan meat, vegan cheese, vegan cream, vegan mayonnaise, tofu, tempeh or seitan.
-Do not suggest an adaptation if it replaces the main ingredient, requires making a new sauce or filling, or changes the identity of the dish.
-The named or defining ingredient is never secondary: for example, do not turn baked provolone, burrata, halloumi, a cheese board or fondue vegan by omitting its cheese.
-Do not make an integrated baked dessert such as coulant, lava cake, brownie, cheesecake, tiramisu, flan or custard vegan merely by removing an accompaniment; its base commonly contains egg or dairy.
-For example, do not adapt a ham, mozzarella and egg pizza to vegan by removing all three toppings. A multi-topping pizza may reasonably become vegetarian by omitting ham, or vegan by omitting ham and cheese, only when several substantial vegetable toppings remain.
-Every note must start with "Ask whether it can be prepared..." and must not imply a guarantee.
-Return only dishes with at least one adaptation. Preserve each key exactly.
-
-${JSON.stringify(candidates)}`,
-          }],
-        }],
-        config: {
-          responseMimeType: "application/json",
-          responseSchema: {
-            type: Type.OBJECT,
-            properties: {
-              dishes: {
-                type: Type.ARRAY,
-                items: {
-                  type: Type.OBJECT,
-                  properties: {
-                    key: { type: Type.STRING },
-                    modifications: {
-                      type: Type.ARRAY,
-                      items: {
-                        type: Type.OBJECT,
-                        properties: {
-                          target: {
-                            type: Type.STRING,
-                            enum: ["vegan", "vegetarian"],
-                          },
-                          note: { type: Type.STRING },
-                          noteCa: { type: Type.STRING },
-                        },
-                        required: ["target", "note"],
-                      },
-                    },
-                  },
-                  required: ["key", "modifications"],
-                },
-              },
-            },
-            required: ["dishes"],
-          },
-        },
-      });
-      break;
-    } catch {
-      // Adaptations are useful but must never make the complete extraction fail.
-    }
-  }
-  if (!response) return result;
-
-  try {
-    const payload = JSON.parse(response.text ?? "{}") as {
-      dishes?: Array<{
-        key?: unknown;
-        modifications?: Array<{ target?: unknown; note?: unknown; noteCa?: unknown }>;
-      }>;
-    };
-    const validKeys = new Set(candidates.map((candidate) => candidate.key));
-    const candidatesByKey = new Map(
-      candidates.map((candidate) => [candidate.key, candidate]),
-    );
-    for (const dish of payload.dishes ?? []) {
-      if (typeof dish.key !== "string" || !validKeys.has(dish.key)) continue;
-      const candidate = candidatesByKey.get(dish.key);
-      const dishName = `${String(candidate?.name ?? "")} ${String(candidate?.originalName ?? "")}`;
-      const dishDescription = `${String(candidate?.description ?? "")} ${
-        String(candidate?.reason ?? "")
-      }`;
-      const modifications = (dish.modifications ?? [])
-        .filter(
-          (entry): entry is { target: "vegan" | "vegetarian"; note: string; noteCa?: string } =>
-            (entry.target === "vegan" || entry.target === "vegetarian") &&
-            typeof entry.note === "string" &&
-            isPracticalAdaptation(
-              entry.note,
-              dishName,
-              dishDescription,
-              entry.target,
-            ),
-        )
-        .map((entry) => ({
-          target: entry.target,
-          note: /^ask whether\b/i.test(entry.note.trim())
-            ? entry.note.trim()
-            : `Ask whether it can be prepared ${entry.note.trim()}`,
-          noteCa: typeof entry.noteCa === "string" && entry.noteCa.trim()
-            ? entry.noteCa.trim()
-            : undefined,
-        }));
-      if (modifications.length > 0) result.set(dish.key, modifications);
-    }
-  } catch {
-    return new Map();
-  }
-  return result;
 }
 
 export function isPracticalAdaptation(
