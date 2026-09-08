@@ -8,6 +8,8 @@ import { useEffect, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import type { RestaurantReview } from "@vegan-tools/domain";
 import {
+  Calendar,
+  Compass,
   Edit2,
   ExternalLink,
   Leaf,
@@ -17,18 +19,23 @@ import {
   MapPin,
   MessageSquare,
   ShieldCheck,
+  Star,
   Trash2,
   User,
 } from "lucide-react";
 import { deleteRestaurantReview, getUserReviews } from "../api";
 import { useAuth } from "../auth";
 import { AuthDialog } from "../components/AuthDialog";
+import { Top4Restaurants } from "../components/Top4Restaurants";
+import { RatingHistogram } from "../components/RatingHistogram";
+import { deleteVisitLog, useDiaryLogs } from "../utils/diary";
 import { t, tx, useLanguage } from "../i18n";
 
 export function ProfilePage() {
   const language = useLanguage();
   const navigate = useNavigate();
   const { user, token, signOut, updateUsername } = useAuth();
+  const diaryLogs = useDiaryLogs();
 
   const [reviews, setReviews] = useState<RestaurantReview[]>([]);
   const [loadingReviews, setLoadingReviews] = useState(false);
@@ -139,6 +146,92 @@ export function ProfilePage() {
           )}
         </div>
       </header>
+
+      {/* Letterboxd-style Top 4 Favorite Restaurants */}
+      <Top4Restaurants />
+
+      {/* Letterboxd-style Rating Distribution Chart */}
+      {diaryLogs.length > 0 && (
+        <RatingHistogram logs={diaryLogs} />
+      )}
+
+      {/* Visit Diary Section */}
+      <section className="profile-reviews-section profile-reviews-card">
+        <div className="profile-reviews-header">
+          <div className="profile-reviews-title-wrap">
+            <Calendar size={20} style={{ color: "#059669" }} aria-hidden="true" />
+            <h2>{tx("My Visit Diary")}</h2>
+          </div>
+          <span className="profile-reviews-count-badge">
+            {diaryLogs.length} {diaryLogs.length === 1 ? tx("entry") : tx("entries")}
+          </span>
+        </div>
+
+        {diaryLogs.length === 0 ? (
+          <div className="profile-empty-state">
+            <div className="profile-empty-state-icon">📖</div>
+            <h3>{tx("Your visit diary is empty.")}</h3>
+            <p>{tx("Log your restaurant visits, save dishes and track your rating history over time.")}</p>
+            <Link to="/map" className="primary-button profile-auth-btn">
+              <Compass size={16} aria-hidden="true" />
+              <span>{tx("Explore restaurants")}</span>
+            </Link>
+          </div>
+        ) : (
+          <ul className="profile-reviews-list">
+            {diaryLogs.map((log) => {
+              const formattedDate = new Date(log.visitDate).toLocaleDateString(
+                language === "ca" ? "ca-ES" : "en-US",
+                { month: "short", day: "numeric", year: "numeric" },
+              );
+
+              return (
+                <li key={log.id} className="profile-review-item">
+                  <div className="profile-review-top">
+                    <div className="profile-review-meta">
+                      <Link
+                        to={`/restaurant/${encodeURIComponent(log.restaurantId)}`}
+                        className="profile-review-restaurant-link"
+                      >
+                        <strong>{log.restaurantName}</strong>
+                        <ExternalLink size={14} aria-hidden="true" />
+                      </Link>
+                      <span className="profile-review-date">• {formattedDate}</span>
+                    </div>
+
+                    <div className="profile-review-score-wrap">
+                      <div className="profile-review-star-badge">
+                        <Star size={14} fill="#f59e0b" color="#f59e0b" aria-hidden="true" />
+                        <span>{log.rating.toFixed(1)} / 5</span>
+                      </div>
+
+                      <button
+                        type="button"
+                        onClick={() => deleteVisitLog(log.id)}
+                        title={tx("Delete visit")}
+                        aria-label={tx("Delete visit")}
+                        className="profile-review-delete-btn"
+                      >
+                        <Trash2 size={16} aria-hidden="true" />
+                      </button>
+                    </div>
+                  </div>
+
+                  {log.dishesTried && log.dishesTried.length > 0 && (
+                    <div className="profile-diary-dishes">
+                      <span>🌱 {log.dishesTried.join(", ")}</span>
+                    </div>
+                  )}
+
+                  {log.notes && (
+                    <p className="profile-review-comment">{log.notes}</p>
+                  )}
+                </li>
+              );
+            })}
+          </ul>
+        )}
+      </section>
 
       {/* User Reviews Section */}
       <section className="profile-reviews-section profile-reviews-card">

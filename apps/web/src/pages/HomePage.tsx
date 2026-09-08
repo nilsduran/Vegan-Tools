@@ -172,7 +172,7 @@ export function HomePage() {
             {featuredPlaces.map((place) => (
               <Link
                 key={place.id}
-                to={`/map?q=${encodeURIComponent(place.name)}`}
+                to={`/restaurant/${place.id}`}
                 className="home-place-card"
               >
                 <div className="home-place-cover">

@@ -18,6 +18,7 @@ const ProductScannerPage = lazy(() => import("./pages/ProductScannerPage").then(
 const PublicMenuPage = lazy(() => import("./pages/PublicMenuPage").then((m) => ({ default: m.PublicMenuPage })));
 const RecipeVeganizerPage = lazy(() => import("./pages/RecipeVeganizerPage").then((m) => ({ default: m.RecipeVeganizerPage })));
 const ProfilePage = lazy(() => import("./pages/ProfilePage").then((m) => ({ default: m.ProfilePage })));
+const RestaurantDetailPage = lazy(() => import("./pages/RestaurantDetailPage").then((m) => ({ default: m.RestaurantDetailPage })));
 
 function PageLoader() {
   return (
@@ -113,6 +114,7 @@ export function App() {
               <Route path="/product/:gtin" element={<ProductScannerPage />} />
               <Route path="/recipes" element={<RecipeVeganizerPage />} />
               <Route path="/profile" element={<ProfilePage />} />
+              <Route path="/restaurant/:id" element={<RestaurantDetailPage />} />
               <Route path="/m/:slug" element={<PublicMenuPage />} />
             </Routes>
           </Suspense>

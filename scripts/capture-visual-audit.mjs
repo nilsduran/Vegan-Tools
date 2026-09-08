@@ -73,6 +73,14 @@ async function run() {
       path: resolve(outputDir, "mobile-scanner.png"),
     });
 
+    console.log("Capturing Mobile Restaurant Detail Page...");
+    await mobilePage.goto(`${baseUrl}/restaurant/featured-roots-bcn`, { waitUntil: "domcontentloaded" });
+    await mobilePage.waitForTimeout(1000);
+    await mobilePage.screenshot({
+      path: resolve(outputDir, "mobile-restaurant-detail.png"),
+      fullPage: true,
+    });
+
     await mobileContext.close();
 
     // 2. Desktop Viewport (1280x800)
@@ -83,12 +91,82 @@ async function run() {
 
     const desktopPage = await desktopContext.newPage();
 
+    // Inject demo diary logs and top 4 favorites into localStorage for visual audit
+    await desktopPage.addInitScript(() => {
+      window.localStorage.setItem(
+        "vegan_tools_top4_restaurants_v1",
+        JSON.stringify([
+          "featured-asante-bcn",
+          "featured-vrutal-bcn",
+          "featured-blubar-bcn",
+          "featured-madmadvegan-bcn",
+        ])
+      );
+      window.localStorage.setItem(
+        "vegan_tools_diary_logs_v1",
+        JSON.stringify([
+          {
+            id: "v1",
+            restaurantId: "featured-roots-bcn",
+            restaurantName: "Roots Vegan",
+            visitDate: "2026-09-08",
+            rating: 5.0,
+            notes: "Best vegan burger in town. Fantastic brioche bun and truffle fries.",
+            dishesTried: ["Roots Burger", "Truffle Fries"],
+          },
+          {
+            id: "v2",
+            restaurantId: "featured-santoni-bcn",
+            restaurantName: "Santoni Vegan Bakery & Cafe",
+            visitDate: "2026-09-05",
+            rating: 4.5,
+            notes: "Warm vegan croissants and oat flat white.",
+            dishesTried: ["Cornetto pistacchio", "Flat White"],
+          },
+          {
+            id: "v3",
+            restaurantId: "featured-gallosanto-bcn",
+            restaurantName: "Gallo Santo",
+            visitDate: "2026-08-28",
+            rating: 4.5,
+            notes: "Delicious jackfruit and pastor tacos with margaritas.",
+            dishesTried: ["Tacos al Pastor", "Guacamole"],
+          },
+          {
+            id: "v4",
+            restaurantId: "featured-desoriente-bcn",
+            restaurantName: "Desoriente",
+            visitDate: "2026-08-15",
+            rating: 4.0,
+            notes: "Plant-based sushi rolls and spicy ramen.",
+            dishesTried: ["Rainbow Roll", "Spicy Miso Ramen"],
+          },
+        ])
+      );
+    });
+
     console.log("Capturing Desktop Home Page...");
     await desktopPage.goto(`${baseUrl}/`, { waitUntil: "domcontentloaded" });
     await desktopPage.waitForSelector(".home-dashboard-layout", { timeout: 8000 });
     await desktopPage.waitForTimeout(600);
     await desktopPage.screenshot({
       path: resolve(outputDir, "desktop-home.png"),
+      fullPage: true,
+    });
+
+    console.log("Capturing Desktop Restaurant Detail Page...");
+    await desktopPage.goto(`${baseUrl}/restaurant/featured-roots-bcn`, { waitUntil: "domcontentloaded" });
+    await desktopPage.waitForTimeout(1000);
+    await desktopPage.screenshot({
+      path: resolve(outputDir, "desktop-restaurant-detail.png"),
+      fullPage: true,
+    });
+
+    console.log("Capturing Desktop Profile Page with Diary & Top 4...");
+    await desktopPage.goto(`${baseUrl}/profile`, { waitUntil: "domcontentloaded" });
+    await desktopPage.waitForTimeout(1000);
+    await desktopPage.screenshot({
+      path: resolve(outputDir, "desktop-profile.png"),
       fullPage: true,
     });
 

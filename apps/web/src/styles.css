@@ -1413,6 +1413,905 @@ button:disabled { cursor: not-allowed; opacity: .55; }
   }
 }
 
+/* =========================================================================
+   Letterboxd-style Rating Histogram
+   ========================================================================= */
+.diary-histogram-card {
+  background: #ffffff;
+  border: 1px solid #e2e8f0;
+  border-radius: 1rem;
+  padding: 1.25rem 1.5rem;
+  margin-bottom: 1.5rem;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
+}
+
+.diary-histogram-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 1rem;
+}
+
+.diary-histogram-title-wrap {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.diary-histogram-icon {
+  color: #f59e0b;
+  font-size: 1.1rem;
+}
+
+.diary-histogram-title {
+  margin: 0;
+  font-size: 1.05rem;
+  font-weight: 700;
+  color: #0f172a;
+}
+
+.diary-histogram-stats {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.diary-histogram-avg {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+  background: #ecfdf5;
+  color: #065f46;
+  padding: 0.2rem 0.55rem;
+  border-radius: 9999px;
+  font-size: 0.85rem;
+}
+
+.diary-histogram-count {
+  font-size: 0.85rem;
+  color: #64748b;
+}
+
+.diary-histogram-chart-wrap {
+  padding-top: 0.5rem;
+}
+
+.diary-histogram-bars {
+  display: flex;
+  align-items: flex-end;
+  gap: 6px;
+  height: 90px;
+  padding: 0 4px;
+}
+
+.diary-histogram-bar-col {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  height: 100%;
+  cursor: pointer;
+  position: relative;
+}
+
+.diary-histogram-bar-track {
+  flex: 1;
+  width: 100%;
+  max-width: 24px;
+  display: flex;
+  align-items: flex-end;
+  background: #f1f5f9;
+  border-radius: 4px;
+  overflow: hidden;
+}
+
+.diary-histogram-bar-fill {
+  width: 100%;
+  background: #cbd5e1;
+  border-radius: 4px;
+  transition: height 0.3s ease, background-color 0.2s ease;
+}
+
+.diary-histogram-bar-fill.has-data {
+  background: #059669;
+}
+
+.diary-histogram-bar-col:hover .diary-histogram-bar-fill.has-data {
+  background: #047857;
+}
+
+.diary-histogram-bar-label {
+  font-size: 0.7rem;
+  color: #94a3b8;
+  margin-top: 4px;
+  height: 14px;
+}
+
+.diary-histogram-axis-labels {
+  display: flex;
+  justify-content: space-between;
+  margin-top: 4px;
+  font-size: 0.75rem;
+  color: #94a3b8;
+  padding: 0 4px;
+}
+
+/* =========================================================================
+   Letterboxd-style Top 4 Favorite Restaurants
+   ========================================================================= */
+.top4-card {
+  background: #ffffff;
+  border: 1px solid #e2e8f0;
+  border-radius: 1rem;
+  padding: 1.25rem 1.5rem;
+  margin-bottom: 1.5rem;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
+}
+
+.top4-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 1rem;
+}
+
+.top4-title-wrap {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.top4-sparkle-icon {
+  color: #059669;
+}
+
+.top4-title {
+  margin: 0;
+  font-size: 1.05rem;
+  font-weight: 700;
+  color: #0f172a;
+}
+
+.top4-edit-toggle-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+  border-radius: 0.5rem;
+  padding: 0.35rem 0.65rem;
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: #475569;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.top4-edit-toggle-btn:hover {
+  background: #f1f5f9;
+  color: #0f172a;
+}
+
+.top4-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 0.75rem;
+}
+
+@media (max-width: 640px) {
+  .top4-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+.top4-slot {
+  position: relative;
+  aspect-ratio: 16 / 10;
+  border-radius: 0.75rem;
+  overflow: hidden;
+}
+
+.top4-slot.empty {
+  border: 2px dashed #cbd5e1;
+  background: #f8fafc;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: border-color 0.2s ease, background 0.2s ease;
+}
+
+.top4-slot.empty:hover {
+  border-color: #059669;
+  background: #ecfdf5;
+}
+
+.top4-slot-empty-content {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.25rem;
+  color: #94a3b8;
+  font-size: 0.8rem;
+  font-weight: 600;
+}
+
+.top4-slot.empty:hover .top4-slot-empty-content {
+  color: #059669;
+}
+
+.top4-slot.filled {
+  border: 1px solid #e2e8f0;
+  background: #000;
+}
+
+.top4-slot-link {
+  display: block;
+  width: 100%;
+  height: 100%;
+  text-decoration: none;
+  position: relative;
+}
+
+.top4-slot-cover {
+  width: 100%;
+  height: 100%;
+  position: relative;
+}
+
+.top4-slot-img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+.top4-slot-cover-placeholder {
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(135deg, #ecfdf5 0%, #d1fae5 100%);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.75rem;
+}
+
+.top4-slot-cuisine {
+  position: absolute;
+  top: 0.4rem;
+  left: 0.4rem;
+  width: 1.6rem;
+  height: 1.6rem;
+  background: rgba(15, 23, 42, 0.75);
+  backdrop-filter: blur(4px);
+  border-radius: 9999px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.85rem;
+}
+
+.top4-slot-info {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  padding: 0.5rem 0.5rem 0.35rem;
+  background: linear-gradient(to top, rgba(0, 0, 0, 0.85) 0%, transparent 100%);
+}
+
+.top4-slot-name {
+  color: #ffffff;
+  font-size: 0.8rem;
+  font-weight: 700;
+  display: block;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.top4-slot-remove-btn {
+  position: absolute;
+  top: 0.35rem;
+  right: 0.35rem;
+  background: rgba(239, 68, 68, 0.9);
+  color: #ffffff;
+  border: none;
+  border-radius: 9999px;
+  width: 1.5rem;
+  height: 1.5rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  z-index: 5;
+  transition: transform 0.15s ease;
+}
+
+.top4-slot-remove-btn:hover {
+  transform: scale(1.15);
+}
+
+.top4-picker-drawer {
+  margin-top: 1rem;
+  padding-top: 1rem;
+  border-top: 1px solid #f1f5f9;
+}
+
+.top4-picker-header {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  margin-bottom: 0.75rem;
+}
+
+.top4-picker-header h4 {
+  margin: 0;
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: #334155;
+}
+
+.top4-search-input {
+  width: 100%;
+  padding: 0.5rem 0.75rem;
+  border: 1px solid #cbd5e1;
+  border-radius: 0.5rem;
+  font-size: 0.85rem;
+}
+
+.top4-candidates-list {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 0.5rem;
+  max-height: 200px;
+  overflow-y: auto;
+}
+
+@media (max-width: 640px) {
+  .top4-candidates-list {
+    grid-template-columns: 1fr;
+  }
+}
+
+.top4-candidate-item {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.45rem 0.65rem;
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+  border-radius: 0.5rem;
+  cursor: pointer;
+  text-align: left;
+  transition: all 0.15s ease;
+}
+
+.top4-candidate-item:hover {
+  background: #ecfdf5;
+  border-color: #a7f3d0;
+}
+
+.top4-cand-icon {
+  font-size: 1.2rem;
+}
+
+.top4-cand-text {
+  flex: 1;
+  min-width: 0;
+}
+
+.top4-cand-name {
+  display: block;
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: #0f172a;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.top4-cand-addr {
+  display: block;
+  font-size: 0.75rem;
+  color: #64748b;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.top4-cand-add {
+  color: #059669;
+}
+
+.top4-empty-search {
+  grid-column: 1 / -1;
+  font-size: 0.85rem;
+  color: #94a3b8;
+  margin: 0.5rem 0;
+}
+
+/* =========================================================================
+   Log Visit Modal
+   ========================================================================= */
+.log-visit-modal-card {
+  max-width: 480px;
+}
+
+.log-visit-form {
+  display: flex;
+  flex-direction: column;
+  gap: 1.25rem;
+  margin-top: 1rem;
+}
+
+.log-visit-field {
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+}
+
+.log-visit-label {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: #334155;
+}
+
+.log-visit-hint {
+  font-size: 0.75rem;
+  color: #64748b;
+}
+
+.log-visit-input,
+.log-visit-textarea {
+  width: 100%;
+  padding: 0.6rem 0.85rem;
+  border: 1px solid #cbd5e1;
+  border-radius: 0.5rem;
+  font-size: 0.9rem;
+  background: #ffffff;
+  color: #0f172a;
+}
+
+.log-visit-input:focus,
+.log-visit-textarea:focus {
+  outline: none;
+  border-color: #059669;
+  box-shadow: 0 0 0 3px rgba(5, 150, 105, 0.15);
+}
+
+.log-visit-rating-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.log-visit-rating-display {
+  font-size: 0.95rem;
+  font-weight: 700;
+  color: #d97706;
+}
+
+.log-visit-rating-pills {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.35rem;
+}
+
+.log-visit-rating-pill {
+  flex: 1;
+  min-width: 38px;
+  padding: 0.45rem 0.2rem;
+  background: #f8fafc;
+  border: 1px solid #cbd5e1;
+  border-radius: 0.375rem;
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: #475569;
+  cursor: pointer;
+  text-align: center;
+  transition: all 0.15s ease;
+}
+
+.log-visit-rating-pill:hover {
+  background: #f1f5f9;
+}
+
+.log-visit-rating-pill.active {
+  background: #059669;
+  border-color: #059669;
+  color: #ffffff;
+}
+
+.log-visit-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 0.75rem;
+  margin-top: 0.5rem;
+}
+
+.log-visit-submit-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+}
+
+/* =========================================================================
+   Profile Visit Diary & Badges
+   ========================================================================= */
+.profile-review-star-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+  background: #fef3c7;
+  color: #92400e;
+  font-weight: 700;
+  font-size: 0.85rem;
+  padding: 0.25rem 0.6rem;
+  border-radius: 9999px;
+}
+
+.profile-diary-dishes {
+  margin: 0.35rem 0 0.5rem;
+  font-size: 0.85rem;
+  color: #059669;
+  font-weight: 500;
+}
+
+/* =========================================================================
+   Restaurant Detail Page (/restaurant/:id)
+   ========================================================================= */
+.restaurant-detail-page {
+  max-width: 860px;
+  margin: 0 auto;
+  padding: 1.5rem 1rem 4rem;
+}
+
+.detail-top-nav {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 1.25rem;
+}
+
+.detail-back-link,
+.detail-map-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: #059669;
+  text-decoration: none;
+  padding: 0.4rem 0.75rem;
+  background: #ecfdf5;
+  border-radius: 0.5rem;
+  transition: background 0.15s ease;
+}
+
+.detail-back-link:hover,
+.detail-map-link:hover {
+  background: #d1fae5;
+}
+
+.restaurant-hero-card {
+  background: #ffffff;
+  border: 1px solid #e2e8f0;
+  border-radius: 1rem;
+  overflow: hidden;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+  margin-bottom: 1.5rem;
+}
+
+.restaurant-hero-cover {
+  width: 100%;
+  aspect-ratio: 16 / 9;
+  max-height: 380px;
+  position: relative;
+  background: #0f172a;
+}
+
+.restaurant-hero-img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+.restaurant-hero-placeholder {
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(135deg, #ecfdf5 0%, #a7f3d0 100%);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 3rem;
+}
+
+.restaurant-hero-cuisine-badge {
+  position: absolute;
+  bottom: 1rem;
+  left: 1rem;
+  width: 2.5rem;
+  height: 2.5rem;
+  background: rgba(15, 23, 42, 0.85);
+  backdrop-filter: blur(6px);
+  border-radius: 9999px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.25rem;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+}
+
+.restaurant-hero-info {
+  padding: 1.5rem;
+}
+
+.restaurant-title-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  margin-bottom: 0.5rem;
+}
+
+.restaurant-name {
+  margin: 0;
+  font-size: 1.75rem;
+  font-weight: 800;
+  color: #0f172a;
+}
+
+.restaurant-rating-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+  background: #fef3c7;
+  color: #92400e;
+  font-weight: 700;
+  font-size: 1rem;
+  padding: 0.3rem 0.75rem;
+  border-radius: 9999px;
+}
+
+.restaurant-address {
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+  color: #64748b;
+  font-size: 0.95rem;
+  margin: 0 0 1rem;
+}
+
+.restaurant-badges-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  margin-bottom: 1.5rem;
+}
+
+.detail-badge-vegan {
+  background: #ecfdf5;
+  color: #065f46;
+  font-weight: 700;
+  font-size: 0.85rem;
+  padding: 0.3rem 0.75rem;
+  border-radius: 9999px;
+  border: 1px solid #a7f3d0;
+}
+
+.detail-badge-status {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  font-size: 0.85rem;
+  font-weight: 600;
+  padding: 0.3rem 0.75rem;
+  border-radius: 9999px;
+}
+
+.detail-badge-status.open {
+  background: #ecfdf5;
+  color: #047857;
+}
+
+.detail-badge-status.closed {
+  background: #fef2f2;
+  color: #b91c1c;
+}
+
+.restaurant-action-buttons {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+}
+
+.detail-action-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  text-decoration: none;
+}
+
+.restaurant-hours-section,
+.restaurant-visits-section,
+.restaurant-community-reviews-section {
+  background: #ffffff;
+  border: 1px solid #e2e8f0;
+  border-radius: 1rem;
+  padding: 1.5rem;
+  margin-bottom: 1.5rem;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
+}
+
+.restaurant-hours-section h3,
+.restaurant-community-reviews-section h3 {
+  margin: 0 0 0.75rem;
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  font-size: 1.1rem;
+  font-weight: 700;
+  color: #0f172a;
+}
+
+.restaurant-hours-text {
+  margin: 0;
+  color: #475569;
+  font-size: 0.95rem;
+}
+
+.restaurant-visits-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 1rem;
+}
+
+.restaurant-visits-title-wrap {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  color: #059669;
+}
+
+.restaurant-visits-title-wrap h2 {
+  margin: 0;
+  font-size: 1.15rem;
+  font-weight: 700;
+  color: #0f172a;
+}
+
+.add-visit-small-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+  padding: 0.35rem 0.75rem;
+  font-size: 0.85rem;
+}
+
+.visits-empty-state {
+  text-align: center;
+  padding: 1.5rem 1rem;
+  color: #64748b;
+  font-size: 0.9rem;
+}
+
+.restaurant-visits-list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.restaurant-visit-item {
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+  border-radius: 0.75rem;
+  padding: 1rem;
+}
+
+.visit-item-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 0.5rem;
+}
+
+.visit-date {
+  font-weight: 700;
+  color: #1e293b;
+  font-size: 0.95rem;
+}
+
+.visit-item-header-right {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.visit-stars {
+  font-weight: 700;
+  color: #d97706;
+  font-size: 0.95rem;
+}
+
+.visit-delete-btn {
+  background: none;
+  border: none;
+  color: #94a3b8;
+  cursor: pointer;
+  padding: 0.2rem;
+  transition: color 0.15s ease;
+}
+
+.visit-delete-btn:hover {
+  color: #ef4444;
+}
+
+.visit-dishes {
+  font-size: 0.85rem;
+  color: #059669;
+  margin-bottom: 0.35rem;
+}
+
+.visit-notes {
+  margin: 0;
+  font-size: 0.9rem;
+  color: #334155;
+  line-height: 1.45;
+}
+
+.restaurant-community-reviews-list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.restaurant-community-review-item {
+  border-bottom: 1px solid #f1f5f9;
+  padding-bottom: 0.75rem;
+}
+
+.restaurant-community-review-item:last-child {
+  border-bottom: none;
+  padding-bottom: 0;
+}
+
+.comm-rev-header {
+  display: flex;
+  justify-content: space-between;
+  font-size: 0.85rem;
+  color: #475569;
+  margin-bottom: 0.25rem;
+}
+
+.restaurant-not-found {
+  text-align: center;
+  padding: 4rem 1rem;
+}
+
+.restaurant-not-found h2 {
+  font-size: 1.5rem;
+  color: #0f172a;
+  margin-bottom: 0.5rem;
+}
+
+.restaurant-not-found p {
+  color: #64748b;
+  margin-bottom: 1.5rem;
+}
+
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { scroll-behavior: auto !important; animation-duration: .01ms !important; transition-duration: .01ms !important; }
 }
+

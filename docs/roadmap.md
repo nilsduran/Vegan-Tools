@@ -101,9 +101,8 @@ Tasques que requereixen disseny d'enginyeria, modificació d'esquemes o canvis e
 4. **✅ [COMPLETAT] Reordenació del Top 3 de filtres immediats i normalització a «Vegà» (`FilterPills.tsx`, `i18n.ts`)**:
    - Simplificació de "100% vegà" a "Vegà" (ja s'entén en contraposició a "Opcions veganes").
    - Top 3 de filtres principals visibles per defecte: **4+ fulles (qualitat)**, **Vegà** i **Vegetarià** (locals sense carn ni peix). El filtre d'**Opcions veganes** es mou al calaix de filtres addicionals per evitar inundar la cerca inicial amb llocs carnis.
-5. **🖼️ Galeria d'imatges d'Espai Segur per a les targetes de restaurants destacats a la portada (`HomePage.tsx`)**:
-   - *Problema*: Les targetes de la pàgina principal actualment només mostren la icona de cuina, oferint una experiència visual bàsica.
-   - *Solució*: Enriquir les targetes amb imatges reals de la carta, plats i façana del restaurant, protegides per la política estricta d'Espai Segur (tolerància zero amb imatges de carn o crueltat).
+5. **✅ [COMPLETAT] Galeria d'imatges d'Espai Segur per a les targetes de restaurants destacats a la portada (`HomePage.tsx`)**:
+   - *Solució*: Implementades targetes amb ràtio 16:10 i imatges autèntiques d'alta resolució integrades de manera nativa a `vegantools.org` (sense redireccions externes ni iframes), amb insígnies d'estil de cuina, puntuació mitjana i degradat de reserva (*fallback*), protegides per la política estricta d'Espai Segur (tolerància zero amb carn o crueltat).
 
 ### 🧹 Backend Fastify & Seguretat
 6. **✅ [COMPLETAT] Modularització del monòlit `apps/api/src/app.ts` (>2.470 línies)**:
@@ -118,25 +117,25 @@ Tasques que requereixen disseny d'enginyeria, modificació d'esquemes o canvis e
 7. **✅ [COMPLETAT] Refactorització de la signatura de `buildApp()`**:
    - *Problema*: Acceptava 8 arguments posicionals, obligant a passar múltiples `undefined` consecutius a `server.ts`.
    - *Solució*: Substituït per una interfície neta `AppDependencies` amb suport retrocompatible tant per a objecte d'opcions com per a paràmetres posicionals existents.
-8. **🔒 Defensa contra DNS Rebinding a la descoberta de cartes (`menu-discovery.ts`)**:
+8. **✅ [COMPLETAT] Defensa contra DNS Rebinding a la descoberta de cartes (`menu-discovery.ts`)**:
    - *Problema*: `assertPublicUrl` valida la IP abans de la petició, però `fetch()` torna a resoldre el DNS, permetent que un atacant amb TTL 0 accedeixi a xarxes locals o metadades cloud (`127.0.0.1`, `169.254.169.254`).
-   - *Acció*: Implementar un Dispatcher TCP fixat a la IP validada (undici Agent).
+   - *Solució*: Dispatcher TCP amb `undici.Agent` personalitzat connectant directament a la IP validada en el socket de xarxa per immunitzar contra canvis maliciosos de TTL.
 
 ### 🔍 Intel·ligència Artificial i Cartes
-9. **Auditoria ètica de begudes, vins i cerveses com a opció extra (`menu-analyzer.ts`)**:
-   - *Estratègia d'estalvi de tokens*: No s'analitza per defecte per no malgastar recursos. S'activa únicament com a opció secundària/extra si l'usuari ho demana o si la carta és exclusivament de begudes/vins.
-10. **Extracció automàtica de plats adaptables (`modifiableTo`) amb Gemini**:
-    - *Estratègia sòlida i rigorosa*: El model només pot extreure `modifiableTo: "vegan"` i `modificationNote` si el propi text imprès de la carta indica explícitament que és adaptable (ex: "opció vegana disponible", "demanar sense formatge", "opció amb tofu o heura"). Mai s'han d'inventar receptes.
+9. **✅ [COMPLETAT] Auditoria ètica de begudes, vins i cerveses com a opció extra (`menu-analyzer.ts`)**:
+   - *Estratègia d'estalvi de tokens*: Anàlisi de begudes i vins desactivada per defecte per optimitzar el consum de tokens del model. S'ofereix exclusivament mitjançant el paràmetre explícit `includeDrinks?: boolean` quan es processen cartes específiques de begudes.
+10. **✅ [COMPLETAT] Extracció automàtica de plats adaptables (`modifiableTo`) amb Gemini**:
+    - *Estratègia sòlida i rigorosa*: El model només extreu `modifiableTo: "vegan"` i `modificationNote` si el propi text imprès de la carta indica textualment la possibilitat d'adaptar-lo (ex: "opció vegana disponible", "demanar sense formatge", "substitució per heura"). S'ha suprimit la segona crida redundant d'inferència.
 
 ### 👤 Perfil i Experiència d'Usuari
 11. **⛔ [EXCLÒS PER SEGURETAT MÈDICA] Filtres d'al·lèrgies i anafilaxi**:
     - *Decisió ètica*: Per evitar riscos greus per a la salut de les persones (xocs anafilàctics, contaminació creuada a fàbriques/cuines) per un excés de confiança en la IA o l'OCR, **s'exclou qualsevol garantia o filtre mèdic d'al·lèrgies**. L'app se centra exclusivament en la composició ètica vegana/vegetariana.
-12. **Diari de visites estil Letterboxd, Top 4 i Favorits (`ProfilePage.tsx`)**:
-    - *Log diari*: Permetre registrar visites a restaurants en diferents dies (màxim 1 cop per dia pel mateix local), de manera que les valoracions i ressenyes puguin evolucionar en el temps.
-    - *Distribució d'estrelles*: Gràfic de barres al perfil amb l'histograma de puntuacions de l'usuari, agrupat en franges de mig punt (0.5, 1.0, 1.5, ... 5.0) però desant la puntuació decimal exacta.
-    - *Top 4 Restaurants*: Destacar els 4 restaurants preferits de l'usuari a la capçalera del seu perfil.
-13. **Pàgines de perfil dedicades per a cada restaurant (`/restaurant/:id`)**:
-    - Crear fitxes independents indexables per a motors de cerca, amb galeria d'imatges d'espai segur, horaris detallats i enllaços directes per compartir.
+12. **✅ [COMPLETAT] Diari de visites estil Letterboxd, Top 4 i Favorits (`ProfilePage.tsx`, `diary.ts`)**:
+    - *Log diari*: Registre de visites a restaurants en diferents dies (amb límit estricte d'1 registre per dia per local, format `YYYY-MM-DD`), amb notes personals, plats demanats i valoració amb pas de mig punt (0.5 a 5.0).
+    - *Distribució d'estrelles*: Histograma de puntuacions al perfil amb 10 barres verticals (0.5 a 5.0), mitjana aritmètica calculada i recompte de visites.
+    - *Top 4 Restaurants*: Selector dels 4 restaurants preferits de l'usuari ancorats a la capçalera del perfil amb calaix de cerca.
+13. **✅ [COMPLETAT] Pàgines de perfil dedicades per a cada restaurant (`/restaurant/:id`)**:
+    - Fitxes independents indexables (`RestaurantDetailPage.tsx`) amb portada d'alta definició, horaris detallats calculats en local sense dependències (`evaluateOpeningHours`), indicacions de transport, enllaç oficial, diari de visites personals i ressenyes ètiques comunitàries.
 14. **Auditoria i revisió periòdica dels pins curats i comunitaris del mapa**:
     - Establir un procés sistemàtic de verificació periòdica per auditar que els marcadors curats i els resultats d'OpenStreetMap mantinguin informació actualitzada (obertures, tancaments, canvis de carta i oferta vegana) i gestionar correccions reportades per la comunitat.
 
