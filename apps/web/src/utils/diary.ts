@@ -2,8 +2,10 @@
  * @file diary.ts
  * @description Letterboxd-style restaurant visit diary and favorites system.
  * Features:
- * - Local-first visit logging with offline resilience and reactive event dispatch.
- * - Enforces maximum 1 log per restaurant per calendar date (YYYY-MM-DD), allowing reviews and ratings to evolve over time.
+ * - Strictly requires an authenticated user account (no anonymous local logs).
+ * - User-scoped storage for visit logs and Top 4 favorites.
+ * - Optional visit date: defaults to current date (YYYY-MM-DD), but can be unset for dateless visits.
+ * - If a date is provided, enforces maximum 1 log per restaurant per calendar date.
  * - Star rating distribution histogram computation (0.5 to 5.0 in 10 half-star bins).
  * - "Top 4 Favorite Restaurants" pinned showcase.
  */
@@ -12,12 +14,13 @@ import { useState, useEffect } from "react";
 
 export interface RestaurantVisitLog {
   id: string;
+  userId: string;
   restaurantId: string;
   restaurantName: string;
   restaurantAddress?: string;
   restaurantImage?: string;
   cuisine?: string;
-  visitDate: string; // YYYY-MM-DD
+  visitDate?: string; // Optional YYYY-MM-DD
   rating: number; // 0.5 to 5.0
   notes?: string;
   dishesTried?: string[];
@@ -31,22 +34,36 @@ export interface RatingHistogramBin {
   percentage: number;
 }
 
-const STORAGE_DIARY_KEY = "vegan_tools_diary_logs_v1";
-const STORAGE_TOP4_KEY = "vegan_tools_top4_restaurants_v1";
+const STORAGE_DIARY_PREFIX = "vegan_tools_diary_";
+const STORAGE_TOP4_PREFIX = "vegan_tools_top4_";
 
 const DIARY_UPDATED_EVENT = "vegan_tools_diary_updated";
 const TOP4_UPDATED_EVENT = "vegan_tools_top4_updated";
 
-export function getDiaryLogs(): RestaurantVisitLog[] {
-  if (typeof window === "undefined" || !window.localStorage) return [];
+function getDiaryKey(userId: string): string {
+  return `${STORAGE_DIARY_PREFIX}${userId}_v1`;
+}
+
+function getTop4Key(userId: string): string {
+  return `${STORAGE_TOP4_PREFIX}${userId}_v1`;
+}
+
+export function getDiaryLogs(userId?: string): RestaurantVisitLog[] {
+  if (!userId || typeof window === "undefined" || !window.localStorage) return [];
   try {
-    const raw = localStorage.getItem(STORAGE_DIARY_KEY);
+    const raw = localStorage.getItem(getDiaryKey(userId));
     if (!raw) return [];
     const parsed = JSON.parse(raw);
     if (Array.isArray(parsed)) {
-      return parsed.sort(
-        (a, b) => new Date(b.visitDate).getTime() - new Date(a.visitDate).getTime(),
-      );
+      return parsed.sort((a, b) => {
+        // Entries with dates first, sorted descending
+        if (a.visitDate && b.visitDate) {
+          return new Date(b.visitDate).getTime() - new Date(a.visitDate).getTime();
+        }
+        if (a.visitDate) return -1;
+        if (b.visitDate) return 1;
+        return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
+      });
     }
     return [];
   } catch {
@@ -54,37 +71,44 @@ export function getDiaryLogs(): RestaurantVisitLog[] {
   }
 }
 
-export function getLogsForRestaurant(restaurantId: string): RestaurantVisitLog[] {
-  return getDiaryLogs().filter((l) => l.restaurantId === restaurantId);
+export function getLogsForRestaurant(restaurantId: string, userId?: string): RestaurantVisitLog[] {
+  if (!userId) return [];
+  return getDiaryLogs(userId).filter((l) => l.restaurantId === restaurantId);
 }
 
 export interface SaveVisitLogInput {
   id?: string;
+  userId: string;
   restaurantId: string;
   restaurantName: string;
   restaurantAddress?: string;
   restaurantImage?: string;
   cuisine?: string;
-  visitDate?: string; // YYYY-MM-DD, defaults to today
+  visitDate?: string; // Optional YYYY-MM-DD
   rating: number; // 0.5 to 5.0
   notes?: string;
   dishesTried?: string[];
 }
 
 export function saveVisitLog(input: SaveVisitLogInput): RestaurantVisitLog {
-  const logs = getDiaryLogs();
-  const dateStr = input.visitDate?.trim() || new Date().toISOString().slice(0, 10);
+  if (!input.userId) {
+    throw new Error("Authentication required to save visit logs");
+  }
+
+  const logs = getDiaryLogs(input.userId);
+  const dateStr = input.visitDate?.trim() ? input.visitDate.trim() : undefined;
   const now = new Date().toISOString();
 
   // Clamp rating between 0.5 and 5.0
   const rating = Math.min(Math.max(Number(input.rating) || 5, 0.5), 5);
 
-  // Enforce 1 log per restaurant per calendar day
-  const existingIndex = logs.findIndex(
-    (l) =>
-      (input.id && l.id === input.id) ||
-      (l.restaurantId === input.restaurantId && l.visitDate === dateStr),
-  );
+  // If date is provided, enforce 1 log per restaurant per calendar day
+  // If no date, match strictly by id
+  const existingIndex = logs.findIndex((l) => {
+    if (input.id && l.id === input.id) return true;
+    if (dateStr && l.restaurantId === input.restaurantId && l.visitDate === dateStr) return true;
+    return false;
+  });
 
   let updatedLog: RestaurantVisitLog;
 
@@ -106,6 +130,7 @@ export function saveVisitLog(input: SaveVisitLogInput): RestaurantVisitLog {
   } else {
     updatedLog = {
       id: input.id || `visit_${Date.now()}_${Math.random().toString(36).slice(2, 7)}`,
+      userId: input.userId,
       restaurantId: input.restaurantId,
       restaurantName: input.restaurantName,
       restaurantAddress: input.restaurantAddress,
@@ -122,18 +147,23 @@ export function saveVisitLog(input: SaveVisitLogInput): RestaurantVisitLog {
   }
 
   if (typeof window !== "undefined" && window.localStorage) {
-    localStorage.setItem(STORAGE_DIARY_KEY, JSON.stringify(logs));
-    window.dispatchEvent(new CustomEvent(DIARY_UPDATED_EVENT, { detail: updatedLog }));
+    localStorage.setItem(getDiaryKey(input.userId), JSON.stringify(logs));
+    window.dispatchEvent(
+      new CustomEvent(DIARY_UPDATED_EVENT, { detail: { userId: input.userId, log: updatedLog } }),
+    );
   }
 
   return updatedLog;
 }
 
-export function deleteVisitLog(id: string): void {
-  const logs = getDiaryLogs().filter((l) => l.id !== id);
+export function deleteVisitLog(id: string, userId: string): void {
+  if (!userId) return;
+  const logs = getDiaryLogs(userId).filter((l) => l.id !== id);
   if (typeof window !== "undefined" && window.localStorage) {
-    localStorage.setItem(STORAGE_DIARY_KEY, JSON.stringify(logs));
-    window.dispatchEvent(new CustomEvent(DIARY_UPDATED_EVENT));
+    localStorage.setItem(getDiaryKey(userId), JSON.stringify(logs));
+    window.dispatchEvent(
+      new CustomEvent(DIARY_UPDATED_EVENT, { detail: { userId, deletedId: id } }),
+    );
   }
 }
 
@@ -164,10 +194,10 @@ export function getRatingHistogram(logs: RestaurantVisitLog[]): RatingHistogramB
   });
 }
 
-export function getUserTop4(): string[] {
-  if (typeof window === "undefined" || !window.localStorage) return [];
+export function getUserTop4(userId?: string): string[] {
+  if (!userId || typeof window === "undefined" || !window.localStorage) return [];
   try {
-    const raw = localStorage.getItem(STORAGE_TOP4_KEY);
+    const raw = localStorage.getItem(getTop4Key(userId));
     if (!raw) return [];
     const parsed = JSON.parse(raw);
     return Array.isArray(parsed) ? parsed.slice(0, 4) : [];
@@ -176,20 +206,28 @@ export function getUserTop4(): string[] {
   }
 }
 
-export function setUserTop4(ids: string[]): void {
+export function setUserTop4(ids: string[], userId: string): void {
+  if (!userId) return;
   const clean = ids.filter(Boolean).slice(0, 4);
   if (typeof window !== "undefined" && window.localStorage) {
-    localStorage.setItem(STORAGE_TOP4_KEY, JSON.stringify(clean));
-    window.dispatchEvent(new CustomEvent(TOP4_UPDATED_EVENT, { detail: clean }));
+    localStorage.setItem(getTop4Key(userId), JSON.stringify(clean));
+    window.dispatchEvent(
+      new CustomEvent(TOP4_UPDATED_EVENT, { detail: { userId, top4: clean } }),
+    );
   }
 }
 
-export function useDiaryLogs() {
-  const [logs, setLogs] = useState<RestaurantVisitLog[]>(() => getDiaryLogs());
+export function useDiaryLogs(userId?: string) {
+  const [logs, setLogs] = useState<RestaurantVisitLog[]>(() => getDiaryLogs(userId));
 
   useEffect(() => {
-    const handleUpdate = () => {
-      setLogs(getDiaryLogs());
+    setLogs(getDiaryLogs(userId));
+
+    const handleUpdate = (e?: Event) => {
+      const customEvent = e as CustomEvent<{ userId?: string }> | undefined;
+      if (!customEvent?.detail?.userId || customEvent.detail.userId === userId) {
+        setLogs(getDiaryLogs(userId));
+      }
     };
 
     window.addEventListener(DIARY_UPDATED_EVENT, handleUpdate);
@@ -198,17 +236,22 @@ export function useDiaryLogs() {
       window.removeEventListener(DIARY_UPDATED_EVENT, handleUpdate);
       window.removeEventListener("storage", handleUpdate);
     };
-  }, []);
+  }, [userId]);
 
   return logs;
 }
 
-export function useUserTop4() {
-  const [top4, setTop4State] = useState<string[]>(() => getUserTop4());
+export function useUserTop4(userId?: string) {
+  const [top4, setTop4State] = useState<string[]>(() => getUserTop4(userId));
 
   useEffect(() => {
-    const handleUpdate = () => {
-      setTop4State(getUserTop4());
+    setTop4State(getUserTop4(userId));
+
+    const handleUpdate = (e?: Event) => {
+      const customEvent = e as CustomEvent<{ userId?: string }> | undefined;
+      if (!customEvent?.detail?.userId || customEvent.detail.userId === userId) {
+        setTop4State(getUserTop4(userId));
+      }
     };
 
     window.addEventListener(TOP4_UPDATED_EVENT, handleUpdate);
@@ -217,10 +260,11 @@ export function useUserTop4() {
       window.removeEventListener(TOP4_UPDATED_EVENT, handleUpdate);
       window.removeEventListener("storage", handleUpdate);
     };
-  }, []);
+  }, [userId]);
 
   const updateTop4 = (ids: string[]) => {
-    setUserTop4(ids);
+    if (!userId) return;
+    setUserTop4(ids, userId);
     setTop4State(ids.slice(0, 4));
   };
 

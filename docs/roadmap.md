@@ -83,7 +83,7 @@ Tasques de baixa dificultat que resolen deute tècnic menor, inconsistències vi
 
 ---
 
-## 🟠 Nivell 3: Canvis Mitjans-Grans Importants (Arquitectura i Funcionalitats Clau)
+## 🟠 Nivell 3: Canvis Mitjans-Grans Importants (Arquitectura i Funcionalitats Clau) — ✅ COMPLETAT
 
 Tasques que requereixen disseny d'enginyeria, modificació d'esquemes o canvis estructurals que tenen un impacte estratègic clau en el rendiment, la seguretat i el valor del producte.
 
@@ -136,8 +136,13 @@ Tasques que requereixen disseny d'enginyeria, modificació d'esquemes o canvis e
     - *Top 4 Restaurants*: Selector dels 4 restaurants preferits de l'usuari ancorats a la capçalera del perfil amb calaix de cerca.
 13. **✅ [COMPLETAT] Pàgines de perfil dedicades per a cada restaurant (`/restaurant/:id`)**:
     - Fitxes independents indexables (`RestaurantDetailPage.tsx`) amb portada d'alta definició, horaris detallats calculats en local sense dependències (`evaluateOpeningHours`), indicacions de transport, enllaç oficial, diari de visites personals i ressenyes ètiques comunitàries.
-14. **Auditoria i revisió periòdica dels pins curats i comunitaris del mapa**:
-    - Establir un procés sistemàtic de verificació periòdica per auditar que els marcadors curats i els resultats d'OpenStreetMap mantinguin informació actualitzada (obertures, tancaments, canvis de carta i oferta vegana) i gestionar correccions reportades per la comunitat.
+14. **✅ [COMPLETAT] Auditoria i revisió periòdica dels pins curats i comunitaris del mapa (`scripts/audit-curated-pins.mjs`)**:
+    - Script automatitzat d'auditoria sistemàtica (`npm run audit:pins`) que valida la integritat del 100% dels pins curats dels 8 hubs (30 restaurants):
+      - Verificació estricta del 100% vegà (`isVegan: true`).
+      - Rangs geogràfics vàlids (latitud [-90, 90], longitud [-180, 180]).
+      - Sintaxi i validesa d'horaris comercials segons format OSM (`openingHours`).
+      - Coherència de protocol web (`https://`) i existència d'imatges d'Espai Segur.
+      - Integrat directament a la pipeline de verificació `npm run check`.
 
 ---
 

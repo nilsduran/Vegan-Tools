@@ -23,16 +23,17 @@ import {
   FEATURED_RESTAURANTS,
   evaluateOpeningHours,
   type RestaurantCandidate,
-  type RestaurantReview,
-  type RestaurantReviewStats,
 } from "@vegan-tools/domain";
 import {
   getCuratedRestaurants,
-  getRestaurantReviews,
+  getRecentRestaurantMenus,
   searchRestaurants,
 } from "../api";
 import { getCuisineIcon } from "../components/RestaurantMap";
 import { LogVisitModal } from "../components/LogVisitModal";
+import { RestaurantReviews } from "../components/RestaurantReviews";
+import { AuthDialog } from "../components/AuthDialog";
+import { useAuth } from "../auth";
 import {
   deleteVisitLog,
   getLogsForRestaurant,
@@ -44,18 +45,18 @@ import { tx, useLanguage } from "../i18n";
 export function RestaurantDetailPage() {
   const { id } = useParams<{ id: string }>();
   const language = useLanguage();
+  const { user } = useAuth();
 
   const [restaurant, setRestaurant] = useState<RestaurantCandidate | null>(null);
   const [loading, setLoading] = useState(true);
   const [showLogModal, setShowLogModal] = useState(false);
+  const [showAuthModal, setShowAuthModal] = useState(false);
   const [selectedLog, setSelectedLog] = useState<RestaurantVisitLog | null>(null);
+  const [menuDishes, setMenuDishes] = useState<string[]>([]);
 
-  const [reviews, setReviews] = useState<RestaurantReview[]>([]);
-  const [reviewStats, setReviewStats] = useState<RestaurantReviewStats | null>(null);
-
-  // Reactive diary logs
-  useDiaryLogs();
-  const visitLogs = id ? getLogsForRestaurant(id) : [];
+  // Reactive diary logs scoped to user
+  useDiaryLogs(user?.id);
+  const visitLogs = id && user ? getLogsForRestaurant(id, user.id) : [];
 
   useEffect(() => {
     if (!id) return;
@@ -86,11 +87,22 @@ export function RestaurantDetailPage() {
         .finally(() => setLoading(false));
     }
 
-    // Load community reviews
-    getRestaurantReviews(id)
-      .then((res) => {
-        setReviews(res.reviews);
-        setReviewStats(res.stats);
+    // Attempt to load cached menu dishes for quick selection
+    Promise.resolve(getRecentRestaurantMenus?.())
+      .then((recent) => {
+        if (Array.isArray(recent)) {
+          const match = recent.find(
+            (r) =>
+              r.restaurant.id === id ||
+              (found && r.restaurant.name.toLowerCase() === found.name.toLowerCase()),
+          );
+          if (match?.menu?.sections) {
+            const dishes = match.menu.sections.flatMap((s) => s.items.map((item) => item.name));
+            if (dishes.length > 0) {
+              setMenuDishes(dishes);
+            }
+          }
+        }
       })
       .catch(() => {});
   }, [id]);
@@ -127,6 +139,15 @@ export function RestaurantDetailPage() {
 
   // Directions URL: standard geo: on mobile, Google Maps on desktop
   const directionsUrl = `https://www.google.com/maps/dir/?api=1&destination=${restaurant.latitude},${restaurant.longitude}`;
+
+  const handleOpenLogModal = (log?: RestaurantVisitLog | null) => {
+    if (!user) {
+      setShowAuthModal(true);
+      return;
+    }
+    setSelectedLog(log || null);
+    setShowLogModal(true);
+  };
 
   return (
     <div className="page restaurant-detail-page">
@@ -223,10 +244,7 @@ export function RestaurantDetailPage() {
             <button
               type="button"
               className="secondary-button detail-action-btn log-visit-btn"
-              onClick={() => {
-                setSelectedLog(null);
-                setShowLogModal(true);
-              }}
+              onClick={() => handleOpenLogModal(null)}
             >
               <Plus size={16} aria-hidden="true" />
               <span>{tx("Log a visit")}</span>
@@ -256,17 +274,26 @@ export function RestaurantDetailPage() {
           <button
             type="button"
             className="secondary-button add-visit-small-btn"
-            onClick={() => {
-              setSelectedLog(null);
-              setShowLogModal(true);
-            }}
+            onClick={() => handleOpenLogModal(null)}
           >
             <Plus size={14} aria-hidden="true" />
             <span>{tx("Log visit")}</span>
           </button>
         </div>
 
-        {visitLogs.length === 0 ? (
+        {!user ? (
+          <div className="visits-empty-state">
+            <p>{tx("An account is required to log visits and reviews.")}</p>
+            <button
+              type="button"
+              className="primary-button"
+              style={{ marginTop: "0.5rem" }}
+              onClick={() => setShowAuthModal(true)}
+            >
+              <span>{tx("Sign in / Create account")}</span>
+            </button>
+          </div>
+        ) : visitLogs.length === 0 ? (
           <div className="visits-empty-state">
             <p>
               {tx(
@@ -277,10 +304,12 @@ export function RestaurantDetailPage() {
         ) : (
           <ul className="restaurant-visits-list">
             {visitLogs.map((log) => {
-              const formattedDate = new Date(log.visitDate).toLocaleDateString(
-                language === "ca" ? "ca-ES" : "en-US",
-                { month: "short", day: "numeric", year: "numeric" },
-              );
+              const formattedDate = log.visitDate
+                ? new Date(log.visitDate).toLocaleDateString(
+                    language === "ca" ? "ca-ES" : "en-US",
+                    { month: "short", day: "numeric", year: "numeric" },
+                  )
+                : tx("No date");
 
               return (
                 <li key={log.id} className="restaurant-visit-item">
@@ -293,7 +322,11 @@ export function RestaurantDetailPage() {
                       <button
                         type="button"
                         className="visit-delete-btn"
-                        onClick={() => deleteVisitLog(log.id)}
+                        onClick={() => {
+                          if (confirm(tx("Are you sure you want to delete this visit?"))) {
+                            deleteVisitLog(log.id, user.id);
+                          }
+                        }}
                         title={tx("Delete entry")}
                         aria-label={tx("Delete entry")}
                       >
@@ -317,26 +350,10 @@ export function RestaurantDetailPage() {
         )}
       </section>
 
-      {/* Community Leaf Reviews */}
-      {reviews.length > 0 && (
-        <section className="restaurant-community-reviews-section">
-          <h3>
-            <span>🍃</span>
-            <span>{tx("Community reviews")}</span>
-          </h3>
-          <ul className="restaurant-community-reviews-list">
-            {reviews.map((rev) => (
-              <li key={rev.id} className="restaurant-community-review-item">
-                <div className="comm-rev-header">
-                  <strong>{rev.userName}</strong>
-                  <span>🍃 {rev.leavesScore.toFixed(1)} / 5</span>
-                </div>
-                {rev.comment && <p>{rev.comment}</p>}
-              </li>
-            ))}
-          </ul>
-        </section>
-      )}
+      {/* Community Leaf Reviews & Submission Form */}
+      <section className="restaurant-community-reviews-section">
+        <RestaurantReviews restaurant={restaurant} />
+      </section>
 
       {/* Log Visit Modal */}
       {showLogModal && (
@@ -345,6 +362,15 @@ export function RestaurantDetailPage() {
           initialLog={selectedLog}
           isOpen={showLogModal}
           onClose={() => setShowLogModal(false)}
+          menuDishes={menuDishes}
+        />
+      )}
+
+      {/* Auth Dialog */}
+      {showAuthModal && (
+        <AuthDialog
+          isOpen={showAuthModal}
+          onClose={() => setShowAuthModal(false)}
         />
       )}
     </div>

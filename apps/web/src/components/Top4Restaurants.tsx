@@ -9,16 +9,18 @@ import { Link } from "react-router-dom";
 import { Edit2, Plus, Sparkles, X } from "lucide-react";
 import { FEATURED_RESTAURANTS, type RestaurantCandidate } from "@vegan-tools/domain";
 import { getDiaryLogs, useUserTop4 } from "../utils/diary";
+import { useAuth } from "../auth";
 import { tx } from "../i18n";
 import { getCuisineIcon } from "./RestaurantMap";
 
 export function Top4Restaurants() {
-  const { top4, updateTop4 } = useUserTop4();
+  const { user } = useAuth();
+  const { top4, updateTop4 } = useUserTop4(user?.id);
   const [isEditing, setIsEditing] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
 
-  // Gather all known restaurants (curated + any logged in diary)
-  const diaryLogs = getDiaryLogs();
+  // Gather all known restaurants (curated + any logged in diary for this user)
+  const diaryLogs = getDiaryLogs(user?.id);
   const allCandidates: RestaurantCandidate[] = [...FEATURED_RESTAURANTS];
 
   // Add any diary places not already in curated

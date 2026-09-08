@@ -514,6 +514,15 @@ const caPhrases = {
   "Opening hours": "Horari d'obertura",
   "Dishes": "Plats",
   "You haven't logged any visits to this restaurant yet. Tap 'Log visit' to save what you ate and rate your experience!": "Encara no has apuntat cap visita a aquest restaurant. Toca 'Apunta visita' per desar el que has menjat i valorar la teva experiència!",
+  "No date": "Sense data",
+  "Include visit date (defaults to today)": "Inclou data de la visita (per defecte avui)",
+  "Without specific date": "Sense data específica",
+  "Type a dish name (or off-menu special)…": "Escriu un plat o plat fora de carta…",
+  "Add": "Afegir",
+  "Menu suggestions": "Suggeriments de la carta",
+  "Are you sure you want to delete this visit?": "Segur que vols eliminar aquesta visita?",
+  "An account is required to log visits and reviews.": "Cal un compte per apuntar visites i desar ressenyes.",
+  "Sign in or create an account to start your dining diary, Top 4 favorites, and restaurant reviews.": "Inicia sessió o crea un compte per començar el teu diari gastronòmic, desar el teu Top 4 i publicar ressenyes.",
 } as const;
 
 function getInitialLanguage(): Language {

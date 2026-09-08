@@ -151,6 +151,7 @@ export function evaluateOpeningHours(
   const clauses = raw.split(/[;\n]/).map((c) => c.trim()).filter(Boolean);
 
   let evaluatedForCurrentDay = false;
+  let parsedAnySpecificDays = false;
   let isOpen = false;
 
   for (const clause of clauses) {
@@ -173,6 +174,9 @@ export function evaluateOpeningHours(
     }
 
     const activeDays = parseDaysRange(daysPart);
+    if (activeDays.size > 0 && activeDays.size < 7) {
+      parsedAnySpecificDays = true;
+    }
 
     if (isOffClause) {
       if (activeDays.has(currentDay)) {
@@ -219,5 +223,12 @@ export function evaluateOpeningHours(
     }
   }
 
-  return evaluatedForCurrentDay ? isOpen : undefined;
+  if (evaluatedForCurrentDay) {
+    return isOpen;
+  }
+  // If specific days were scheduled but today is not included, venue is closed today
+  if (parsedAnySpecificDays) {
+    return false;
+  }
+  return undefined;
 }

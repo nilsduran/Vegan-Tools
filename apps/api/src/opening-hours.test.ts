@@ -24,9 +24,9 @@ describe("evaluateOpeningHours", () => {
     const wednesdayDinner = new Date("2026-08-26T21:00:00");
     expect(evaluateOpeningHours("Mo-Fr 13:00-16:00, 20:00-23:30", wednesdayDinner)).toBe(true);
 
-    // Sunday (Day 0) when only Mo-Fr open
+    // Sunday (Day 0) when only Mo-Fr open -> should be closed (false)
     const sundayLunch = new Date("2026-08-30T13:30:00");
-    expect(evaluateOpeningHours("Mo-Fr 12:00-16:00, 20:00-23:30", sundayLunch)).toBeUndefined();
+    expect(evaluateOpeningHours("Mo-Fr 12:00-16:00, 20:00-23:30", sundayLunch)).toBe(false);
   });
 
   it("handles Catalan and Spanish day names and ranges", () => {
