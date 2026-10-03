@@ -6,6 +6,14 @@ coverage/
 playwright-report/
 test-results/
 data/menu-sources/
+apps/api/data/menu-sources/
+data/dataset/raw/
+data/
+checkpoints/
+notebooks/
+__pycache__/
+*.onnx
+*.bin
 apps/web/android/
 apps/web/ios/
 *.log

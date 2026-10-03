@@ -9,12 +9,13 @@ export function IngredientCamera({
   onCapture: (file: File) => void;
 }) {
   const videoRef = useRef<HTMLVideoElement>(null);
-  const [started, setStarted] = useState(false);
+  const [started, setStarted] = useState(true);
   const [ready, setReady] = useState(false);
   const [capturing, setCapturing] = useState(false);
   const [error, setError] = useState("");
   const [showPermissionModal, setShowPermissionModal] = useState(false);
   const [retryCount, setRetryCount] = useState(0);
+  const [aspectRatio, setAspectRatio] = useState<number>();
 
   useEffect(() => {
     if (!started) return;
@@ -34,6 +35,9 @@ export function IngredientCamera({
         if (!active || !videoRef.current) return;
         videoRef.current.srcObject = stream;
         await videoRef.current.play();
+        if (videoRef.current.videoWidth && videoRef.current.videoHeight) {
+          setAspectRatio(videoRef.current.videoWidth / videoRef.current.videoHeight);
+        }
         setReady(true);
       } catch {
         setError(tx("Camera access is unavailable. Upload an image below instead."));
@@ -52,10 +56,42 @@ export function IngredientCamera({
     const video = videoRef.current;
     if (!video || !video.videoWidth || !video.videoHeight) return;
     setCapturing(true);
+
+    const clientW = video.clientWidth;
+    const clientH = video.clientHeight;
+    const videoW = video.videoWidth;
+    const videoH = video.videoHeight;
+
+    let sx = 0;
+    let sy = 0;
+    let sWidth = videoW;
+    let sHeight = videoH;
+
+    // Ensure the captured frame matches EXACTLY what is visible on screen
+    if (clientW > 0 && clientH > 0) {
+      const clientAspect = clientW / clientH;
+      const videoAspect = videoW / videoH;
+
+      if (Math.abs(clientAspect - videoAspect) > 0.01) {
+        if (clientAspect > videoAspect) {
+          // Video is cropped vertically on screen
+          sHeight = videoW / clientAspect;
+          sy = (videoH - sHeight) / 2;
+        } else {
+          // Video is cropped horizontally on screen
+          sWidth = videoH * clientAspect;
+          sx = (videoW - sWidth) / 2;
+        }
+      }
+    }
+
     const canvas = document.createElement("canvas");
-    canvas.width = video.videoWidth;
-    canvas.height = video.videoHeight;
-    canvas.getContext("2d")?.drawImage(video, 0, 0);
+    canvas.width = Math.max(1, Math.round(sWidth));
+    canvas.height = Math.max(1, Math.round(sHeight));
+    const ctx = canvas.getContext("2d");
+    if (ctx) {
+      ctx.drawImage(video, sx, sy, sWidth, sHeight, 0, 0, canvas.width, canvas.height);
+    }
     const blob = await new Promise<Blob | null>((resolve) =>
       canvas.toBlob(resolve, "image/jpeg", 0.9)
     );
@@ -121,8 +157,22 @@ export function IngredientCamera({
   }
 
   return (
-    <div className="ingredient-camera-frame">
-      <video ref={videoRef} muted playsInline aria-label={tx("Photograph the ingredient label")} />
+    <div
+      className="ingredient-camera-frame"
+      style={aspectRatio ? { aspectRatio: `${aspectRatio}` } : undefined}
+    >
+      <video
+        ref={videoRef}
+        muted
+        playsInline
+        aria-label={tx("Photograph the ingredient label")}
+        onLoadedMetadata={(e) => {
+          const v = e.currentTarget;
+          if (v.videoWidth && v.videoHeight) {
+            setAspectRatio(v.videoWidth / v.videoHeight);
+          }
+        }}
+      />
       <div className="document-guide" aria-hidden="true" />
       <button
         className="capture-button"

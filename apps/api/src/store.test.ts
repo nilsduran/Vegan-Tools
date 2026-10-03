@@ -89,10 +89,9 @@ describe("SupabaseRepository", () => {
     expect(publicMenu?.restaurantName).toBe("Persistent Kitchen");
     expect(publicMenu?.editToken).toBe("");
 
-    const headers = database.fetchMock.mock.calls[0]?.[1]?.headers as
-      | Record<string, string>
-      | undefined;
-    expect(headers?.apikey).toBe("sb_secret_test");
+    const rawHeaders = database.fetchMock.mock.calls[0]?.[1]?.headers;
+    const apiKey = new Headers(rawHeaders as HeadersInit).get("apikey");
+    expect(apiKey).toBe("sb_secret_test");
   });
 
   it("persists and restores the complete product result", async () => {

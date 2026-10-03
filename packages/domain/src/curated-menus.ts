@@ -1,0 +1,775 @@
+/**
+ * @file curated-menus.ts
+ * @description Curated restaurant menus with realistic, comprehensive dish selections.
+ * Provides instant 0ms offline and low-latency menu access for verified restaurants.
+ */
+
+import type { MenuDraft } from "./schemas.js";
+
+export const CURATED_MENUS: Record<string, MenuDraft> = {
+  "asante-bcn": {
+    id: "menu-asante-bcn",
+    editToken: "curated",
+    status: "ready",
+    restaurantName: "Asante",
+    sourceLabel: "Carta del restaurant",
+    sourceFiles: [],
+    sourceCapturedAt: "2026-03-01T10:00:00.000Z",
+    createdAt: "2026-03-01T10:00:00.000Z",
+    originalDeleteAt: "2099-01-01T00:00:00.000Z",
+    originalLanguage: "ca",
+    sections: [
+      {
+        id: "asante-sec-1",
+        name: "Brunch & Bowls",
+        nameCa: "Brunch i Bowls",
+        items: [
+          {
+            id: "asante-item-1",
+            name: "Açaí Bowl Clàssic",
+            originalName: "Açaí Bowl Clàssic",
+            description: "Açaí pur de l'Amazones amb plàtan, granola artesanal de flocs de civada, llavors de xia i fruits del bosc.",
+            price: "9.50€",
+            verdict: "vegan",
+            reason: "100% ingredients vegetals naturals.",
+            modifications: [],
+          },
+          {
+            id: "asante-item-2",
+            name: "Torrada d'Alvocat i 'Feta' d'Ametlla",
+            originalName: "Torrada d'Alvocat i 'Feta' d'Ametlla",
+            description: "Pa artesanal de massa mare, alvocat fresc, 'formatge' feta artesanal d'ametlla, tomàquet sec confitat i llavors de cànem.",
+            price: "8.20€",
+            verdict: "vegan",
+            reason: "Totalment vegà, elaborat amb formatge fermentat d'ametlla.",
+            modifications: [],
+          },
+          {
+            id: "asante-item-3",
+            name: "Shakshuka de Tofu Sedós",
+            originalName: "Shakshuka de Tofu Sedós",
+            description: "Tomàquet rostit amb pebrots, comí, pebre vermell fumat i trossos de tofu sedós aromatitzat amb sal negra.",
+            price: "10.50€",
+            verdict: "vegan",
+            reason: "Plat 100% vegetal, adaptació vegana de la shakshuka tradicional.",
+            modifications: [],
+          },
+          {
+            id: "asante-item-4",
+            name: "Pancakes Flonjos amb Xarop d'Arç",
+            originalName: "Pancakes Flonjos amb Xarop d'Arç",
+            description: "Torre de pancakes artesans flonjos sense ou ni llet, acompanyats de plàtan, xarop d'arç pur i mantega vegana.",
+            price: "8.90€",
+            verdict: "vegan",
+            reason: "Elaborat amb farina ecològica, beguda de civada i oli de coco.",
+            modifications: [],
+          },
+        ],
+      },
+      {
+        id: "asante-sec-2",
+        name: "Sandvitxos & Salats",
+        nameCa: "Sandvitxos i Salats",
+        items: [
+          {
+            id: "asante-item-5",
+            name: "Grilled Cheese Fermentat",
+            originalName: "Grilled Cheese Fermentat",
+            description: "Pa de pagès torrat a la planxa amb barreja de 'formatge' fos de caxú i xucrut artesanal.",
+            price: "9.20€",
+            verdict: "vegan",
+            reason: "Formatge 100% fermentat d'anacards.",
+            modifications: [],
+          },
+          {
+            id: "asante-item-6",
+            name: "Bagel de 'Salmó' de Pastanaga",
+            originalName: "Bagel de 'Salmó' de Pastanaga",
+            description: "Bagel torrat amb crema de formatge vegetal, tires fines de pastanaga marinades al fum de faig, tàperes i anet.",
+            price: "8.80€",
+            verdict: "vegan",
+            reason: "Substitut vegetal artesanal elaborat amb pastanaga marinada i algues.",
+            modifications: [],
+          },
+        ],
+      },
+      {
+        id: "asante-sec-3",
+        name: "Pastisseria & Cafeteria",
+        nameCa: "Pastisseria i Cafeteria",
+        items: [
+          {
+            id: "asante-item-7",
+            name: "Croissant Artesanal 100% Vegetal",
+            originalName: "Croissant Artesanal 100% Vegetal",
+            description: "Croissant artesanal de full pasta elaborat amb oli d'oliva verge i mantega de coco ecològica.",
+            price: "2.40€",
+            verdict: "vegan",
+            reason: "Pastisseria 100% vegetal sense mantega animal ni ou.",
+            modifications: [],
+          },
+          {
+            id: "asante-item-8",
+            name: "Cinnamon Roll Casolà",
+            originalName: "Cinnamon Roll Casolà",
+            description: "Rotlle de canyella acabat de sortir del forn amb glassejat lleuger de vainilla Bourbon.",
+            price: "3.50€",
+            verdict: "vegan",
+            reason: "Massa vegetal enriquida amb beguda de civada.",
+            modifications: [],
+          },
+          {
+            id: "asante-item-9",
+            name: "Flat White d'Especialitat (Civada)",
+            originalName: "Flat White d'Especialitat (Civada)",
+            description: "Cafè d'especialitat de torrat lleuger amb llet de civada cremosa.",
+            price: "2.80€",
+            verdict: "vegan",
+            reason: "Elaborat exclusivament amb beguda vegetal.",
+            modifications: [],
+          },
+          {
+            id: "asante-item-10",
+            name: "Ceremonial Iced Matcha Latte",
+            originalName: "Ceremonial Iced Matcha Latte",
+            description: "Te matcha verd cerimonial d'Uji batut al moment amb beguda de civada o ametlla.",
+            price: "3.80€",
+            verdict: "vegan",
+            reason: "Te verd japonès 100% pur amb llet vegetal.",
+            modifications: [],
+          },
+        ],
+      },
+    ],
+  },
+  "vrutal-bcn": {
+    id: "menu-vrutal-bcn",
+    editToken: "curated",
+    status: "ready",
+    restaurantName: "Vrutal",
+    sourceLabel: "Carta del restaurant",
+    sourceFiles: [],
+    sourceCapturedAt: "2026-03-01T10:00:00.000Z",
+    createdAt: "2026-03-01T10:00:00.000Z",
+    originalDeleteAt: "2099-01-01T00:00:00.000Z",
+    originalLanguage: "ca",
+    sections: [
+      {
+        id: "vrutal-sec-1",
+        name: "Starters & Sharers",
+        nameCa: "Entrants per Compartir",
+        items: [
+          {
+            id: "vrutal-item-1",
+            name: "Nachos Vrutal",
+            originalName: "Nachos Vrutal",
+            description: "Totopos cruixents de blat de moro banyats en salsa cheddar vegetal casolana, guacamole fresc, pico de gallo, fesols negres i jalapeños.",
+            price: "11.90€",
+            verdict: "vegan",
+            reason: "Salsa de formatge elaborada amb anacards i rent nutricional.",
+            modifications: [],
+          },
+          {
+            id: "vrutal-item-2",
+            name: "Vrutal Cauliflower Wings",
+            originalName: "Vrutal Cauliflower Wings",
+            description: "Floretes de coliflor cruixent arrebossades en tempura amb salsa BBQ fumada o salsa Buffalo picant, servides amb maionesa de cibulet.",
+            price: "9.50€",
+            verdict: "vegan",
+            reason: "100% coliflor i arrebossat vegetal lliure d'ou.",
+            modifications: [],
+          },
+          {
+            id: "vrutal-item-3",
+            name: "Sticks de 'Mozzarella' Vegana",
+            originalName: "Sticks de 'Mozzarella' Vegana",
+            description: "Dits arrebossats amb cor de formatge vegetal fos, acompanyats de confitura de tomàquet ecològic.",
+            price: "8.50€",
+            verdict: "vegan",
+            reason: "Formatge vegetal artesanal a base d'oli de coco i midó.",
+            modifications: [],
+          },
+        ],
+      },
+      {
+        id: "vrutal-sec-2",
+        name: "Burgers Destacades",
+        nameCa: "Burgers Destacades",
+        items: [
+          {
+            id: "vrutal-item-4",
+            name: "Vrutal Burger Clàssica",
+            originalName: "Vrutal Burger Clàssica",
+            description: "Doble burger Beyond Smash, cheddar vegà fos, ceba caramel·litzada, cogombrets agredolços i maionesa fumada en pa brioix vegà.",
+            price: "14.50€",
+            verdict: "vegan",
+            reason: "Pa de brioix sense ou ni mantega, formatge vegetal i proteïna de pèsol.",
+            modifications: [],
+          },
+          {
+            id: "vrutal-item-5",
+            name: "Truffle Madness Burger",
+            originalName: "Truffle Madness Burger",
+            description: "Burger Beyond picada a la brasa, xampinyons portobello saltejats, beixamel de tòfona negra i ruca fresca en pa de carbassa.",
+            price: "15.90€",
+            verdict: "vegan",
+            reason: "Salsa de tòfona cremosa vegetal a base de beguda de soia i oli de tòfona.",
+            modifications: [],
+          },
+          {
+            id: "vrutal-item-6",
+            name: "Crispy Chick'n Burger",
+            originalName: "Crispy Chick'n Burger",
+            description: "Filet vegetal cruixent d'estil pollastre arrebossat en flocs de blat de moro, enciam iceberg, cogombrets i salsa tàrtara vegana.",
+            price: "13.90€",
+            verdict: "vegan",
+            reason: "Proteïna vegetal de soja i blat amb salsa tàrtara sense ou.",
+            modifications: [],
+          },
+          {
+            id: "vrutal-item-7",
+            name: "Smoky BBQ Bacon Burger",
+            originalName: "Smoky BBQ Bacon Burger",
+            description: "Pati Beyond, tires de bacon vegà cruixent, ceba crispy, anells de ceba a la cervesa i salsa barbacoa bourbon.",
+            price: "14.90€",
+            verdict: "vegan",
+            reason: "Bacon vegetal de soja i salsa barbacoa vegana.",
+            modifications: [],
+          },
+        ],
+      },
+      {
+        id: "vrutal-sec-3",
+        name: "Acompanyaments & Postres",
+        nameCa: "Acompanyaments i Postres",
+        items: [
+          {
+            id: "vrutal-item-8",
+            name: "Patates Braves Vrutal",
+            originalName: "Patates Braves Vrutal",
+            description: "Patates de l'hort tallades a mà, doblement fregides, amb salsa brava picant i allioli d'all negre suau.",
+            price: "6.50€",
+            verdict: "vegan",
+            reason: "Allioli elaborat amb beguda de soia i all rostit.",
+            modifications: [],
+          },
+          {
+            id: "vrutal-item-9",
+            name: "Cookie Monster Skillet",
+            originalName: "Cookie Monster Skillet",
+            description: "Galeta de xocolata calenta en paella de ferro fos, coronada amb una bola de gelat artesà de vainilla de Madagascar i xarop de cacau.",
+            price: "7.50€",
+            verdict: "vegan",
+            reason: "Gelat vegà i massa de galeta sense ou ni mantega.",
+            modifications: [],
+          },
+        ],
+      },
+    ],
+  },
+  "desoriente-bcn": {
+    id: "menu-desoriente-bcn",
+    editToken: "curated",
+    status: "ready",
+    restaurantName: "Desoriente",
+    sourceLabel: "Carta del restaurant",
+    sourceFiles: [],
+    sourceCapturedAt: "2026-03-01T10:00:00.000Z",
+    createdAt: "2026-03-01T10:00:00.000Z",
+    originalDeleteAt: "2099-01-01T00:00:00.000Z",
+    originalLanguage: "ca",
+    sections: [
+      {
+        id: "desoriente-sec-1",
+        name: "Entrants & Street Food",
+        nameCa: "Entrants i Street Food",
+        items: [
+          {
+            id: "desoriente-item-1",
+            name: "Edamame Trufat amb Flor de Sal",
+            originalName: "Edamame Trufat amb Flor de Sal",
+            description: "Vaines tendres de soja al vapor amb oli de tòfona blanca i escates de sal de Maldon.",
+            price: "5.50€",
+            verdict: "vegan",
+            reason: "100% vegetal natural.",
+            modifications: [],
+          },
+          {
+            id: "desoriente-item-2",
+            name: "Gyozas de Shiitake i Ceba Confitada",
+            originalName: "Gyozas de Shiitake i Ceba Confitada",
+            description: "Crestes japoneses artesanes farcides de bolets shiitake, col xinesa i gingebre, marcades a la planxa amb reducció de soja dolça.",
+            price: "8.50€",
+            verdict: "vegan",
+            reason: "Massa vegetal casolana i farcit de bolets ecològics.",
+            modifications: [],
+          },
+          {
+            id: "desoriente-item-3",
+            name: "Bao de 'Heura' Teriyaki",
+            originalName: "Bao de 'Heura' Teriyaki",
+            description: "Pa bao esponjós cuit al vapor amb bocins d'Heura marinats en salsa teriyaki, ceba vermella envinagrada i coriandre.",
+            price: "7.90€",
+            verdict: "vegan",
+            reason: "Proteïna vegetal d'Heura i pa bao sense llet animal.",
+            modifications: [],
+          },
+          {
+            id: "desoriente-item-4",
+            name: "Tempura d'Espàrrecs i Moniato",
+            originalName: "Tempura d'Espàrrecs i Moniato",
+            description: "Verdures de temporada lleugeres i cruixents arrebossades amb aigua amb gas molt freda, servides amb salsa ponzu cítrica.",
+            price: "8.20€",
+            verdict: "vegan",
+            reason: "Arrebossat clàssic japonès elaborat sense ou.",
+            modifications: [],
+          },
+        ],
+      },
+      {
+        id: "desoriente-sec-2",
+        name: "Sushi Plant-Based",
+        nameCa: "Sushi Plant-Based",
+        items: [
+          {
+            id: "desoriente-item-5",
+            name: "Spicy 'Maguro' Uramaki",
+            originalName: "Spicy 'Maguro' Uramaki",
+            description: "Roll de tomàquet ecològic marinat amb algues, alvocat, ceba cruixent i maionesa de sriracha suau.",
+            price: "11.50€",
+            verdict: "vegan",
+            reason: "Substitut vegetal artesanal del tonyina, 100% lliure de peix.",
+            modifications: [],
+          },
+          {
+            id: "desoriente-item-6",
+            name: "Green Dragon Roll",
+            originalName: "Green Dragon Roll",
+            description: "Espàrrec verd en tempura cruixent, cobert d'alvocat flamejat, teriyaki casolà i sèsam torrat.",
+            price: "12.00€",
+            verdict: "vegan",
+            reason: "Tempura elaborada sense ou i teriyaki tradicional vegà.",
+            modifications: [],
+          },
+          {
+            id: "desoriente-item-7",
+            name: "'Salmon' Cream Cheese Roll",
+            originalName: "'Salmon' Cream Cheese Roll",
+            description: "Uramaki amb tires fines de pastanaga curada amb algues al buit, crema de formatge d'anacards, cogombre i tobiko vegetal.",
+            price: "12.50€",
+            verdict: "vegan",
+            reason: "Formatge vegà casolà i pastanaga fumada artesana.",
+            modifications: [],
+          },
+          {
+            id: "desoriente-item-8",
+            name: "Truffle Shitake Crispy Maki",
+            originalName: "Truffle Shitake Crispy Maki",
+            description: "Maki arrebossat en panko daurat, farcit de bolets shiitake confitats a la tòfona i maionesa japonesa vegetal.",
+            price: "13.00€",
+            verdict: "vegan",
+            reason: "Arrebossat sense ou i maionesa de soia amb tòfona.",
+            modifications: [],
+          },
+        ],
+      },
+      {
+        id: "desoriente-sec-3",
+        name: "Plats Calents & Ramen",
+        nameCa: "Plats Calents i Ramen",
+        items: [
+          {
+            id: "desoriente-item-9",
+            name: "Creamy Sesame Miso Ramen",
+            originalName: "Creamy Sesame Miso Ramen",
+            description: "Fideus frescos en brou fons de miso blanc i pasta de sèsam torrat, tofu fumat a la brasa, shiitake i pak choi.",
+            price: "13.50€",
+            verdict: "vegan",
+            reason: "Brou vegetal profund sense dashi de peix ni ossos.",
+            modifications: [],
+          },
+          {
+            id: "desoriente-item-10",
+            name: "Tantanmen Picant d'Especialitat",
+            originalName: "Tantanmen Picant d'Especialitat",
+            description: "Brou untuós de sèsam blanc amb soja texturitzada picant marinada en cinc espècies xineses, fideus artesans i oli de xili sichuan.",
+            price: "14.20€",
+            verdict: "vegan",
+            reason: "Recepta tradicional adaptada amb picada 100% vegetal.",
+            modifications: [],
+          },
+          {
+            id: "desoriente-item-11",
+            name: "Katsu Curry Japonès de Seitan",
+            originalName: "Katsu Curry Japonès de Seitan",
+            description: "Seitan tendre arrebossat en panko japonès amb arròs glutinós al vapor i salsa curry tradicional espessa amb pastanaga i patata.",
+            price: "13.80€",
+            verdict: "vegan",
+            reason: "Curry aromàtic tradicional preparat sense mantega ni brou de carn.",
+            modifications: [],
+          },
+        ],
+      },
+      {
+        id: "desoriente-sec-4",
+        name: "Postres Asiàtiques",
+        nameCa: "Postres Asiàtiques",
+        items: [
+          {
+            id: "desoriente-item-12",
+            name: "Mochi Artesà de Te Verd Matcha",
+            originalName: "Mochi Artesà de Te Verd Matcha",
+            description: "Pastís d'arròs glutinós farcit de gelat cremós de te verd matcha ecològic.",
+            price: "4.80€",
+            verdict: "vegan",
+            reason: "Farcit de gelat vegetal a base de beguda de coco.",
+            modifications: [],
+          },
+          {
+            id: "desoriente-item-13",
+            name: "Cheesecake Japonès de Maracujà",
+            originalName: "Cheesecake Japonès de Maracujà",
+            description: "Pastís cremós a base de crema de caxú i llima amb coulis fresc de maracujà i base de galeta d'espelta.",
+            price: "6.50€",
+            verdict: "vegan",
+            reason: "Elaborat sense formatge làctic ni gelatina animal.",
+            modifications: [],
+          },
+        ],
+      },
+    ],
+  },
+  "blubar-bcn": {
+    id: "menu-blubar-bcn",
+    editToken: "curated",
+    status: "ready",
+    restaurantName: "Blu Bar",
+    sourceLabel: "Carta del restaurant",
+    sourceFiles: [],
+    sourceCapturedAt: "2026-03-01T10:00:00.000Z",
+    createdAt: "2026-03-01T10:00:00.000Z",
+    originalDeleteAt: "2099-01-01T00:00:00.000Z",
+    originalLanguage: "ca",
+    sections: [
+      {
+        id: "blubar-sec-1",
+        name: "Tapes & Entrants",
+        nameCa: "Tapes i Entrants",
+        items: [
+          {
+            id: "blubar-item-1",
+            name: "Patates Braves Blu Bar",
+            originalName: "Patates Braves Blu Bar",
+            description: "Daus de patata cruixents amb allioli casolà d'all rostit i oli picant de pebre vermell de la Vera.",
+            price: "6.20€",
+            verdict: "vegan",
+            reason: "Allioli elaborat amb llet de soia i oli d'oliva verge.",
+            modifications: [],
+          },
+          {
+            id: "blubar-item-2",
+            name: "Croquetes Cremoses de Bolets",
+            originalName: "Croquetes Cremoses de Bolets",
+            description: "Ració de 4 croquetes artesanes de ceps i xampinyons amb beixamel de civada.",
+            price: "7.50€",
+            verdict: "vegan",
+            reason: "Beixamel vegetal elaborada amb oli d'oliva i beguda de civada.",
+            modifications: [],
+          },
+          {
+            id: "blubar-item-3",
+            name: "Hummus de Remolatxa amb Pita",
+            originalName: "Hummus de Remolatxa amb Pita",
+            description: "Cigrons nacionals batuts amb remolatxa rostida, tahina de sèsam, festucs picats i pa de pita calenta.",
+            price: "7.20€",
+            verdict: "vegan",
+            reason: "Recepta vegetal tradicional.",
+            modifications: [],
+          },
+        ],
+      },
+      {
+        id: "blubar-sec-2",
+        name: "Pizzas Gourmet Plant-Based",
+        nameCa: "Pizzes Artesanes Plant-Based",
+        items: [
+          {
+            id: "blubar-item-4",
+            name: "Pizza Trufada amb Xampinyons",
+            originalName: "Pizza Trufada amb Xampinyons",
+            description: "Massa de fermentació llarga de 48h, salsa blanca vegetal, xampinyons portobello, mozzarella artesanal de caxú i oli de tòfona d'Urbino.",
+            price: "13.50€",
+            verdict: "vegan",
+            reason: "Mozzarella vegetal casolana i massa sense ingredients d'origen animal.",
+            modifications: [],
+          },
+          {
+            id: "blubar-item-5",
+            name: "Pizza Margherita Clàssica Vegana",
+            originalName: "Pizza Margherita Clàssica Vegana",
+            description: "Tomàquet San Marzano D.O.P., mozzarella vegana fosa, alfàbrega fresca i un rajolí d'oli d'oliva verge extra.",
+            price: "10.90€",
+            verdict: "vegan",
+            reason: "Totalment vegetal amb formatge a base d'oli de coco i proteïna de pèsol.",
+            modifications: [],
+          },
+          {
+            id: "blubar-item-6",
+            name: "Pizza 4 'Formatges' Artesans",
+            originalName: "Pizza 4 'Formatges' Artesans",
+            description: "Base blanca amb mozzarella vegetal, blau fermentat d'anacards, gouda vegà fumat i parmesà d'ametlla ratllat.",
+            price: "14.20€",
+            verdict: "vegan",
+            reason: "Formatges fermentats artesans 100% vegetals.",
+            modifications: [],
+          },
+        ],
+      },
+      {
+        id: "blubar-sec-3",
+        name: "Postres",
+        nameCa: "Postres",
+        items: [
+          {
+            id: "blubar-item-7",
+            name: "Tiramisú Italià Tradicional Vegà",
+            originalName: "Tiramisú Italià Tradicional Vegà",
+            description: "Capes de melindros casolans amarats en cafè espresso d'especialitat i amaretto, crema de mascarpone d'anacards i cacau pur amarg.",
+            price: "6.20€",
+            verdict: "vegan",
+            reason: "Elaborat amb crema fermentada d'anacards i vainilla sense ou ni nata.",
+            modifications: [],
+          },
+        ],
+      },
+    ],
+  },
+  "hanai-bcn": {
+    id: "menu-hanai-bcn",
+    editToken: "curated",
+    status: "ready",
+    restaurantName: "Hanai Vegana",
+    sourceLabel: "Carta del restaurant",
+    sourceFiles: [],
+    sourceCapturedAt: "2026-03-01T10:00:00.000Z",
+    createdAt: "2026-03-01T10:00:00.000Z",
+    originalDeleteAt: "2099-01-01T00:00:00.000Z",
+    originalLanguage: "ca",
+    sections: [
+      {
+        id: "hanai-sec-1",
+        name: "Pastisseria Artesanal & Brioxeria",
+        nameCa: "Pastisseria Artesanal i Brioxeria",
+        items: [
+          {
+            id: "hanai-item-1",
+            name: "Croissant Clàssic de Massa Mare",
+            originalName: "Croissant Clàssic de Massa Mare",
+            description: "Elaborat artesanalment amb farina ecològica, oli d'oliva verge extra i mantega de coco pura.",
+            price: "2.30€",
+            verdict: "vegan",
+            reason: "100% ingredients vegetals, fermentació lenta de 24h.",
+            modifications: [],
+          },
+          {
+            id: "hanai-item-2",
+            name: "Napolitana de Xocolata Negra 70%",
+            originalName: "Napolitana de Xocolata Negra 70%",
+            description: "Pasta de full cruixent farcida de barres de xocolata negra d'origen ètic sense llet.",
+            price: "2.60€",
+            verdict: "vegan",
+            reason: "Sense mantega animal ni traces de llet.",
+            modifications: [],
+          },
+          {
+            id: "hanai-item-3",
+            name: "Carrot Cake amb Frosting Cítric",
+            originalName: "Carrot Cake amb Frosting Cítric",
+            description: "Bescuit humit de pastanaga, nous i canyella de Ceilan amb cobertura cremosa de mantega de coco i llimona.",
+            price: "4.50€",
+            verdict: "vegan",
+            reason: "Pastís casolà sense ou ni làctics.",
+            modifications: [],
+          },
+          {
+            id: "hanai-item-4",
+            name: "Cookie de Festuc i Xocolata Blanca",
+            originalName: "Cookie de Festuc i Xocolata Blanca",
+            description: "Galeta americana cruixent per fora i tova per dins amb pasta pura de festucs i trossos de xocolata blanca vegetal.",
+            price: "3.20€",
+            verdict: "vegan",
+            reason: "Xocolata blanca elaborada amb mantega de cacau i beguda d'arròs.",
+            modifications: [],
+          },
+        ],
+      },
+      {
+        id: "hanai-sec-2",
+        name: "Pa & Salats",
+        nameCa: "Pa i Salats",
+        items: [
+          {
+            id: "hanai-item-5",
+            name: "Focaccia de Romaní i Tomàquets Cherry",
+            originalName: "Focaccia de Romaní i Tomàquets Cherry",
+            description: "Massa alta i esponjosa d'oli d'oliva verge extra amb romaní fresc del Maresme i flor de sal.",
+            price: "3.80€",
+            verdict: "vegan",
+            reason: "Farina de blat ecològica, oli d'oliva verge i llevat mare.",
+            modifications: [],
+          },
+          {
+            id: "hanai-item-6",
+            name: "Empanada de Seitan i Espinacs",
+            originalName: "Empanada de Seitan i Espinacs",
+            description: "Massa casolana daurada al forn farcida de seitan adobat, espinacs tendres, pinyons i ceba caramel·litzada.",
+            price: "4.20€",
+            verdict: "vegan",
+            reason: "Farcit 100% vegetal artesanal.",
+            modifications: [],
+          },
+        ],
+      },
+    ],
+  },
+  "teresacarles-bcn": {
+    id: "menu-teresacarles-bcn",
+    editToken: "curated",
+    status: "ready",
+    restaurantName: "Teresa Carles",
+    sourceLabel: "Carta del restaurant",
+    sourceFiles: [],
+    sourceCapturedAt: "2026-03-01T10:00:00.000Z",
+    createdAt: "2026-03-01T10:00:00.000Z",
+    originalDeleteAt: "2099-01-01T00:00:00.000Z",
+    originalLanguage: "ca",
+    sections: [
+      {
+        id: "tc-sec-1",
+        name: "Entrants & Tapes",
+        nameCa: "Entrants i Tapes",
+        items: [
+          {
+            id: "tc-item-1",
+            name: "Carxofes del Prat a la Brasa amb Romesco",
+            originalName: "Carxofes del Prat a la Brasa amb Romesco",
+            description: "Carxofes fresques de temporada a la brasa de carbó vegetal amb salsa romesco tradicional casolana.",
+            price: "9.80€",
+            verdict: "vegan",
+            reason: "Salsa romesco casolana amb tomàquet rostit, all, ametlles i nyores sense cap derivat animal.",
+            modifications: [],
+          },
+          {
+            id: "tc-item-2",
+            name: "Croquetes Cremoses d'Espinacs i Pinyons",
+            originalName: "Croquetes Cremoses d'Espinacs i Pinyons",
+            description: "Croquetes artesanes de fulles d'espinac saltejades, panses i pinyons amb beixamel de civada.",
+            price: "7.90€",
+            verdict: "vegan",
+            reason: "Totalment vegetals, sense mantega ni llet de vaca.",
+            modifications: [],
+          },
+        ],
+      },
+      {
+        id: "tc-sec-2",
+        name: "Plats Principals",
+        nameCa: "Plats Principals",
+        items: [
+          {
+            id: "tc-item-3",
+            name: "Canelons Tradicionals de Bolets i Beixamel Trufada",
+            originalName: "Canelons Tradicionals de Bolets i Beixamel Trufada",
+            description: "Pasta de caneló farcida de ceps, xampinyons i nous, banyada en beixamel vegetal de civada i tòfona gratinada.",
+            price: "14.50€",
+            verdict: "vegan",
+            reason: "100% vegetal, beixamel de beguda de civada sense llet ni mantega.",
+            modifications: [],
+          },
+          {
+            id: "tc-item-4",
+            name: "Lasanya de Verdures Rostides",
+            originalName: "Lasanya de Verdures Rostides",
+            description: "Capes de carbassó, albergínia i tomàquet confitat amb crema de formatge d'anacards fermentat i alfàbrega.",
+            price: "13.90€",
+            verdict: "vegan",
+            reason: "Totalment vegetal.",
+            modifications: [],
+          },
+          {
+            id: "tc-item-5",
+            name: "Risotto Cremós de Ceps i Espàrrecs",
+            originalName: "Risotto Cremós de Ceps i Espàrrecs",
+            description: "Arròs carnaroli lligat amb mantega de coco i llevat nutricional, coronat amb espàrrecs verds a la brasa.",
+            price: "14.20€",
+            verdict: "vegan",
+            reason: "Cuinat amb brou vegetal i mantega de coco en lloc de mantega làctica.",
+            modifications: [],
+          },
+        ],
+      },
+      {
+        id: "tc-sec-3",
+        name: "Postres",
+        nameCa: "Postres",
+        items: [
+          {
+            id: "tc-item-6",
+            name: "Pastís de Poma amb Gelat de Canyella",
+            originalName: "Pastís de Poma amb Gelat de Canyella",
+            description: "Poma caramel·litzada sobre massa de pasta brisa vegetal, servida amb una bola de gelat de canyella de Ceilan.",
+            price: "6.50€",
+            verdict: "vegan",
+            reason: "Gelat vegà i massa sense mantega animal.",
+            modifications: [],
+          },
+        ],
+      },
+    ],
+  },
+};
+
+export function normalizeMenuLookupKey(key: string): string {
+  return key
+    .toLowerCase()
+    .trim()
+    .replace(/^(?:featured-|curated-)/, "")
+    .replace(/[^a-z0-9]/g, "");
+}
+
+/**
+ * Finds a curated menu by ID or restaurant name.
+ * Robust against prefix variations (e.g. "featured-hanai-bcn", "hanai-bcn", "hanai-vegana-bcn").
+ */
+export function findCuratedMenu(id?: string, name?: string): MenuDraft | undefined {
+  if (id) {
+    const direct = CURATED_MENUS[id];
+    if (direct) return direct;
+
+    const cleanId = id.replace(/^(?:featured-|curated-)/, "");
+    if (CURATED_MENUS[cleanId]) return CURATED_MENUS[cleanId];
+
+    const normId = normalizeMenuLookupKey(id);
+    for (const [key, menu] of Object.entries(CURATED_MENUS)) {
+      if (normalizeMenuLookupKey(key) === normId) return menu;
+    }
+  }
+
+  if (name) {
+    const normName = normalizeMenuLookupKey(name);
+    for (const [key, menu] of Object.entries(CURATED_MENUS)) {
+      const normKey = normalizeMenuLookupKey(key);
+      const normMenuName = normalizeMenuLookupKey(menu.restaurantName);
+      if (
+        normKey === normName ||
+        normMenuName === normName ||
+        (normName.length >= 4 && (normKey.includes(normName) || normName.includes(normKey))) ||
+        (normName.length >= 4 && (normMenuName.includes(normName) || normName.includes(normMenuName)))
+      ) {
+        return menu;
+      }
+    }
+  }
+
+  return undefined;
+}

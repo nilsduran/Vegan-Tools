@@ -32,7 +32,7 @@ const NON_OFFICIAL_HOSTS = [
   "x.com",
 ];
 
-function isPlausibleOfficialWebsite(value: string) {
+export function isPlausibleOfficialWebsite(value: string) {
   try {
     const url = new URL(value);
     if (!["http:", "https:"].includes(url.protocol)) return false;
@@ -73,19 +73,15 @@ export class GoogleSearchRestaurantWebsiteFinder
       "gemini-2.5-flash",
     ].filter(Boolean) as string[];
 
-    const prompt = `Find the official website for this restaurant:
+    const prompt = `Find the official website and online menu for this restaurant:
 Name: ${restaurant.name}
 Address: ${restaurant.address}
 Coordinates: ${restaurant.latitude}, ${restaurant.longitude}
-${excludedWebsiteUrl ? `Known incorrect or unreachable URL: ${excludedWebsiteUrl}` : ""}
+${excludedWebsiteUrl ? `Exclude this social media or directory URL: ${excludedWebsiteUrl}` : ""}
 
-Use web search to distinguish this exact location from similarly named businesses.
-Search as a person would, using queries like "${restaurant.name} restaurant ${
-      restaurant.address || "official website"
-    }" or "${restaurant.name} carta menu web oficial". Prefer the restaurant's own domain or direct menu page, checking that the name and location match.
-Return only the absolute official website URL. Do not return a social network,
-directory, map, delivery platform, booking platform, or review site. Return NONE
-if an official website cannot be verified.`;
+Use Google Search to find the restaurant's authentic homepage domain or online menu (e.g. searching "${restaurant.name} ${restaurant.address || ""}" or "${restaurant.name} carta menu web oficial").
+Prefer the restaurant's standalone domain (e.g. .cat, .es, .com) rather than third-party platforms or social networks.
+Return the official website URL if found, or NONE if no official website exists.`;
 
     let responseText: string | undefined;
     let groundedUris: string[] = [];
@@ -114,23 +110,27 @@ if an official website cannot be verified.`;
 
     let websiteUrl: string | undefined;
 
-    const match = responseText?.match(/https?:\/\/[^\s<>"')\]]+/i)?.[0]
-      ?.replace(/[.,;:]+$/, "");
-
-    if (match && isPlausibleOfficialWebsite(match)) {
-      try {
-        websiteUrl = new URL(match).toString();
-      } catch {
-        websiteUrl = undefined;
-      }
-    }
-
-    if (!websiteUrl && groundedUris.length > 0) {
+    // 1. Check real Google Search grounded chunks first
+    if (groundedUris.length > 0) {
       for (const groundedUri of groundedUris.slice(0, 8)) {
         const resolved = await resolveGroundedWebsite(groundedUri);
         if (resolved && isPlausibleOfficialWebsite(resolved)) {
           websiteUrl = resolved;
           break;
+        }
+      }
+    }
+
+    // 2. Fall back to URL matched in the model response text
+    if (!websiteUrl) {
+      const match = responseText?.match(/https?:\/\/[^\s<>"')\]]+/i)?.[0]
+        ?.replace(/[.,;:]+$/, "");
+
+      if (match && isPlausibleOfficialWebsite(match)) {
+        try {
+          websiteUrl = new URL(match).toString();
+        } catch {
+          websiteUrl = undefined;
         }
       }
     }

@@ -13,7 +13,7 @@ vegan-tools/
 ├── apps/
 │   ├── api/          # Node.js + Fastify backend server
 │   │                 # - Geoapify & OpenStreetMap place search
-│   │                 # - Gemini 2.5 / 3.0 / 3.1 Flash-Lite extraction & OCR
+│   │                 # - Gemini 3.0 / 3.1 Flash-Lite extraction & OCR
 │   │                 # - Google Search Grounding for official website resolution
 │   │                 # - Deterministic HTML/PDF web crawler with SSRF protection
 │   │                 # - Supabase PostgreSQL + Storage persistence
@@ -89,7 +89,7 @@ flowchart TD
 
 #### Stage 4: Semantic Analysis & Collaborative Caching (`MenuAnalyzer`)
 1. The extracted clean text or PDF/image is sent to **Gemini Flash-Lite** with vegan classification rules.
-2. Dishes are categorized into `VEGAN`, `VEGETARIAN`, or `NOT_VEGAN` with allergens and substitution hints.
+2. Dishes are categorized into `VEGAN`, `VEGETARIAN`, `NOT_VEGAN`, or `ADAPTABLE` (suggested plant-based modifications to request from restaurant staff, not a commercial guarantee).
 3. Results are saved to **Supabase** / shared cache so subsequent users receive instant results.
 
 #### Fallback: Physical Menu / Blackboard OCR
@@ -160,10 +160,11 @@ flowchart TD
 
 In safety-critical dietary classification, **a false positive is dangerous**. Declaring a non-vegan item as "vegan" violates user trust and ethical boundaries.
 
-### The "99% Definitive Precision" Standard
-- Precision applies strictly to **definitive verdicts** (`VEGAN` or `NOT_VEGAN`).
+### The Strict Precautionary Standard (Conservative Evidence-Based Classification)
+- Classification follows a **strict precautionary principle**: when evidence is incomplete or doubtful, verdicts remain conservative.
 - Ambiguous ingredients without verifiable provenance are explicitly marked as `PROBABLY_VEGAN` or `UNKNOWN`.
 - Absence of a recognized animal ingredient is **never** sufficient on its own to declare an item `VEGAN`.
+- Definitive verdicts (`VEGAN` or `NOT_VEGAN`) require verified provenance according to the Evidence Hierarchy below.
 
 ### Strict Evidence Hierarchy
 When evaluating product packages, barcode registries, and restaurant menus, sources are prioritized in strict descending order:
@@ -182,7 +183,7 @@ When evaluating product packages, barcode registries, and restaurant menus, sour
 - **Slaughter & Meat Derivatives**: Any ingredient derived from slaughtered animals (e.g. gelatin, carmine/E120, rennet, animal lard) immediately yields `NOT_VEGAN` and `NON_VEGETARIAN`.
 - **Dairy, Eggs & Bee Products**: Ingredients such as whey, casein, albumen, shellac, and honey yield `VEGETARIAN` and `NOT_VEGAN`.
 - **Dual-Origin Additives**: Additives that can be synthesized from either animal fats or plant oils (such as Mono- and diglycerides of fatty acids / **E471**, stearic acid, glycerin) default to `PROBABLY_VEGAN` unless plant-origin is explicitly certified on the label.
-- **Precautionary Allergen Statements**: Statements such as *"May contain traces of milk or eggs"* describe shared equipment cross-contact rather than intentional recipe ingredients. Under standard vegan guidelines, they do not invalidate a `VEGAN` verdict, but are flagged separately for allergy safety.
+- **Precautionary Allergen Statements**: Statements such as *"May contain traces of milk or eggs"* describe shared equipment cross-contact rather than intentional recipe ingredients. Under standard vegan guidelines, they do not invalidate an ethical `VEGAN` verdict, but are flagged separately as precautionary trace information (strictly informational; not a clinical guarantee for severe food allergies or coeliac disease).
 
 ### Data Lifecycle & Auditability
 - **Immutable Product Revisions**: Product modifications create a new historical revision rather than destructively overwriting previous entries.
@@ -191,7 +192,29 @@ When evaluating product packages, barcode registries, and restaurant menus, sour
 
 ---
 
-## 🚀 7. Production Deployment
+## 🤖 7. Machine Learning Engineering & Edge Classifier Pipeline
+
+To overcome the latency and token costs of external LLMs while avoiding silent regex failures on unindexed synonyms or noisy OCR, Vegan Tools incorporates a **Hybrid Cascading ML Classifier**:
+
+```mermaid
+flowchart LR
+    A["Raw Menu / Ingredient Text"] --> B["Deterministic Regex Engine (<0.2ms)"]
+    B -- "Unindexed / Noisy / Ambiguous" --> C["Edge Transformer ONNX INT8 (~12ms)"]
+    C -- "High Margin Confidence" --> D["Instant Local Verdict"]
+    C -- "Low Margin Boundary Case" --> E["Surgical Fallback to Gemini Flash"]
+```
+
+### Key Engineering Decisions
+1. **Multi-Label Sigmoid Heads**: The model predicts 3 independent continuous attributes: `has_slaughter` ($y_1$), `has_secretion` ($y_2$), and `has_dual_origin` ($y_3$) via `BCEWithLogitsLoss`, preventing competition between dairy and meat in multi-ingredient dishes.
+2. **Threshold Moving on CPU**: Asymmetric error penalties (ensuring $\ge 99\%$ recall on slaughter ingredients without hurting general accuracy) are calibrated via Pareto frontier grid search on validation logits in CPU, avoiding costly GPU retraining loops.
+3. **Data Leakage Immunity**: The 12,000-sample multilingual dataset is partitioned using **GroupStratifiedSplit** by taxonomic family and restaurant ID, ensuring zero root-word memorisation between train and test sets.
+4. **ONNX / GGUF Edge Deployment**: Modern SLMs and encoders (`Qwen2.5-0.5B` / `mmBERT`) are quantized to INT8 (~42 MB) and served directly in Node.js via `onnxruntime-node` with zero Python dependencies in production.
+
+> 📖 **Complete Specification**: For full mathematical formulations, loss matrices, Colab training scripts, and benchmark protocols, see the dedicated engineering guide: [`docs/ml-classifier-design.md`](./ml-classifier-design.md).
+
+---
+
+## 🚀 8. Production Deployment
 
 ### Frontend (Render Static Site / Cloudflare Pages)
 - **Root Directory**: `/`
@@ -205,3 +228,4 @@ When evaluating product packages, barcode registries, and restaurant menus, sour
 - **Build Command**: `npm ci && npm run build -w @vegan-tools/domain && npm run build -w @vegan-tools/api`
 - **Start Command**: `npm run start -w @vegan-tools/api`
 - **Keep-Alive**: Set up an external uptime ping (e.g. `cron-job.org` or `Better Stack`) to `/health` every 10–14 minutes during active hours to avoid free-tier cold starts.
+

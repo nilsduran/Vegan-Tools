@@ -5,12 +5,20 @@
  * - Strictly requires an authenticated user account (no anonymous local logs).
  * - User-scoped storage for visit logs and Top 4 favorites.
  * - Optional visit date: defaults to current date (YYYY-MM-DD), but can be unset for dateless visits.
- * - If a date is provided, enforces maximum 1 log per restaurant per calendar date.
  * - Star rating distribution histogram computation (0.5 to 5.0 in 10 half-star bins).
  * - "Top 4 Favorite Restaurants" pinned showcase.
  */
 
 import { useState, useEffect } from "react";
+import type { RestaurantCandidate } from "@vegan-tools/domain";
+import {
+  fetchUserVisits,
+  saveUserVisitApi,
+  deleteUserVisitApi,
+  fetchUserTop4,
+  saveUserTop4Api,
+} from "../api";
+import { saveCachedRestaurants } from "./restaurantCache";
 
 export interface RestaurantVisitLog {
   id: string;
@@ -24,6 +32,8 @@ export interface RestaurantVisitLog {
   rating: number; // 0.5 to 5.0
   notes?: string;
   dishesTried?: string[];
+  tags?: string[];
+  photos?: string[];
   createdAt: string;
   updatedAt: string;
 }
@@ -88,9 +98,11 @@ export interface SaveVisitLogInput {
   rating: number; // 0.5 to 5.0
   notes?: string;
   dishesTried?: string[];
+  tags?: string[];
+  photos?: string[];
 }
 
-export function saveVisitLog(input: SaveVisitLogInput): RestaurantVisitLog {
+export function saveVisitLog(input: SaveVisitLogInput, token?: string): RestaurantVisitLog {
   if (!input.userId) {
     throw new Error("Authentication required to save visit logs");
   }
@@ -124,6 +136,8 @@ export function saveVisitLog(input: SaveVisitLogInput): RestaurantVisitLog {
       rating,
       notes: input.notes !== undefined ? input.notes : existing.notes,
       dishesTried: input.dishesTried !== undefined ? input.dishesTried : existing.dishesTried,
+      tags: input.tags !== undefined ? input.tags : existing.tags,
+      photos: input.photos !== undefined ? input.photos : existing.photos,
       updatedAt: now,
     };
     logs[existingIndex] = updatedLog;
@@ -140,6 +154,8 @@ export function saveVisitLog(input: SaveVisitLogInput): RestaurantVisitLog {
       rating,
       notes: input.notes,
       dishesTried: input.dishesTried,
+      tags: input.tags,
+      photos: input.photos,
       createdAt: now,
       updatedAt: now,
     };
@@ -153,10 +169,33 @@ export function saveVisitLog(input: SaveVisitLogInput): RestaurantVisitLog {
     );
   }
 
+  // Transparently sync with cloud backend if authenticated
+  if (token) {
+    saveUserVisitApi(
+      {
+        id: updatedLog.id,
+        userId: updatedLog.userId,
+        restaurantId: updatedLog.restaurantId,
+        restaurantName: updatedLog.restaurantName,
+        restaurantAddress: updatedLog.restaurantAddress,
+        restaurantImage: updatedLog.restaurantImage,
+        cuisine: updatedLog.cuisine,
+        visitDate: updatedLog.visitDate,
+        rating: updatedLog.rating,
+        notes: updatedLog.notes ?? "",
+        dishesTried: updatedLog.dishesTried ?? [],
+        tags: updatedLog.tags ?? [],
+      },
+      token,
+    ).catch((err) => {
+      console.warn("Could not sync visit log to cloud:", err);
+    });
+  }
+
   return updatedLog;
 }
 
-export function deleteVisitLog(id: string, userId: string): void {
+export function deleteVisitLog(id: string, userId: string, token?: string): void {
   if (!userId) return;
   const logs = getDiaryLogs(userId).filter((l) => l.id !== id);
   if (typeof window !== "undefined" && window.localStorage) {
@@ -164,6 +203,13 @@ export function deleteVisitLog(id: string, userId: string): void {
     window.dispatchEvent(
       new CustomEvent(DIARY_UPDATED_EVENT, { detail: { userId, deletedId: id } }),
     );
+  }
+
+  // Transparently sync deletion with cloud backend if authenticated
+  if (token) {
+    deleteUserVisitApi(id, userId, token).catch((err) => {
+      console.warn("Could not sync visit deletion to cloud:", err);
+    });
   }
 }
 
@@ -217,11 +263,70 @@ export function setUserTop4(ids: string[], userId: string): void {
   }
 }
 
+export async function syncUserDiaryFromCloud(userId: string): Promise<RestaurantVisitLog[]> {
+  if (!userId || typeof window === "undefined" || !window.localStorage) return [];
+  try {
+    const rawCloudVisits = await Promise.resolve(fetchUserVisits(userId));
+    const cloudVisits = Array.isArray(rawCloudVisits) ? rawCloudVisits : [];
+    if (cloudVisits.length === 0) return getDiaryLogs(userId);
+
+    const localLogs = getDiaryLogs(userId);
+    const localMap = new Map<string, RestaurantVisitLog>();
+    for (const log of localLogs) {
+      localMap.set(log.id, log);
+    }
+
+    let modified = false;
+    for (const remote of cloudVisits) {
+      const existing = localMap.get(remote.id);
+      if (!existing) {
+        localMap.set(remote.id, remote);
+        modified = true;
+      } else {
+        if (new Date(remote.updatedAt).getTime() > new Date(existing.updatedAt).getTime()) {
+          localMap.set(remote.id, remote);
+          modified = true;
+        }
+      }
+    }
+
+    if (modified) {
+      const merged = Array.from(localMap.values()).sort((a, b) => {
+        if (a.visitDate && b.visitDate) {
+          return new Date(b.visitDate).getTime() - new Date(a.visitDate).getTime();
+        }
+        if (a.visitDate) return -1;
+        if (b.visitDate) return 1;
+        return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
+      });
+      localStorage.setItem(getDiaryKey(userId), JSON.stringify(merged));
+      window.dispatchEvent(
+        new CustomEvent(DIARY_UPDATED_EVENT, { detail: { userId } }),
+      );
+      return merged;
+    }
+    return localLogs;
+  } catch (err) {
+    console.warn("Failed to sync diary with cloud:", err);
+    return getDiaryLogs(userId);
+  }
+}
+
 export function useDiaryLogs(userId?: string) {
   const [logs, setLogs] = useState<RestaurantVisitLog[]>(() => getDiaryLogs(userId));
 
   useEffect(() => {
     setLogs(getDiaryLogs(userId));
+
+    if (userId) {
+      void Promise.resolve(syncUserDiaryFromCloud(userId))
+        .then((synced) => {
+          if (Array.isArray(synced)) {
+            setLogs(synced);
+          }
+        })
+        .catch(() => {});
+    }
 
     const handleUpdate = (e?: Event) => {
       const customEvent = e as CustomEvent<{ userId?: string }> | undefined;
@@ -241,11 +346,24 @@ export function useDiaryLogs(userId?: string) {
   return logs;
 }
 
-export function useUserTop4(userId?: string) {
+export function useUserTop4(userId?: string, token?: string) {
   const [top4, setTop4State] = useState<string[]>(() => getUserTop4(userId));
 
   useEffect(() => {
     setTop4State(getUserTop4(userId));
+
+    if (userId) {
+      void Promise.resolve(fetchUserTop4(userId))
+        .then((restaurants) => {
+          if (restaurants && Array.isArray(restaurants) && restaurants.length > 0) {
+            saveCachedRestaurants(restaurants);
+            const ids = restaurants.map((r) => r.id);
+            setUserTop4(ids, userId);
+            setTop4State(ids);
+          }
+        })
+        .catch(() => {});
+    }
 
     const handleUpdate = (e?: Event) => {
       const customEvent = e as CustomEvent<{ userId?: string }> | undefined;
@@ -262,10 +380,28 @@ export function useUserTop4(userId?: string) {
     };
   }, [userId]);
 
-  const updateTop4 = (ids: string[]) => {
+  const updateTop4 = (ids: string[], restaurantsToSave?: RestaurantCandidate[]) => {
     if (!userId) return;
-    setUserTop4(ids, userId);
-    setTop4State(ids.slice(0, 4));
+    const clean = ids.slice(0, 4);
+    setUserTop4(clean, userId);
+    setTop4State(clean);
+
+    if (token) {
+      const candidates =
+        restaurantsToSave ||
+        clean.map((id) => ({
+          id,
+          name: id,
+          latitude: 0,
+          longitude: 0,
+          address: "",
+          mapUrl: "https://openstreetmap.org",
+          provider: "curated" as const,
+        }));
+      void saveUserTop4Api(userId, candidates, token).catch((err) => {
+        console.warn("Could not sync top 4 favorites to cloud:", err);
+      });
+    }
   };
 
   return { top4, updateTop4 };

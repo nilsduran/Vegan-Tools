@@ -1,8 +1,9 @@
 import { useState, type ReactNode } from "react";
 import { Filter, Leaf, RotateCcw } from "lucide-react";
-import { tx, type CatalanPhraseKey } from "../i18n";
-import type { RestaurantCandidate } from "@vegan-tools/domain";
+import { tx, useLanguage, type CatalanPhraseKey } from "../i18n";
+import { findCuratedMenu, type RestaurantCandidate } from "@vegan-tools/domain";
 import { GlutenFreeIcon } from "./GlutenFreeIcon";
+import { VeganBadgeIcon, VegetarianBadgeIcon, VeganOptionsBadgeIcon, RestaurantBadgeIcon } from "./DietIcons";
 
 export interface FilterDefinition {
   id: string;
@@ -12,7 +13,8 @@ export interface FilterDefinition {
 }
 
 export const DIET_FILTER_IDS = new Set(["vegan", "vegetarian", "vegan_options"]);
-export const FLAG_FILTER_IDS = new Set(["leaves_4plus", "open_now"]);
+export const FLAG_FILTER_IDS = new Set(["leaves_4plus", "open_now", "menu_catala"]);
+export const PRICE_FILTER_IDS = new Set(["price_budget", "price_moderate", "price_gourmet"]);
 
 export const PRIMARY_FILTERS: FilterDefinition[] = [
   {
@@ -24,7 +26,7 @@ export const PRIMARY_FILTERS: FilterDefinition[] = [
   {
     id: "vegan",
     labelKey: "Vegan",
-    icon: "🌱",
+    icon: <VeganBadgeIcon size={17} />,
     match: (c) => {
       const name = c.name.toLowerCase();
       return Boolean(
@@ -43,7 +45,7 @@ export const PRIMARY_FILTERS: FilterDefinition[] = [
   {
     id: "vegetarian",
     labelKey: "Vegetarian",
-    icon: "🥗",
+    icon: <VegetarianBadgeIcon size={17} />,
     match: (c) => {
       const name = c.name.toLowerCase();
       return Boolean(
@@ -62,8 +64,8 @@ export const PRIMARY_FILTERS: FilterDefinition[] = [
 export const CATEGORY_FILTERS: FilterDefinition[] = [
   {
     id: "vegan_options",
-    labelKey: "Vegan options",
-    icon: "🥕",
+    labelKey: "Veg-friendly",
+    icon: <VeganOptionsBadgeIcon size={15} />,
     match: (c) => {
       const name = c.name.toLowerCase();
       const tags = c.tags ?? [];
@@ -86,7 +88,7 @@ export const CATEGORY_FILTERS: FilterDefinition[] = [
   {
     id: "restaurant",
     labelKey: "Restaurant",
-    icon: "🍽️",
+    icon: <RestaurantBadgeIcon size={15} />,
     match: (c) => {
       const name = c.name.toLowerCase();
       const tags = c.tags ?? [];
@@ -125,6 +127,46 @@ export const CATEGORY_FILTERS: FilterDefinition[] = [
           name.includes("pasteleria") ||
           name.includes("forn") ||
           name.includes("donut"),
+      );
+    },
+  },
+  {
+    id: "price_budget",
+    labelKey: "€ Budget",
+    icon: null,
+    match: (c) => {
+      const p = (c.price || "").trim();
+      return (
+        p === "€" ||
+        p === "1" ||
+        (p.includes("€") && !p.includes("€€")) ||
+        (c.tags ?? []).includes("budget") ||
+        (c.tags ?? []).includes("cheap")
+      );
+    },
+  },
+  {
+    id: "price_moderate",
+    labelKey: "€€ Moderate",
+    icon: null,
+    match: (c) => {
+      const p = (c.price || "").trim();
+      return p === "€€" || p === "2" || (p.includes("€€") && !p.includes("€€€"));
+    },
+  },
+  {
+    id: "price_gourmet",
+    labelKey: "€€€ Steep",
+    icon: null,
+    match: (c) => {
+      const p = (c.price || "").trim();
+      return (
+        p === "€€€" ||
+        p === "€€€€" ||
+        p === "3" ||
+        p === "4" ||
+        (c.tags ?? []).includes("fine_dining") ||
+        (c.tags ?? []).includes("gourmet")
       );
     },
   },
@@ -366,17 +408,110 @@ export const CATEGORY_FILTERS: FilterDefinition[] = [
       );
     },
   },
+  {
+    id: "brunch",
+    labelKey: "Brunch",
+    icon: "🥪",
+    match: (c) => {
+      const text = `${c.name} ${c.cuisine || ""} ${(c.tags || []).join(" ")}`.toLowerCase();
+      return text.includes("brunch") || text.includes("breakfast") || text.includes("esmorzar");
+    },
+  },
+  {
+    id: "bakery",
+    labelKey: "Bakery",
+    icon: "🥖",
+    match: (c) => {
+      const text = `${c.name} ${c.cuisine || ""} ${(c.tags || []).join(" ")}`.toLowerCase();
+      return (
+        text.includes("bakery") ||
+        text.includes("fleca") ||
+        text.includes("forn") ||
+        text.includes("panader") ||
+        text.includes("boulangerie")
+      );
+    },
+  },
+  {
+    id: "pastry",
+    labelKey: "Pastry",
+    icon: "🥐",
+    match: (c) => {
+      const text = `${c.name} ${c.cuisine || ""} ${(c.tags || []).join(" ")}`.toLowerCase();
+      return (
+        text.includes("pastiss") ||
+        text.includes("pasteler") ||
+        text.includes("croissant") ||
+        text.includes("pastry") ||
+        text.includes("cake") ||
+        text.includes("dolç")
+      );
+    },
+  },
+  {
+    id: "falafel",
+    labelKey: "Falafel",
+    icon: "🧆",
+    match: (c) => {
+      const text = `${c.name} ${c.cuisine || ""} ${(c.tags || []).join(" ")}`.toLowerCase();
+      return (
+        text.includes("falafel") ||
+        text.includes("hummus") ||
+        text.includes("orient") ||
+        text.includes("lebanese") ||
+        text.includes("libanes")
+      );
+    },
+  },
+  {
+    id: "paella",
+    labelKey: "Paella",
+    icon: "🥘",
+    match: (c) => {
+      const text = `${c.name} ${c.cuisine || ""} ${(c.tags || []).join(" ")}`.toLowerCase();
+      return text.includes("paella") || text.includes("arros") || text.includes("arroz") || text.includes("rice");
+    },
+  },
+  {
+    id: "ramen",
+    labelKey: "Ramen",
+    icon: "🍜",
+    match: (c) => {
+      const text = `${c.name} ${c.cuisine || ""} ${(c.tags || []).join(" ")}`.toLowerCase();
+      return text.includes("ramen") || text.includes("noodle") || text.includes("udon") || text.includes("soba");
+    },
+  },
+  {
+    id: "menu_catala",
+    labelKey: "Carta en català",
+    icon: "📜",
+    match: (c) => {
+      const text = `${c.name} ${c.cuisine || ""} ${(c.tags || []).join(" ")}`.toLowerCase();
+      const curated = findCuratedMenu(c.id, c.name);
+      const isCuratedCa =
+        curated?.originalLanguage === "ca" ||
+        (curated?.sections ?? []).some((s) => s.nameCa || s.items.some((i) => i.nameCa));
+      return (
+        isCuratedCa ||
+        text.includes("catalan") ||
+        text.includes("català") ||
+        (c.tags ?? []).includes("menu_ca") ||
+        (c.tags ?? []).includes("carta_catala")
+      );
+    },
+  },
 ];
 
 export const EXTRA_FILTERS = CATEGORY_FILTERS;
 export const ALL_FILTERS = [...PRIMARY_FILTERS, ...CATEGORY_FILTERS];
 
 /**
- * Filter restaurants according to user-selected filter pills across 3 dimensions:
+ * Filter restaurants according to user-selected filter pills across 4 dimensions:
  * 1. Diet (100% vegan, vegetarian, vegan options): evaluated with OR within the diet group.
- * 2. Quality/Status flags (4+ leaves, open now): evaluated with AND (must satisfy all active flags).
- * 3. Cuisine/Establishment categories (restaurant, cafe, italian, etc.): evaluated with OR within cuisines.
- * 4. Across dimensions, all active dimensions must be satisfied (AND across groups).
+ * 2. Quality/Status flags (4+ leaves, open now, menu_catala): evaluated with AND (must satisfy all active flags).
+ * 3. Price level (€, €€, €€€): evaluated with OR within price filters.
+ * 4. Cuisine/Establishment categories (restaurant, cafe, italian, etc.): evaluated with OR within cuisines.
+ * Across dimensions, all active dimensions must be satisfied (AND across groups).
  */
 export function filterRestaurants(
   candidates: RestaurantCandidate[],
@@ -387,8 +522,12 @@ export function filterRestaurants(
   const activeDefs = ALL_FILTERS.filter((f) => activeFilterIds.includes(f.id));
   const activeDiets = activeDefs.filter((f) => DIET_FILTER_IDS.has(f.id));
   const activeFlags = activeDefs.filter((f) => FLAG_FILTER_IDS.has(f.id));
+  const activePrices = activeDefs.filter((f) => PRICE_FILTER_IDS.has(f.id));
   const activeCuisines = activeDefs.filter(
-    (f) => !DIET_FILTER_IDS.has(f.id) && !FLAG_FILTER_IDS.has(f.id),
+    (f) =>
+      !DIET_FILTER_IDS.has(f.id) &&
+      !FLAG_FILTER_IDS.has(f.id) &&
+      !PRICE_FILTER_IDS.has(f.id),
   );
 
   return candidates.filter((restaurant) => {
@@ -398,13 +537,19 @@ export function filterRestaurants(
       if (!matchesAnyDiet) return false;
     }
 
-    // 2. Flags constraint: All active flags (4+ leaves, open now) must be satisfied (AND)
+    // 2. Flags constraint: All active flags (4+ leaves, open now, menu_catala) must be satisfied (AND)
     if (activeFlags.length > 0) {
       const matchesAllFlags = activeFlags.every((flagDef) => flagDef.match(restaurant));
       if (!matchesAllFlags) return false;
     }
 
-    // 3. Cuisine constraint: If any cuisine filter is active, at least one must match (OR)
+    // 3. Price constraint: If any price filter is active, at least one must match (OR)
+    if (activePrices.length > 0) {
+      const matchesAnyPrice = activePrices.some((priceDef) => priceDef.match(restaurant));
+      if (!matchesAnyPrice) return false;
+    }
+
+    // 4. Cuisine constraint: If any cuisine filter is active, at least one must match (OR)
     if (activeCuisines.length > 0) {
       const matchesAnyCuisine = activeCuisines.some((catDef) => catDef.match(restaurant));
       if (!matchesAnyCuisine) return false;
@@ -427,6 +572,7 @@ export function FilterPills({
   onClearFilters,
   onExpandChange,
 }: FilterPillsProps) {
+  const language = useLanguage();
   const [expanded, setExpanded] = useState(false);
   const hasActiveFilters = activeFilters.length > 0;
 
@@ -505,7 +651,7 @@ export function FilterPills({
             <RotateCcw size={14} aria-hidden="true" />
             <span>{tx("Reset filters")}</span>
           </button>
-          {CATEGORY_FILTERS.map((f) => {
+          {CATEGORY_FILTERS.filter((f) => f.id !== "menu_catala" || language === "ca").map((f) => {
             const isActive = activeFilters.includes(f.id);
             return (
               <button
@@ -515,7 +661,7 @@ export function FilterPills({
                 aria-pressed={isActive}
                 onClick={() => onToggleFilter(f.id)}
               >
-                <span className="pill-icon" aria-hidden="true">{f.icon}</span>
+                {f.icon && <span className="pill-icon" aria-hidden="true">{f.icon}</span>}
                 <span className="pill-label">{tx(f.labelKey)}</span>
               </button>
             );

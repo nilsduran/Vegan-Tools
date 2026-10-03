@@ -12,7 +12,12 @@ import {
 } from "@vegan-tools/domain";
 import { CURATED_RESTAURANTS } from "../curated-restaurants.js";
 import { evaluateOpeningHours } from "../opening-hours.js";
-import type { RestaurantWebsiteFinder } from "../restaurant-website-finder.js";
+import {
+  type RestaurantWebsiteFinder,
+  isPlausibleOfficialWebsite,
+} from "../restaurant-website-finder.js";
+import type { RestaurantMenuCache } from "../restaurant-menu-cache.js";
+import { CURATED_MENUS } from "../curated-menus.js";
 
 export function cleanShortAddress(
   formattedAddress?: string,
@@ -25,13 +30,26 @@ export function cleanShortAddress(
     return `${st}, ${city}`;
   }
   if (!formattedAddress) return city || "";
-  const clean = formattedAddress
+  const cleaned = formattedAddress
     .replace(/,\s*(?:Spain|España|Espanya|Catalunya|Catalonia|United Kingdom|France|Deutschland|Italy|Italia)$/i, "")
     .replace(/,\s*\d{4,5}\s+([^,]+)/, ", $1")
     .replace(/,\s*\d{4,5}/, "")
-    .replace(/,\s*(?:Catalunya|Catalonia|Comunitat de Madrid|Andalucía|Valencia)$/i, "")
+    .replace(/,\s*(?:Barcelonès|Gironès|Vallès [^,]+|Baix Llobregat|Maresme|Comunitat de Madrid|Andalucía|Valencia)$/i, "")
     .trim();
-  return clean || formattedAddress;
+
+  // Deduplicate repeated tokens (e.g. "Barcelona, Barcelonès, Barcelona" -> "Barcelona")
+  const parts = cleaned.split(",").map((p) => p.trim()).filter(Boolean);
+  const deduped: string[] = [];
+  for (const p of parts) {
+    if (!deduped.some((existing) => existing.toLowerCase() === p.toLowerCase())) {
+      deduped.push(p);
+    }
+  }
+
+  if (deduped.length > 2) {
+    return `${deduped[0]}, ${deduped[deduped.length - 1]}`;
+  }
+  return deduped.join(", ") || formattedAddress;
 }
 
 export function haversineMeters(lat1: number, lon1: number, lat2: number, lon2: number): number {
@@ -210,6 +228,14 @@ export function inferTagsAndVegan(input: {
     allText.includes("ramen") ||
     allText.includes("chinese") ||
     allText.includes("chines") ||
+    allText.includes("chino") ||
+    allText.includes("china") ||
+    allText.includes("xines") ||
+    allText.includes("xina") ||
+    allText.includes("cantones") ||
+    allText.includes("dumpling") ||
+    allText.includes("dim sum") ||
+    allText.includes("gyoza") ||
     allText.includes("thai") ||
     allText.includes("vietnam") ||
     allText.includes("korean") ||
@@ -217,6 +243,19 @@ export function inferTagsAndVegan(input: {
     allText.includes("wok")
   ) {
     tags.add("asian");
+  }
+  if (
+    allText.includes("chinese") ||
+    allText.includes("chines") ||
+    allText.includes("chino") ||
+    allText.includes("china") ||
+    allText.includes("xines") ||
+    allText.includes("xina") ||
+    allText.includes("cantones") ||
+    allText.includes("dumpling") ||
+    allText.includes("dim sum")
+  ) {
+    tags.add("chinese");
   }
   if (
     allText.includes("mediterranean") ||
@@ -308,7 +347,8 @@ export function inferTagsAndVegan(input: {
 
   let inferredCuisine = curatedMatch?.cuisine ?? input.cuisine;
   if (!inferredCuisine) {
-    if (tags.has("italian")) inferredCuisine = "italian";
+    if (tags.has("chinese")) inferredCuisine = "chinese";
+    else if (tags.has("italian")) inferredCuisine = "italian";
     else if (tags.has("asian")) inferredCuisine = "asian";
     else if (tags.has("mediterranean")) inferredCuisine = "mediterranean";
     else if (tags.has("burger")) inferredCuisine = "burger";
@@ -319,6 +359,15 @@ export function inferTagsAndVegan(input: {
     else if (tags.has("cafe_bakery")) inferredCuisine = "cafe_bakery";
     else if (tags.has("fish_and_chips")) inferredCuisine = "fish_and_chips";
     else if (tags.has("restaurant")) inferredCuisine = "restaurant";
+    else if (typeLower.includes("bar") || typeLower.includes("pub")) inferredCuisine = "bar";
+    else if (typeLower.includes("cafe") || typeLower.includes("bakery")) inferredCuisine = "cafe_bakery";
+    else inferredCuisine = "restaurant";
+  }
+
+  if (tags.size === 0) {
+    if (typeLower.includes("cafe") || typeLower.includes("bakery")) tags.add("cafe_bakery");
+    else if (typeLower.includes("bar") || typeLower.includes("pub")) tags.add("bar");
+    else tags.add("restaurant");
   }
 
   return {
@@ -334,10 +383,14 @@ async function fetchOverpassRestaurants(
   lat: number,
   lon: number,
   radiusMeters: number,
+  bbox?: [number, number, number, number],
   signal?: AbortSignal,
 ): Promise<RestaurantCandidate[]> {
   const radius = Math.min(Math.max(radiusMeters, 500), 10_000);
-  const query = `[out:json][timeout:6];(node["amenity"~"restaurant|cafe|fast_food|bar|bistro|pub|ice_cream|bakery"](around:${radius},${lat},${lon});way["amenity"~"restaurant|cafe|fast_food|bar|bistro|pub|ice_cream|bakery"](around:${radius},${lat},${lon});node["diet:vegan"](around:${radius},${lat},${lon});node["diet:vegetarian"](around:${radius},${lat},${lon}););out center 50;`;
+  const spatialFilter = bbox
+    ? `(${bbox[1]},${bbox[0]},${bbox[3]},${bbox[2]})`
+    : `(around:${radius},${lat},${lon})`;
+  const query = `[out:json][timeout:8];(node["amenity"~"restaurant|cafe|fast_food|bar|bistro|pub|ice_cream|bakery|food_court"]${spatialFilter};way["amenity"~"restaurant|cafe|fast_food|bar|bistro|pub|ice_cream|bakery|food_court"]${spatialFilter};node["shop"~"bakery|pastry|deli"]${spatialFilter};way["shop"~"bakery|pastry|deli"]${spatialFilter};node["diet:vegan"]${spatialFilter};way["diet:vegan"]${spatialFilter};node["diet:vegetarian"]${spatialFilter};way["diet:vegetarian"]${spatialFilter};);out center 250;`;
 
   const endpoints = [
     "https://overpass-api.de/api/interpreter",
@@ -436,13 +489,50 @@ async function fetchOverpassRestaurants(
 
 export interface RestaurantRoutesOptions {
   restaurantWebsiteFinder: RestaurantWebsiteFinder;
+  restaurantMenuCache?: RestaurantMenuCache;
 }
 
 export async function restaurantRoutes(
   app: FastifyInstance,
   options: RestaurantRoutesOptions,
 ) {
-  const { restaurantWebsiteFinder } = options;
+  const { restaurantWebsiteFinder, restaurantMenuCache } = options;
+
+  // Restaurant menu endpoint
+  app.get<{ Params: { id: string } }>("/v1/restaurants/:id/menu", async (request, reply) => {
+    const rawId = request.params.id;
+    const cleanId = rawId.replace(/^(?:featured-|curated-)/, "");
+
+    // 1. Check curated menus first
+    const curated = CURATED_MENUS[cleanId] || CURATED_MENUS[rawId];
+    if (curated) {
+      reply.header("Cache-Control", "public, max-age=3600, s-maxage=7200");
+      return curated;
+    }
+
+    // 2. Check menu cache
+    if (restaurantMenuCache) {
+      const dummyCandidate: RestaurantCandidate = {
+        id: cleanId,
+        name: "",
+        address: "",
+        latitude: 0,
+        longitude: 0,
+        mapUrl: "",
+        provider: "curated",
+      };
+      const cached = await restaurantMenuCache.get(dummyCandidate);
+      if (cached?.menu) {
+        reply.header("Cache-Control", "public, max-age=1800");
+        return cached.menu;
+      }
+    }
+
+    return reply.code(404).send({
+      code: "MENU_NOT_FOUND",
+      message: "No menu available for this restaurant yet.",
+    });
+  });
 
   const restaurantSearchCache = new Map<
     string,
@@ -469,7 +559,8 @@ export async function restaurantRoutes(
     };
   }>(
     "/v1/restaurants/curated",
-    async (request) => {
+    async (request, reply) => {
+      reply.header("Cache-Control", "public, max-age=1800, s-maxage=3600, stale-while-revalidate=86400");
       const latitude = Number(request.query.latitude);
       const longitude = Number(request.query.longitude);
       const limit = Math.min(Math.max(Number(request.query.limit) || 12, 1), 50);
@@ -559,9 +650,11 @@ export async function restaurantRoutes(
         request.query.autocomplete === "true" ? "autocomplete" : "search",
         query.toLocaleLowerCase(),
         request.query.near?.trim().toLocaleLowerCase() ?? "",
-        hasLocation ? `${latitude},${longitude}` : "",
-        hasLocation ? String(radiusMeters) : "",
-        request.query.bbox ?? "",
+        hasLocation ? `${latitude.toFixed(5)},${longitude.toFixed(5)}` : "",
+        hasLocation ? String(Math.round(radiusMeters / 250) * 250) : "",
+        parsedBbox
+          ? parsedBbox.map((b) => b.toFixed(5)).join(",")
+          : (request.query.bbox ?? ""),
       ].join("|");
       const cachedSearch = restaurantSearchCache.get(cacheKey);
       if (cachedSearch && cachedSearch.expiresAt > Date.now()) {
@@ -755,8 +848,53 @@ export async function restaurantRoutes(
         return score;
       }
 
+      const searchCoords = hasLocation
+        ? { lat: latitude, lon: longitude }
+        : parsedBbox
+          ? { lat: (parsedBbox[1] + parsedBbox[3]) / 2, lon: (parsedBbox[0] + parsedBbox[2]) / 2 }
+          : undefined;
+
+      const rankAndCapRestaurants = (
+        candidates: RestaurantCandidate[],
+        searchQuery: string,
+        isGeneric: boolean,
+        primaryNameQuery?: string,
+        locationFilter?: string,
+      ): RestaurantCandidate[] => {
+        let sorted: RestaurantCandidate[];
+        if (!isGeneric) {
+          sorted = candidates.sort(
+            (a, b) =>
+              calculateRelevanceScore(searchQuery, b, primaryNameQuery, locationFilter) -
+              calculateRelevanceScore(searchQuery, a, primaryNameQuery, locationFilter),
+          );
+        } else {
+          sorted = candidates.sort((a, b) => {
+            const aVegan = a.isVegan ? 2 : a.isVegetarian ? 1 : 0;
+            const bVegan = b.isVegan ? 2 : b.isVegetarian ? 1 : 0;
+            if (bVegan !== aVegan) return bVegan - aVegan;
+
+            const aRating = a.rating ?? 0;
+            const bRating = b.rating ?? 0;
+            if (Math.abs(bRating - aRating) >= 0.5) return bRating - aRating;
+
+            const aWeb = a.websiteUrl ? 1 : 0;
+            const bWeb = b.websiteUrl ? 1 : 0;
+            if (bWeb !== aWeb) return bWeb - aWeb;
+
+            if (searchCoords) {
+              const distA = haversineMeters(searchCoords.lat, searchCoords.lon, a.latitude, a.longitude);
+              const distB = haversineMeters(searchCoords.lat, searchCoords.lon, b.latitude, b.longitude);
+              return distA - distB;
+            }
+            return 0;
+          });
+        }
+        return sorted.slice(0, 50);
+      };
+
       const validGeoapifyCategories =
-        "catering.restaurant,catering.cafe,catering.fast_food,catering.ice_cream,catering.bar,catering.pub,commercial.food_and_drink.bakery";
+        "catering.restaurant,catering.cafe,catering.fast_food,catering.ice_cream,catering.bar,catering.pub,catering.food_court,catering.biergarten,commercial.food_and_drink.bakery";
 
       if (geoapifyKey && Date.now() > geoapifyDisabledUntil) {
         // If specific name search: use Autocomplete endpoint for high precision POI keyword search
@@ -776,7 +914,7 @@ export async function restaurantRoutes(
             url.searchParams.set("filter", `circle:${longitude},${latitude},${radiusMeters}`);
             url.searchParams.set("bias", `proximity:${longitude},${latitude}`);
           }
-          url.searchParams.set("limit", request.query.autocomplete === "true" ? "8" : "50");
+          url.searchParams.set("limit", request.query.autocomplete === "true" ? "8" : "100");
         } else {
           url.searchParams.set("text", query);
           if (hasLocation && !inferredNear && !hasExplicitCity) {
@@ -858,7 +996,8 @@ export async function restaurantRoutes(
 
                 // Only allow dining establishments or geographic localities (cities/towns/neighborhoods)
                 const cats = props.categories ?? (props.category ? [props.category] : []);
-                const nameLower = props.name.toLowerCase();
+                const nameStr = String(props.name);
+                const nameLower = nameStr.toLowerCase();
                 const hasDiningNameKeyword = [
                   "restaurant", "restaurante", "cafe", "cafè", "café", "cafeteria", "bar", "pub",
                   "bistro", "bistrot", "bakery", "forn", "panaderia", "pizzeria", "burger", "sushi",
@@ -957,7 +1096,7 @@ export async function restaurantRoutes(
 
                 return {
                   id: `geoapify-${placeId}`,
-                  name: props.name!,
+                  name: String(props.name).trim(),
                   address: cleanShortAddress(
                     props.formatted || props.address_line2,
                     props.street,
@@ -980,14 +1119,37 @@ export async function restaurantRoutes(
               });
 
             if (candidates.length > 0) {
-              const deduplicated = deduplicateRestaurants(candidates);
-              const ranked = !isGenericQuery
-                ? deduplicated.sort(
-                    (a, b) =>
-                      calculateRelevanceScore(query, b, geoapifyQuery, inferredNear) -
-                      calculateRelevanceScore(query, a, geoapifyQuery, inferredNear),
-                  )
-                : deduplicated;
+              let overpassExtras: RestaurantCandidate[] = [];
+              if (isSpatialSearch && parsedBbox) {
+                try {
+                  overpassExtras = await fetchOverpassRestaurants(
+                    hasLocation ? latitude : (parsedBbox[1] + parsedBbox[3]) / 2,
+                    hasLocation ? longitude : (parsedBbox[0] + parsedBbox[2]) / 2,
+                    radiusMeters,
+                    parsedBbox,
+                  );
+                } catch {
+                  // Optional enrichment
+                }
+              }
+              const basePool = isSpatialSearch
+                ? [
+                    ...CURATED_RESTAURANTS.filter((r) => isWithinLocation(r.latitude, r.longitude)).map((r) => ({
+                      ...r,
+                      isOpenNow: evaluateOpeningHours(r.openingHours),
+                    })),
+                    ...candidates,
+                    ...overpassExtras,
+                  ]
+                : candidates;
+              const deduplicated = deduplicateRestaurants(basePool);
+              const ranked = rankAndCapRestaurants(
+                deduplicated,
+                query,
+                isGenericQuery,
+                geoapifyQuery,
+                inferredNear,
+              );
 
               restaurantSearchCache.set(cacheKey, {
                 expiresAt: Date.now() + 15 * 60_000,
@@ -1045,17 +1207,29 @@ export async function restaurantRoutes(
       }));
 
       // 2. Spatial Overpass API query for generic area discovery
-      if (isGenericQuery && hasLocation && !hasExplicitCity) {
+      if (isGenericQuery && (hasLocation || parsedBbox) && !hasExplicitCity) {
         try {
-          const overpassResults = await fetchOverpassRestaurants(latitude, longitude, radiusMeters);
+          const overpassResults = await fetchOverpassRestaurants(
+            hasLocation ? latitude : (parsedBbox ? (parsedBbox[1] + parsedBbox[3]) / 2 : 0),
+            hasLocation ? longitude : (parsedBbox ? (parsedBbox[0] + parsedBbox[2]) / 2 : 0),
+            radiusMeters,
+            parsedBbox,
+          );
           if (overpassResults.length > 0) {
             const combined = [...curatedMatches, ...overpassResults];
             const deduplicated = deduplicateRestaurants(combined);
+            const ranked = rankAndCapRestaurants(
+              deduplicated,
+              query,
+              isGenericQuery,
+              geoapifyQuery,
+              inferredNear,
+            );
             restaurantSearchCache.set(cacheKey, {
               expiresAt: Date.now() + 15 * 60_000,
-              results: deduplicated,
+              results: ranked,
             });
-            return deduplicated;
+            return ranked;
           }
         } catch (overpassErr) {
           request.log.warn({ overpassErr }, "Overpass spatial search failed, falling back to Photon");
@@ -1163,13 +1337,13 @@ export async function restaurantRoutes(
       if (photonResults.length > 0 || curatedMatches.length > 0) {
         const combined = [...curatedMatches, ...photonResults];
         const deduplicated = deduplicateRestaurants(combined);
-        const ranked = !isGenericQuery
-          ? deduplicated.sort(
-              (a, b) =>
-                calculateRelevanceScore(query, b, geoapifyQuery, inferredNear) -
-                calculateRelevanceScore(query, a, geoapifyQuery, inferredNear),
-            )
-          : deduplicated;
+        const ranked = rankAndCapRestaurants(
+          deduplicated,
+          query,
+          isGenericQuery,
+          geoapifyQuery,
+          inferredNear,
+        );
         restaurantSearchCache.set(cacheKey, {
           expiresAt: Date.now() + 15 * 60_000,
           results: ranked,
@@ -1311,13 +1485,13 @@ export async function restaurantRoutes(
         const allResults = [...curatedMatches, ...photonResults, ...nominatimCandidates]
           .filter((item) => isWithinLocation(item.latitude, item.longitude, item.placeType === "city"));
         const finalResults = deduplicateRestaurants(allResults);
-        const rankedResults = !isGenericQuery
-          ? finalResults.sort(
-              (a, b) =>
-                calculateRelevanceScore(query, b, geoapifyQuery, inferredNear) -
-                calculateRelevanceScore(query, a, geoapifyQuery, inferredNear),
-            )
-          : finalResults;
+        const rankedResults = rankAndCapRestaurants(
+          finalResults,
+          query,
+          isGenericQuery,
+          geoapifyQuery,
+          inferredNear,
+        );
 
         restaurantSearchCache.set(cacheKey, {
           expiresAt: Date.now() + 15 * 60_000,
@@ -1328,7 +1502,13 @@ export async function restaurantRoutes(
         request.log.warn({ error }, "Restaurant search failed");
         if (photonResults.length > 0 || curatedMatches.length > 0) {
           const fallback = deduplicateRestaurants([...curatedMatches, ...photonResults]);
-          return fallback;
+          return rankAndCapRestaurants(
+            fallback,
+            query,
+            isGenericQuery,
+            geoapifyQuery,
+            inferredNear,
+          );
         }
         return reply.code(503).send({
           code: "RESTAURANT_SEARCH_UNAVAILABLE",
@@ -1338,8 +1518,181 @@ export async function restaurantRoutes(
     },
   );
 
+  // Restaurant by ID lookup endpoint: GET /v1/restaurants/:id
+  app.get<{ Params: { id: string } }>("/v1/restaurants/:id", async (request, reply) => {
+    const { id } = request.params;
+    if (!id || !id.trim()) {
+      return reply.code(400).send({
+        code: "INVALID_RESTAURANT_ID",
+        message: "Restaurant ID is required.",
+      });
+    }
+
+    const cleanId = decodeURIComponent(id.trim());
+
+    // 1. Check curated restaurants first
+    const curated = CURATED_RESTAURANTS.find(
+      (r) =>
+        r.id === cleanId ||
+        r.name.toLowerCase() === cleanId.toLowerCase(),
+    );
+    if (curated) {
+      return curated;
+    }
+
+    // 2. OpenStreetMap lookup (node-1234, way-1234, relation-1234, N1234, etc.)
+    const osmMatch = cleanId.match(/^(node|way|relation)-(\d+)$/i) || cleanId.match(/^([nwr])(\d+)$/i);
+    if (osmMatch) {
+      const typeChar = (osmMatch[1]![0] || "n").toUpperCase();
+      const osmNum = osmMatch[2]!;
+      const osmLookupId = `${typeChar}${osmNum}`;
+
+      try {
+        const lookupUrl = new URL("https://nominatim.openstreetmap.org/lookup");
+        lookupUrl.searchParams.set("osm_ids", osmLookupId);
+        lookupUrl.searchParams.set("format", "jsonv2");
+        lookupUrl.searchParams.set("extratags", "1");
+        lookupUrl.searchParams.set("addressdetails", "1");
+
+        const res = await fetch(lookupUrl.toString(), {
+          headers: {
+            "User-Agent":
+              process.env.NOMINATIM_USER_AGENT ??
+              process.env.OFF_USER_AGENT ??
+              "VeganTools/0.1 (+https://vegantools.org)",
+            Accept: "application/json",
+          },
+          signal: AbortSignal.timeout(6_000),
+        });
+
+        if (res.ok) {
+          const items = (await res.json()) as Array<{
+            osm_type: string;
+            osm_id: number;
+            name?: string;
+            display_name: string;
+            lat: string;
+            lon: string;
+            category?: string;
+            type?: string;
+            extratags?: Record<string, string>;
+          }>;
+
+          if (items.length > 0) {
+            const item = items[0]!;
+            const website = item.extratags?.website ?? item.extratags?.["contact:website"];
+            let websiteUrl: string | undefined;
+            try {
+              const parsed = website ? new URL(website) : undefined;
+              if (parsed && ["http:", "https:"].includes(parsed.protocol)) {
+                websiteUrl = parsed.toString();
+              }
+            } catch {
+              websiteUrl = undefined;
+            }
+            const { tags, isVegan, isVegetarian, cuisine } = inferTagsAndVegan({
+              name: item.name ?? item.display_name,
+              cuisine: item.extratags?.cuisine,
+              type: item.type,
+            });
+
+            const candidate: RestaurantCandidate = {
+              id: `${item.osm_type}-${item.osm_id}`,
+              name: item.name?.trim() || item.display_name.split(",")[0]?.trim() || cleanId,
+              address: cleanShortAddress(item.display_name),
+              latitude: Number(item.lat),
+              longitude: Number(item.lon),
+              websiteUrl,
+              mapUrl: `https://www.openstreetmap.org/${item.osm_type}/${item.osm_id}`,
+              provider: "openstreetmap",
+              openingHours: item.extratags?.opening_hours,
+              isOpenNow: evaluateOpeningHours(item.extratags?.opening_hours),
+              cuisine,
+              tags,
+              isVegan,
+              isVegetarian,
+              placeType: "restaurant",
+            };
+            return candidate;
+          }
+        }
+      } catch (err) {
+        request.log.warn({ err }, "Nominatim lookup failed for restaurant id");
+      }
+    }
+
+    // 3. Geoapify place details (geoapify-...)
+    if (cleanId.startsWith("geoapify-")) {
+      const geoapifyKey = process.env.GEOAPIFY_API_KEY?.trim();
+      const placeId = cleanId.replace(/^geoapify-/, "");
+      if (geoapifyKey) {
+        try {
+          const url = new URL("https://api.geoapify.com/v2/place-details");
+          url.searchParams.set("id", placeId);
+          url.searchParams.set("apiKey", geoapifyKey);
+          const res = await fetch(url.toString(), {
+            headers: { Accept: "application/json" },
+            signal: AbortSignal.timeout(4_000),
+          });
+          if (res.ok) {
+            const data = (await res.json()) as {
+              features?: Array<{
+                properties?: {
+                  name?: string;
+                  formatted?: string;
+                  lat?: number;
+                  lon?: number;
+                  categories?: string[];
+                  website?: string;
+                  opening_hours?: string;
+                  contact?: { website?: string; phone?: string };
+                };
+              }>;
+            };
+            const feat = data.features?.[0]?.properties;
+            if (feat && typeof feat.lat === "number" && typeof feat.lon === "number") {
+              const website = feat.website || feat.contact?.website;
+              let websiteUrl: string | undefined;
+              try {
+                if (website) websiteUrl = new URL(website.startsWith("http") ? website : `https://${website}`).toString();
+              } catch {}
+              const { tags, isVegan, isVegetarian, cuisine } = inferTagsAndVegan({
+                name: feat.name || cleanId,
+              });
+              const candidate: RestaurantCandidate = {
+                id: cleanId,
+                name: feat.name || cleanId,
+                address: cleanShortAddress(feat.formatted),
+                latitude: feat.lat,
+                longitude: feat.lon,
+                websiteUrl,
+                mapUrl: `https://www.google.com/maps/search/?api=1&query=${feat.lat},${feat.lon}`,
+                provider: "geoapify",
+                openingHours: feat.opening_hours,
+                isOpenNow: evaluateOpeningHours(feat.opening_hours),
+                cuisine,
+                tags,
+                isVegan,
+                isVegetarian,
+                placeType: "restaurant",
+              };
+              return candidate;
+            }
+          }
+        } catch (err) {
+          request.log.warn({ err }, "Geoapify place details failed");
+        }
+      }
+    }
+
+    return reply.code(404).send({
+      code: "RESTAURANT_NOT_FOUND",
+      message: "Restaurant could not be found.",
+    });
+  });
+
   // Restaurant resolve endpoint
-  app.post<{ Body: unknown }>("/v1/restaurants/resolve", async (request, reply) => {
+  app.post<{ Body: unknown }>("/v1/restaurants/resolve", { config: { rateLimit: { max: 20, timeWindow: "1 minute" } } }, async (request, reply) => {
     const parsed = restaurantCandidateSchema.safeParse(request.body);
     if (!parsed.success) {
       return reply.code(400).send({
@@ -1348,10 +1701,16 @@ export async function restaurantRoutes(
       });
     }
     const candidate = parsed.data;
-    if (candidate.provider === "curated" || candidate.id.startsWith("curated-")) {
+    if (
+      (candidate.provider === "curated" || candidate.id.startsWith("curated-")) &&
+      candidate.websiteUrl &&
+      isPlausibleOfficialWebsite(candidate.websiteUrl)
+    ) {
       return candidate;
     }
-    if (candidate.websiteUrl) return candidate;
+    if (candidate.websiteUrl && isPlausibleOfficialWebsite(candidate.websiteUrl)) {
+      return candidate;
+    }
 
     const geoapifyKey = process.env.GEOAPIFY_API_KEY?.trim();
     if (candidate.provider === "geoapify" && geoapifyKey) {
@@ -1381,7 +1740,10 @@ export async function restaurantRoutes(
               const parsedUrl = new URL(
                 site.startsWith("http") ? site : `https://${site}`,
               );
-              if (["http:", "https:"].includes(parsedUrl.protocol)) {
+              if (
+                ["http:", "https:"].includes(parsedUrl.protocol) &&
+                isPlausibleOfficialWebsite(parsedUrl.toString())
+              ) {
                 return { ...candidate, websiteUrl: parsedUrl.toString() };
               }
             } catch {
@@ -1395,7 +1757,10 @@ export async function restaurantRoutes(
     }
 
     try {
-      const websiteUrl = await restaurantWebsiteFinder.find(candidate);
+      const websiteUrl = await restaurantWebsiteFinder.find(
+        candidate,
+        candidate.websiteUrl,
+      );
       return websiteUrl ? { ...candidate, websiteUrl } : candidate;
     } catch (error) {
       request.log.warn({ error }, "Official website search failed");

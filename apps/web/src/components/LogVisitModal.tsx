@@ -1,14 +1,24 @@
 /**
  * @file LogVisitModal.tsx
- * @description Modal dialog allowing users to record a restaurant visit with date, rating (0.5 to 5.0), dishes, and notes.
- * Enforces authenticated user account. Supports optional visit date, menu dish suggestions, and custom/off-menu dish input.
+ * @description Unified modal dialog allowing users to record a restaurant review and visit log.
+ * Integrates leaves rating (1 to 5, no default rating), optional visit date, dishes tried,
+ * personal notes/review, and venue tags matching map search filters to help populate the community database.
  */
 
-import { useState, useRef, useEffect, type FormEvent, type KeyboardEvent } from "react";
-import { Calendar, Check, Plus, Star, Trash2, X } from "lucide-react";
+import { useState, useRef, useEffect, type FormEvent, type ChangeEvent } from "react";
+import { Calendar, Camera, Check, Plus, Trash2, X } from "lucide-react";
 import { deleteVisitLog, saveVisitLog, type RestaurantVisitLog } from "../utils/diary";
+import { submitRestaurantReview } from "../api";
 import { useAuth } from "../auth";
-import { tx } from "../i18n";
+import { tx, useLanguage } from "../i18n";
+import { LeafRating } from "./LeafRating";
+import { CATEGORY_FILTERS } from "./FilterPills";
+
+export const STANDARD_VENUE_TAGS = CATEGORY_FILTERS.map((f) => ({
+  id: f.id,
+  labelKey: f.labelKey,
+  icon: f.icon,
+}));
 
 interface LogVisitModalProps {
   restaurant: {
@@ -35,20 +45,45 @@ export function LogVisitModal({
   onDeleted,
   menuDishes,
 }: LogVisitModalProps) {
-  const { user } = useAuth();
+  const { user, token } = useAuth();
+  const language = useLanguage();
   const todayStr = new Date().toISOString().slice(0, 10);
 
   const [hasDate, setHasDate] = useState<boolean>(
     initialLog ? Boolean(initialLog.visitDate) : true,
   );
   const [visitDate, setVisitDate] = useState<string>(initialLog?.visitDate || todayStr);
-  const [rating, setRating] = useState<number>(initialLog?.rating || 4.5);
+  const [rating, setRating] = useState<number>(initialLog?.rating || 0);
   const [notes, setNotes] = useState<string>(initialLog?.notes || "");
   const [dishesList, setDishesList] = useState<string[]>(initialLog?.dishesTried || []);
+  const [selectedTags, setSelectedTags] = useState<string[]>(initialLog?.tags || []);
+  const [photos, setPhotos] = useState<string[]>(initialLog?.photos || []);
   const [customDishInput, setCustomDishInput] = useState<string>("");
+  const [validationError, setValidationError] = useState<string | null>(null);
   const [savedSuccess, setSavedSuccess] = useState(false);
 
   const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  useEffect(() => {
+    if (initialLog) {
+      setHasDate(Boolean(initialLog.visitDate));
+      setVisitDate(initialLog.visitDate || todayStr);
+      setRating(initialLog.rating || 0);
+      setNotes(initialLog.notes || "");
+      setDishesList(initialLog.dishesTried || []);
+      setSelectedTags(initialLog.tags || []);
+      setPhotos(initialLog.photos || []);
+    } else {
+      setHasDate(true);
+      setVisitDate(todayStr);
+      setRating(0);
+      setNotes("");
+      setDishesList([]);
+      setSelectedTags([]);
+      setPhotos([]);
+    }
+    setValidationError(null);
+  }, [initialLog, isOpen, todayStr]);
 
   useEffect(() => {
     return () => {
@@ -73,23 +108,78 @@ export function LogVisitModal({
     setDishesList((prev) => prev.filter((d) => d !== dishToRemove));
   };
 
+  const toggleTag = (tagId: string) => {
+    setSelectedTags((prev) =>
+      prev.includes(tagId) ? prev.filter((t) => t !== tagId) : [...prev, tagId],
+    );
+  };
+
+  const handlePhotoUpload = (e: ChangeEvent<HTMLInputElement>) => {
+    const files = e.target.files;
+    if (!files || files.length === 0) return;
+    const remaining = 3 - photos.length;
+    if (remaining <= 0) return;
+    const toProcess = Array.from(files).slice(0, remaining);
+    for (const file of toProcess) {
+      if (!file.type.startsWith("image/")) continue;
+      const reader = new FileReader();
+      reader.onload = () => {
+        if (typeof reader.result === "string") {
+          setPhotos((prev) => [...prev, reader.result as string].slice(0, 3));
+        }
+      };
+      reader.readAsDataURL(file);
+    }
+    e.target.value = "";
+  };
+
+  const handleRemovePhoto = (index: number) => {
+    setPhotos((prev) => prev.filter((_, i) => i !== index));
+  };
+
   const handleSubmit = (e: FormEvent) => {
     e.preventDefault();
     if (!user) return;
+    setValidationError(null);
 
-    const saved = saveVisitLog({
-      id: initialLog?.id,
-      userId: user.id,
-      restaurantId: restaurant.id,
-      restaurantName: restaurant.name,
-      restaurantAddress: restaurant.address,
-      restaurantImage: restaurant.imageUrl,
-      cuisine: restaurant.cuisine,
-      visitDate: hasDate && visitDate ? visitDate : undefined,
-      rating,
-      notes,
-      dishesTried: dishesList,
-    });
+    const effectiveRating = rating > 0 ? rating : (initialLog?.rating ?? 4.5);
+
+    // 1. Save unified visit log in local diary / Supabase visits
+    const saved = saveVisitLog(
+      {
+        id: initialLog?.id,
+        userId: user.id,
+        restaurantId: restaurant.id,
+        restaurantName: restaurant.name,
+        restaurantAddress: restaurant.address,
+        restaurantImage: restaurant.imageUrl,
+        cuisine: restaurant.cuisine,
+        visitDate: hasDate && visitDate ? visitDate : undefined,
+        rating: effectiveRating,
+        notes: notes.trim(),
+        dishesTried: dishesList,
+        tags: selectedTags,
+        photos,
+      },
+      token || undefined,
+    );
+
+    // 2. Submit community leaf review if authenticated and rating was provided
+    if (token && rating > 0) {
+      void submitRestaurantReview(
+        restaurant.id,
+        {
+          leavesScore: rating,
+          comment: notes.trim(),
+          userName: user.username || user.name || "Usuari",
+          tags: selectedTags,
+          photos,
+        },
+        token,
+      ).catch(() => {
+        // Handled silently; offline local save succeeded
+      });
+    }
 
     setSavedSuccess(true);
     timerRef.current = setTimeout(() => {
@@ -102,23 +192,21 @@ export function LogVisitModal({
   const handleDelete = () => {
     if (!initialLog || !user) return;
     if (confirm(tx("Are you sure you want to delete this visit?"))) {
-      deleteVisitLog(initialLog.id, user.id);
+      deleteVisitLog(initialLog.id, user.id, token || undefined);
       onDeleted?.(initialLog.id);
       onClose();
     }
   };
 
-  const ratingOptions = [0.5, 1.0, 1.5, 2.0, 2.5, 3.0, 3.5, 4.0, 4.5, 5.0];
-
   return (
     <div className="auth-dialog-backdrop" onClick={onClose} role="dialog" aria-modal="true">
       <div
-        className="auth-dialog-card log-visit-modal-card"
+        className="auth-dialog-modal log-visit-modal-card"
         onClick={(e) => e.stopPropagation()}
       >
         <div className="auth-dialog-header">
           <div>
-            <h2 className="auth-dialog-title">{tx("Log a restaurant visit")}</h2>
+            <h2 className="auth-dialog-title">{tx("Log a restaurant visit & review")}</h2>
             <p className="auth-dialog-subtitle">{restaurant.name}</p>
           </div>
           <button
@@ -144,7 +232,48 @@ export function LogVisitModal({
           </div>
         ) : (
           <form onSubmit={handleSubmit} className="log-visit-form">
-            {/* Visit Date (Optional, defaults to today) */}
+            {validationError && (
+              <div
+                style={{
+                  padding: "0.6rem 0.85rem",
+                  borderRadius: "8px",
+                  background: "#fef2f2",
+                  color: "#dc2626",
+                  fontSize: "0.85rem",
+                  fontWeight: 600,
+                  marginBottom: "0.75rem",
+                }}
+              >
+                {validationError}
+              </div>
+            )}
+
+            {/* Letterboxd-style Leaf Rating (1.0 to 5.0) - No default rating */}
+            <div className="log-visit-field">
+              <div className="log-visit-rating-header">
+                <label className="log-visit-label">
+                  <span>{tx("Rating")}</span>
+                </label>
+                <span className="log-visit-rating-display" style={{ color: rating > 0 ? "var(--green)" : "var(--muted)" }}>
+                  {rating > 0 ? `${rating.toFixed(1)} / 5.0` : tx("Tap leaves to rate")}
+                </span>
+              </div>
+
+              <div style={{ display: "flex", justifyContent: "center", padding: "0.5rem 0" }}>
+                <LeafRating
+                  value={rating}
+                  interactive
+                  onChange={(val) => {
+                    setRating(val);
+                    setValidationError(null);
+                  }}
+                  size={26}
+                  ariaLabel={tx("Rating")}
+                />
+              </div>
+            </div>
+
+            {/* Visit Date Toggle (Optional, defaults to today) */}
             <div className="log-visit-field">
               <div className="log-visit-date-toggle-header">
                 <label htmlFor="visit-date-checkbox" className="log-visit-checkbox-label">
@@ -174,48 +303,111 @@ export function LogVisitModal({
                     max={todayStr}
                     onChange={(e) => setVisitDate(e.target.value)}
                   />
-                  <span className="log-visit-hint">
-                    {tx("One log per restaurant per calendar day")}
-                  </span>
                 </div>
               )}
             </div>
 
-            {/* Star Rating (Half-star steps 0.5 to 5.0) */}
+            {/* Review Notes / Comment */}
             <div className="log-visit-field">
-              <div className="log-visit-rating-header">
-                <label className="log-visit-label">
-                  <Star size={15} aria-hidden="true" />
-                  <span>{tx("Rating")}</span>
-                </label>
-                <span className="log-visit-rating-display">
-                  ★ {rating.toFixed(1)} / 5.0
-                </span>
-              </div>
+              <label htmlFor="notes-input" className="log-visit-label">
+                <span>{tx("Notes and review")}</span>
+              </label>
+              <textarea
+                id="notes-input"
+                className="log-visit-textarea"
+                rows={3}
+                placeholder={tx("How was the food, service and plant-based options?")}
+                value={notes}
+                onChange={(e) => setNotes(e.target.value)}
+              />
+            </div>
 
-              <div className="log-visit-rating-pills" role="radiogroup" aria-label={tx("Rating")}>
-                {ratingOptions.map((val) => (
-                  <button
-                    key={val}
-                    type="button"
-                    role="radio"
-                    aria-checked={rating === val}
-                    className={`log-visit-rating-pill ${rating === val ? "active" : ""}`}
-                    onClick={() => setRating(val)}
+            {/* Photo Upload Section */}
+            <div className="log-visit-field">
+              <label className="log-visit-label">
+                <span>📷 {tx("Add photos to review (max 3)")}</span>
+              </label>
+              <div style={{ display: "flex", flexWrap: "wrap", gap: "0.5rem", marginTop: "0.4rem" }}>
+                {photos.map((src, idx) => (
+                  <div
+                    key={idx}
+                    style={{
+                      position: "relative",
+                      width: "68px",
+                      height: "68px",
+                      borderRadius: "8px",
+                      overflow: "hidden",
+                      border: "1px solid var(--line, #cbd5e1)",
+                    }}
                   >
-                    {val % 1 === 0 ? `${val}.0` : val}
-                  </button>
+                    <img
+                      src={src}
+                      alt={`Review photo ${idx + 1}`}
+                      style={{ width: "100%", height: "100%", objectFit: "cover" }}
+                    />
+                    <button
+                      type="button"
+                      onClick={() => handleRemovePhoto(idx)}
+                      style={{
+                        position: "absolute",
+                        top: "2px",
+                        right: "2px",
+                        background: "rgba(0,0,0,0.65)",
+                        color: "white",
+                        border: "none",
+                        borderRadius: "50%",
+                        width: "20px",
+                        height: "20px",
+                        cursor: "pointer",
+                        display: "flex",
+                        alignItems: "center",
+                        justifyContent: "center",
+                      }}
+                      title={tx("Remove photo")}
+                      aria-label={tx("Remove photo")}
+                    >
+                      <X size={12} />
+                    </button>
+                  </div>
                 ))}
+                {photos.length < 3 && (
+                  <label
+                    style={{
+                      width: "68px",
+                      height: "68px",
+                      borderRadius: "8px",
+                      border: "2px dashed var(--line, #cbd5e1)",
+                      background: "var(--bg-subtle, #f8fafc)",
+                      display: "flex",
+                      flexDirection: "column",
+                      alignItems: "center",
+                      justifyContent: "center",
+                      cursor: "pointer",
+                      color: "var(--text-muted, #64748b)",
+                      fontSize: "0.72rem",
+                      gap: "2px",
+                    }}
+                  >
+                    <Camera size={18} />
+                    <span>{tx("Photo")}</span>
+                    <input
+                      type="file"
+                      accept="image/jpeg,image/png,image/webp"
+                      multiple
+                      onChange={handlePhotoUpload}
+                      style={{ display: "none" }}
+                    />
+                  </label>
+                )}
               </div>
             </div>
 
-            {/* Hybrid Dishes Section: Quick Suggestions from Menu + Free Text for Off-Menu Specials */}
+            {/* Dishes Section: Quick Suggestions from Menu + Free Text for Off-Menu Specials */}
             <div className="log-visit-field">
               <label className="log-visit-label">
                 <span>🌱 {tx("Dishes")}</span>
               </label>
 
-              {/* Selected Dish Tags */}
               {dishesList.length > 0 && (
                 <div className="log-visit-selected-tags">
                   {dishesList.map((dish) => (
@@ -234,11 +426,10 @@ export function LogVisitModal({
                 </div>
               )}
 
-              {/* Menu Suggestions Quick Chips */}
               {menuDishes && menuDishes.length > 0 && (
                 <div className="log-visit-menu-suggestions">
                   <span className="log-visit-suggestions-label">
-                    🍽️ {tx("Menu suggestions")}:
+                    🍴 {tx("Menu suggestions")}:
                   </span>
                   <div className="log-visit-suggestion-chips">
                     {menuDishes
@@ -259,7 +450,6 @@ export function LogVisitModal({
                 </div>
               )}
 
-              {/* Custom Free Text Input (for off-menu / specials) */}
               <div className="log-visit-dish-add-row">
                 <input
                   id="custom-dish-input"
@@ -287,19 +477,40 @@ export function LogVisitModal({
               </div>
             </div>
 
-            {/* Review Notes */}
+            {/* Standard Venue Tags matching Map Filters */}
             <div className="log-visit-field">
-              <label htmlFor="notes-input" className="log-visit-label">
-                <span>{tx("Notes and review")}</span>
+              <label className="log-visit-label">
+                <span>🏷️ {tx("Tags & features (matching map filters)")}</span>
               </label>
-              <textarea
-                id="notes-input"
-                className="log-visit-textarea"
-                rows={3}
-                placeholder={tx("How was the food, service and plant-based options?")}
-                value={notes}
-                onChange={(e) => setNotes(e.target.value)}
-              />
+              <div style={{ display: "flex", flexWrap: "wrap", gap: "0.4rem", marginTop: "0.4rem" }}>
+                {CATEGORY_FILTERS.filter((t) => t.id !== "menu_catala" || language === "ca").map((t) => {
+                  const isSelected = selectedTags.includes(t.id);
+                  return (
+                    <button
+                      key={t.id}
+                      type="button"
+                      onClick={() => toggleTag(t.id)}
+                      style={{
+                        display: "inline-flex",
+                        alignItems: "center",
+                        gap: "0.3rem",
+                        background: isSelected ? "var(--green, #047857)" : "var(--bg-subtle, #f1f5f9)",
+                        color: isSelected ? "#ffffff" : "var(--text, #1e293b)",
+                        border: `1px solid ${isSelected ? "var(--green, #047857)" : "var(--line, #cbd5e1)"}`,
+                        padding: "0.3rem 0.65rem",
+                        borderRadius: "999px",
+                        fontSize: "0.82rem",
+                        fontWeight: 600,
+                        cursor: "pointer",
+                        transition: "all 0.15s ease",
+                      }}
+                    >
+                      {t.icon && <span aria-hidden="true">{t.icon}</span>}
+                      <span>{tx(t.labelKey)}</span>
+                    </button>
+                  );
+                })}
+              </div>
             </div>
 
             {/* Form Actions */}
@@ -337,7 +548,7 @@ export function LogVisitModal({
                       <span>{tx("Saved!")}</span>
                     </>
                   ) : (
-                    <span>{tx("Save visit")}</span>
+                    <span>{tx("Save visit & review")}</span>
                   )}
                 </button>
               </div>

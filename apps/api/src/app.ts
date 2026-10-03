@@ -8,6 +8,7 @@
 import Fastify from "fastify";
 import cors from "@fastify/cors";
 import multipart from "@fastify/multipart";
+import rateLimit from "@fastify/rate-limit";
 import swagger from "@fastify/swagger";
 import swaggerUi from "@fastify/swagger-ui";
 import { repository, type Repository } from "./store.js";
@@ -40,6 +41,10 @@ import {
   createRestaurantReviewStore,
   type RestaurantReviewStore,
 } from "./restaurant-review-store.js";
+import {
+  createRestaurantVisitStore,
+  type RestaurantVisitStore,
+} from "./restaurant-visit-store.js";
 
 // Domain route modules
 import { locationRoutes } from "./routes/location.js";
@@ -48,6 +53,7 @@ import { productRoutes } from "./routes/products.js";
 import { reviewRoutes } from "./routes/reviews.js";
 import { restaurantRoutes } from "./routes/restaurants.js";
 import { menuRoutes } from "./routes/menus.js";
+import { visitRoutes } from "./routes/visits.js";
 
 // Re-export routes and helpers for external consumers & tests
 export * from "./routes/location.js";
@@ -56,6 +62,8 @@ export * from "./routes/products.js";
 export * from "./routes/reviews.js";
 export * from "./routes/restaurants.js";
 export * from "./routes/menus.js";
+export * from "./routes/visits.js";
+export * from "./restaurant-visit-store.js";
 
 export interface AppDependencies {
   repo?: Repository;
@@ -67,6 +75,9 @@ export interface AppDependencies {
   menuSourceStore?: MenuSourceStore;
   dishFeedbackPolisher?: DishFeedbackPolisher;
   reviewStore?: RestaurantReviewStore;
+  visitStore?: RestaurantVisitStore;
+  disableRateLimit?: boolean;
+  rateLimitMax?: number;
 }
 
 export async function buildApp(
@@ -79,6 +90,7 @@ export async function buildApp(
   menuSourceStoreArg?: MenuSourceStore,
   dishFeedbackPolisherArg?: DishFeedbackPolisher,
   restaurantReviewStoreArg?: RestaurantReviewStore,
+  restaurantVisitStoreArg?: RestaurantVisitStore,
 ) {
   // Check if first argument is an AppDependencies object or a Repository instance
   const isDepsObject =
@@ -98,6 +110,7 @@ export async function buildApp(
         menuSourceStore: menuSourceStoreArg,
         dishFeedbackPolisher: dishFeedbackPolisherArg,
         reviewStore: restaurantReviewStoreArg,
+        visitStore: restaurantVisitStoreArg,
       };
 
   const repo = deps.repo ?? repository;
@@ -109,8 +122,9 @@ export async function buildApp(
   const menuSourceStore = deps.menuSourceStore ?? new MemoryMenuSourceStore();
   const dishFeedbackPolisher = deps.dishFeedbackPolisher ?? new GeminiDishFeedbackPolisher();
   const reviewStore = deps.reviewStore ?? createRestaurantReviewStore();
+  const visitStore = deps.visitStore ?? createRestaurantVisitStore();
 
-  const app = Fastify({ logger: true, bodyLimit: 15 * 1024 * 1024 });
+  const app = Fastify({ logger: true, bodyLimit: 15 * 1024 * 1024, trustProxy: true });
 
   const normalizeCorsOrigin = (origin: string) =>
     origin.trim().replace(/^['"]|['"]$/g, "").replace(/\/+$/, "");
@@ -143,6 +157,27 @@ export async function buildApp(
     },
   });
 
+  // ── Rate limiting ─────────────────────────────────────────────────────
+  // Global default: 100 requests per minute per IP.
+  // AI-heavy routes get stricter per-route overrides (registered below)
+  // to prevent cost abuse on Gemini / Geoapify.
+  // In tests, disabled by default to avoid flakiness unless explicitly enabled via { disableRateLimit: false }.
+  const isTestEnv = process.env.NODE_ENV === "test";
+  const disableRateLimit = deps.disableRateLimit ?? isTestEnv;
+
+  if (!disableRateLimit) {
+    await app.register(rateLimit, {
+      max: deps.rateLimitMax ?? 100,
+      timeWindow: "1 minute",
+      allowList: (req) => {
+        const url = req.url ?? "";
+        return url === "/health" || url.startsWith("/docs");
+      },
+      addHeadersOnExceeding: { "x-ratelimit-limit": true, "x-ratelimit-remaining": true, "x-ratelimit-reset": true },
+      addHeaders: { "x-ratelimit-limit": true, "x-ratelimit-remaining": true, "x-ratelimit-reset": true, "retry-after": true },
+    });
+  }
+
   await app.register(multipart, {
     limits: { files: 8, fileSize: 10 * 1024 * 1024 },
   });
@@ -167,12 +202,31 @@ export async function buildApp(
       .send("ok");
   });
 
+  // RFC 9116 — Security vulnerability disclosure
+  app.get("/.well-known/security.txt", async (_request, reply) => {
+    return reply
+      .type("text/plain; charset=utf-8")
+      .header("Cache-Control", "public, max-age=86400")
+      .send(
+        [
+          "# Vegan Tools Security Policy",
+          "# https://securitytxt.org/ — RFC 9116",
+          "",
+          "Contact: mailto:nils@vegantools.org",
+          "Preferred-Languages: ca, en, es",
+          "Canonical: https://vegan-tools-api.onrender.com/.well-known/security.txt",
+          "Expires: 2027-10-01T00:00:00.000Z",
+          "",
+        ].join("\n"),
+      );
+  });
+
   // Register modular route plugins
   await locationRoutes(app);
   await recipeRoutes(app);
   await productRoutes(app, { repo, ingredientExtractor });
   await reviewRoutes(app, { reviewStore });
-  await restaurantRoutes(app, { restaurantWebsiteFinder });
+  await restaurantRoutes(app, { restaurantWebsiteFinder, restaurantMenuCache });
   await menuRoutes(app, {
     repo,
     menuAnalyzer,
@@ -182,6 +236,7 @@ export async function buildApp(
     menuSourceStore,
     dishFeedbackPolisher,
   });
+  await visitRoutes(app, { visitStore });
 
   return app;
 }

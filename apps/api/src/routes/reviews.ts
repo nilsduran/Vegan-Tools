@@ -105,7 +105,7 @@ export async function reviewRoutes(app: FastifyInstance, options: ReviewRoutesOp
         });
       }
 
-      const { leavesScore, comment, userName } = parsed.data;
+      const { leavesScore, comment, userName, tags, photos } = parsed.data;
       const now = new Date().toISOString();
 
       const review: RestaurantReview = {
@@ -116,6 +116,8 @@ export async function reviewRoutes(app: FastifyInstance, options: ReviewRoutesOp
         userAvatarUrl: user.avatarUrl,
         leavesScore,
         comment: comment?.trim() || "",
+        tags: tags || [],
+        photos: photos || [],
         createdAt: now,
         updatedAt: now,
       };

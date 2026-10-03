@@ -11,7 +11,7 @@ type Detector = {
 export function BarcodeCamera({ onDetected }: { onDetected: (value: string) => void }) {
   const videoRef = useRef<HTMLVideoElement>(null);
   const [error, setError] = useState("");
-  const [started, setStarted] = useState(false);
+  const [started, setStarted] = useState(true);
   const [showPermissionModal, setShowPermissionModal] = useState(false);
   const [retryCount, setRetryCount] = useState(0);
 

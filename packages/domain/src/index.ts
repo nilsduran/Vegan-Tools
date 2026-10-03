@@ -13,3 +13,8 @@ export * from "./recipe.js";
 export * from "./menu.js";
 export * from "./featured-restaurants.js";
 export * from "./opening-hours.js";
+export * from "./cookbook.js";
+export * from "./user.js";
+export * from "./curated-menus.js";
+export * from "./ingredient-normalizer.js";
+export * from "./taxonomy.js";

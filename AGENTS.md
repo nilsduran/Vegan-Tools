@@ -11,7 +11,7 @@ Per evitar la dispersió en múltiples fitxers obsolets o secundaris, el reposit
 1. 🗺️ **Full de Ruta i Backlog Prioritzat**: [`docs/roadmap.md`](./docs/roadmap.md)
    - L'única font de veritat sobre l'estat del desenvolupament, deute tècnic i tasques pendents, ordenades estrictament pels 4 nivells de priorització.
 2. 🏛️ **Guia d'Arquitectura i Descoberta**: [`docs/architecture.md`](./docs/architecture.md)
-   - Diagrames de flux, resolució de dominis amb IA, jerarquia d'evidències (precisió 99%), seguretat SSRF i referència de l'API.
+   - Diagrames de flux, resolució de dominis amb IA, jerarquia d'evidències i principi de màxima precaució, seguretat SSRF i referència de l'API.
 3. 💚 **Manifest Ètic i Carta de Valors**: [`docs/values.md`](./docs/values.md)
    - Principis morals antiespecistes, política estricta d'espai segur (tolerància zero amb imatges d'explotació animal) i privacitat zero-tracking.
 
@@ -84,3 +84,6 @@ Qualsevol tasca, millora o correcció s'ha de classificar i abordar seguint aque
 5. **Internacionalització (i18n)**:
    - Qualsevol cadena nova d'interfície ha d'estar traduïda a `i18n.ts` (`ca` i `en`).
    - Usar la terminologia normalitzada: `Carta` (no "Menú"), `No vegà` (no "Carnista"), `Indicacions` (no "Com arribar").
+
+6. **Evitar Optimitzacions Prematures (Pushback Proactiu)**:
+   - *Premature optimization is the root of all evil*: L'agent ha d'oferir pushback constructiu i dissuadir activament quan sorgeixi la temptació d'afegir complexitat innecessària abans d'hora (com filtres manuals d'ofensivitat de noms, sistemes de moderació massiva, esquemes hiper-complexos o micro-optimitzacions abans de tenir un problema o escala real). Prioritzar sempre la màxima senzillesa, el flux nuclear del producte i les necessitats reals i tangibles dels usuaris.

@@ -27,6 +27,52 @@ export default defineConfig({
           },
         ],
       },
+      workbox: {
+        runtimeCaching: [
+          {
+            urlPattern: /^https:\/\/maps\.geoapify\.com\/v1\/tile\/.*/i,
+            handler: "CacheFirst",
+            options: {
+              cacheName: "geoapify-tiles",
+              expiration: {
+                maxEntries: 1200,
+                maxAgeSeconds: 60 * 60 * 24 * 14, // 14 days
+              },
+              cacheableResponse: {
+                statuses: [0, 200],
+              },
+            },
+          },
+          {
+            urlPattern: /^https:\/\/[a-c]\.tile\.openstreetmap\.org\/.*/i,
+            handler: "CacheFirst",
+            options: {
+              cacheName: "osm-tiles",
+              expiration: {
+                maxEntries: 1200,
+                maxAgeSeconds: 60 * 60 * 24 * 14, // 14 days
+              },
+              cacheableResponse: {
+                statuses: [0, 200],
+              },
+            },
+          },
+          {
+            urlPattern: /^https:\/\/[a-d]\.basemaps\.cartocdn\.com\/.*/i,
+            handler: "CacheFirst",
+            options: {
+              cacheName: "carto-tiles",
+              expiration: {
+                maxEntries: 1200,
+                maxAgeSeconds: 60 * 60 * 24 * 14, // 14 days
+              },
+              cacheableResponse: {
+                statuses: [0, 200],
+              },
+            },
+          },
+        ],
+      },
     }),
   ],
   build: {
@@ -54,6 +100,10 @@ export default defineConfig({
     host: true,
     proxy: {
       "/api": {
+        target: "http://localhost:3001",
+        changeOrigin: true,
+      },
+      "/v1": {
         target: "http://localhost:3001",
         changeOrigin: true,
       },

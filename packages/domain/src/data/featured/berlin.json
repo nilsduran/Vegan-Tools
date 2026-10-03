@@ -1,6 +1,6 @@
 [
   {
-    "id": "featured-ber-brammibals",
+    "id": "ber-brammibals",
     "name": "Brammibal's Plant-Based Donuts",
     "address": "Maybachufer 8, 12047 Berlin",
     "latitude": 52.4939,
@@ -17,7 +17,7 @@
     "imageUrl": "https://images.unsplash.com/photo-1527515637462-cff94eecc1ac?auto=format&fit=crop&w=800&q=80"
   },
   {
-    "id": "featured-ber-1990",
+    "id": "ber-1990",
     "name": "1990 Vegan Living",
     "address": "Krossener Str. 19, 10245 Berlin",
     "latitude": 52.5113,

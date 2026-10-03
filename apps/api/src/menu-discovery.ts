@@ -11,22 +11,29 @@ import { Agent } from "undici";
 
 export const safeMenuAgent = new Agent({
   connect: {
-    lookup: (hostname, _options, callback) => {
+    lookup: (hostname, options, callback) => {
+      const cb = (typeof options === "function" ? options : callback) as (
+        err: NodeJS.ErrnoException | Error | null,
+        address?: unknown,
+        family?: number,
+      ) => void;
+      const opts = (typeof options === "object" && options !== null ? options : {}) as {
+        all?: boolean;
+      };
       lookup(hostname, { all: true })
         .then((addresses) => {
-          const valid = addresses.find((entry) => !isPrivateAddress(entry.address));
-          if (!valid) {
-            callback(
-              new Error("The restaurant website does not resolve to a public address."),
-              "",
-              4,
-            );
+          const valid = addresses.filter((entry) => !isPrivateAddress(entry.address));
+          if (valid.length === 0) {
+            cb(new Error("The restaurant website does not resolve to a public address."), "", 4);
+          } else if (opts.all) {
+            cb(null, valid, 4);
           } else {
-            callback(null, valid.address, valid.family);
+            const first = valid[0]!;
+            cb(null, first.address, first.family);
           }
         })
         .catch((err) => {
-          callback(err, "", 4);
+          cb(err as Error, "", 4);
         });
     },
   },
@@ -39,6 +46,7 @@ export interface DiscoveredMenu {
     buffer: Buffer;
   };
   sourceUrl: string;
+  openingHours?: string;
 }
 
 export interface MenuDiscoverer {
@@ -57,11 +65,34 @@ export class WebsiteMenuDiscoverer implements MenuDiscoverer {
 
     const html = homepage.buffer.toString("utf8");
     const pages: DownloadedPage[] = [];
-    const queue = extractMenuLinks(html, homepage.url)
-      .slice(0, 8)
+    const discoveredLinks = extractMenuLinks(html, homepage.url);
+    const prospectivePaths = [
+      "/menu",
+      "/carta",
+      "/la-carta",
+      "/menus",
+      "/la-carte",
+      "/plats",
+      "/platos",
+      "/food",
+      "/food-menu",
+      "/our-menu",
+      "/menjar",
+    ];
+    for (const path of prospectivePaths) {
+      try {
+        const prospectiveUrl = new URL(path, homepage.url);
+        if (!discoveredLinks.some((l) => l.pathname.toLowerCase() === prospectiveUrl.pathname.toLowerCase())) {
+          discoveredLinks.push(prospectiveUrl);
+        }
+      } catch {}
+    }
+
+    const queue = discoveredLinks
+      .slice(0, 12)
       .map((url) => ({ url, depth: 1 }));
     const visited = new Set([homepage.url.toString()]);
-    while (queue.length > 0 && visited.size <= 14) {
+    while (queue.length > 0 && visited.size <= 16) {
       const candidate = queue.shift();
       if (!candidate || visited.has(candidate.url.toString())) continue;
       visited.add(candidate.url.toString());
@@ -87,13 +118,23 @@ export class WebsiteMenuDiscoverer implements MenuDiscoverer {
     }
 
     const htmlPages = [homepage, ...pages];
+
+    let discoveredHours: string | undefined;
+    for (const p of htmlPages) {
+      const hours = extractOpeningHoursFromHtml(p.buffer.toString("utf8"));
+      if (hours) {
+        discoveredHours = hours;
+        break;
+      }
+    }
+
     const best = htmlPages
       .map((page) => ({
         page,
         text: extractVisibleText(page.buffer.toString("utf8")),
       }))
       .sort((left, right) => scoreMenuText(right.text) - scoreMenuText(left.text))[0];
-    if (!best || best.text.length < 180 || scoreMenuText(best.text) < 2) {
+    if (!best || best.text.length < 80 || scoreMenuText(best.text) < 1) {
       throw new Error(
         "No readable menu page or PDF was found on the restaurant website. Upload the menu instead.",
       );
@@ -105,6 +146,7 @@ export class WebsiteMenuDiscoverer implements MenuDiscoverer {
         buffer: Buffer.from(`Source: ${best.page.url.toString()}\n\n${best.text}`, "utf8"),
       },
       sourceUrl: best.page.url.toString(),
+      openingHours: discoveredHours,
     };
   }
 }
@@ -207,13 +249,21 @@ function extractMenuLinks(html: string, baseUrl: URL) {
       if (!["http:", "https:"].includes(url.protocol)) return;
       const haystack = `${url.pathname} ${url.search} ${label}`.toLowerCase();
       const keywordMatches = haystack.match(
-        /\b(menu|menus|carta|cartas|cartes|carte|food|eat|lunch|dinner|migdia|sopar|gastronom\w*)\b/g,
+        /\b(menu|menus|carta|cartas|cartes|carte|speisekarte|food|eat|lunch|dinner|migdia|sopar|gastronom\w*|platos|plats|dishes|menjar|proposta|tapes|tapas|burger|burgers|pizza|pizzas|postres|desserts|drinks|bebidas|begudes|takeaway|delivery|order|pedir|demanar|comida|kitchen|cuina|cocina|brunch|breakfast|entrants|starters|mains)\b/g,
       )?.length ?? 0;
       const isPdf = url.pathname.toLowerCase().endsWith(".pdf");
-      if (keywordMatches === 0 && !isPdf) return;
+      const isExternalPlatform =
+        url.hostname.includes("canva.com") ||
+        url.hostname.includes("drive.google.com") ||
+        url.hostname.includes("linktr.ee") ||
+        url.hostname.includes("qrmenu") ||
+        url.hostname.includes("qr-menu") ||
+        url.hostname.includes("imenupro.com") ||
+        url.hostname.includes("menudigital");
+      if (keywordMatches === 0 && !isPdf && !isExternalPlatform) return;
       links.push({
         url,
-        score: baseScore + keywordMatches * 5 + (isPdf ? 30 : 0),
+        score: baseScore + keywordMatches * 5 + (isPdf ? 30 : 0) + (isExternalPlatform ? 25 : 0),
       });
     } catch {
       // Ignore malformed links.
@@ -257,9 +307,66 @@ function scoreMenuText(text: string) {
   const lower = text.toLowerCase();
   const currency = lower.match(/(?:€|\beur\b|\$\s?\d|\d+[,.]\d{2})/g)?.length ?? 0;
   const menuWords = lower.match(
-    /\b(?:menu|carta|starters?|mains?|desserts?|entrants?|postres?|plats?|tapas?)\b/g,
+    /\b(?:menu|carta|starters?|mains?|desserts?|entrants?|postres?|plats?|tapas?|tapes?|platos?|burgers?|pizzas?|drinks?|bebidas?|salads?|combos?|aperitius?|segons?|primers?|pasta|arròs|arroz|sopes?|bowls?|postres|begudes?|cafès?|vins?|cerveza|cervesa|sandwich|tofu|seitan|hummus|heura|tempeh|curry|tacos?|noodles?|ramen|sushi|rolls?|falafel|wrap|smoothies?|cocktails?|breakfast|brunch|lunch|dinner)\b/g,
   )?.length ?? 0;
-  return Math.min(currency, 20) + Math.min(menuWords, 10) * 2;
+  return Math.min(currency, 20) + Math.min(menuWords, 15) * 2;
+}
+
+export function extractOpeningHoursFromHtml(html: string): string | undefined {
+  // 1. JSON-LD structured data (schema.org/Restaurant)
+  const jsonLdMatches = html.matchAll(
+    /<script\b[^>]*type\s*=\s*["']application\/ld\+json["'][^>]*>([\s\S]*?)<\/script>/gi,
+  );
+  for (const match of jsonLdMatches) {
+    try {
+      const data = JSON.parse(match[1]?.trim() || "");
+      const items = Array.isArray(data) ? data : data?.["@graph"] ? data["@graph"] : [data];
+      for (const item of items) {
+        if (item?.openingHours) {
+          if (Array.isArray(item.openingHours)) return item.openingHours.join("; ");
+          if (typeof item.openingHours === "string") return item.openingHours;
+        }
+        if (item?.openingHoursSpecification) {
+          const specs = Array.isArray(item.openingHoursSpecification)
+            ? item.openingHoursSpecification
+            : [item.openingHoursSpecification];
+          const parts: string[] = [];
+          for (const s of specs) {
+            const days = Array.isArray(s.dayOfWeek)
+              ? s.dayOfWeek.map((d: string) => String(d).replace(/https?:\/\/schema\.org\//, "").slice(0, 2)).join(",")
+              : typeof s.dayOfWeek === "string"
+                ? s.dayOfWeek.replace(/https?:\/\/schema\.org\//, "").slice(0, 2)
+                : "";
+            if (days && s.opens && s.closes) {
+              parts.push(`${days} ${s.opens}-${s.closes}`);
+            }
+          }
+          if (parts.length > 0) return parts.join("; ");
+        }
+      }
+    } catch {}
+  }
+
+  // 2. Microdata itemprop="openingHours"
+  const itempropMatch =
+    html.match(/itemprop\s*=\s*["']openingHours["'][^>]*content\s*=\s*["']([^"']+)["']/i) ||
+    html.match(/itemprop\s*=\s*["']openingHours["'][^>]*>([^<]+)</i);
+  if (itempropMatch?.[1]) {
+    return itempropMatch[1].trim();
+  }
+
+  // 3. Common schedule block pattern
+  const textPattern =
+    /(?:horari[s]?|horario[s]?|opening hours|business hours)[:\s]+([A-Za-zÀ-ÿ0-9:,\s\-–—/|]{8,80})/i;
+  const match = html.match(textPattern);
+  if (match?.[1]) {
+    const candidate = match[1].replace(/<[^>]+>/g, " ").replace(/\s+/g, " ").trim();
+    if (/\d{1,2}[:.]\d{2}/.test(candidate)) {
+      return candidate.slice(0, 80);
+    }
+  }
+
+  return undefined;
 }
 
 function pdfUpload(url: URL, buffer: Buffer): DiscoveredMenu {

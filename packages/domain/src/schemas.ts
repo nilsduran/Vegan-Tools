@@ -55,6 +55,7 @@ export const evidenceSchema = z.object({
     "manufacturer",
     "package_label",
     "open_food_facts",
+    "open_beauty_facts",
     "automated_extraction",
   ]),
   sourceName: z.string(),
@@ -85,6 +86,10 @@ export const productResultSchema = z.object({
   verifiedAt: z.string().optional(),
   revision: z.number().int().positive().default(1),
   evidence: z.array(evidenceSchema).default([]),
+  isBeautyProduct: z.boolean().optional(),
+  crueltyFree: z.boolean().optional(),
+  crueltyFreeCertifications: z.array(z.string()).optional(),
+  labels: z.array(z.string()).optional(),
 });
 export type ProductResult = z.infer<typeof productResultSchema>;
 
@@ -224,6 +229,7 @@ export const restaurantCandidateSchema = z.object({
   provider: z.enum(["openstreetmap", "geoapify", "foursquare", "curated"]).default("openstreetmap"),
   openingHours: z.string().optional(),
   cuisine: z.string().optional(),
+  price: z.string().optional(),
   tags: z.array(z.string()).optional(),
   isVegan: z.boolean().optional(),
   isVegetarian: z.boolean().optional(),
@@ -243,6 +249,8 @@ export const restaurantReviewSchema = z.object({
   userAvatarUrl: z.string().url().optional(),
   leavesScore: z.number().min(1).max(5),
   comment: z.string().max(500).default(""),
+  tags: z.array(z.string()).optional(),
+  photos: z.array(z.string()).optional(),
   createdAt: z.string(),
   updatedAt: z.string(),
 });
@@ -265,6 +273,45 @@ export const createReviewRequestSchema = z.object({
   leavesScore: z.number().min(1).max(5),
   comment: z.string().max(500).optional().default(""),
   userName: z.string().min(1).max(60).optional(),
+  tags: z.array(z.string()).optional(),
+  photos: z.array(z.string()).optional(),
 });
 export type CreateReviewRequest = z.infer<typeof createReviewRequestSchema>;
+
+export const restaurantVisitLogSchema = z.object({
+  id: z.string(),
+  userId: z.string(),
+  restaurantId: z.string(),
+  restaurantName: z.string(),
+  restaurantAddress: z.string().optional(),
+  restaurantImage: z.string().optional(),
+  cuisine: z.string().optional(),
+  visitDate: z.string().optional(),
+  rating: z.number().min(0.5).max(5),
+  notes: z.string().optional().default(""),
+  dishesTried: z.array(z.string()).default([]),
+  tags: z.array(z.string()).optional(),
+  photos: z.array(z.string()).optional(),
+  createdAt: z.string(),
+  updatedAt: z.string(),
+});
+export type RestaurantVisitLog = z.infer<typeof restaurantVisitLogSchema>;
+
+export const saveVisitLogInputSchema = z.object({
+  id: z.string().optional(),
+  userId: z.string().optional(),
+  restaurantId: z.string(),
+  restaurantName: z.string(),
+  restaurantAddress: z.string().optional(),
+  restaurantImage: z.string().optional(),
+  cuisine: z.string().optional(),
+  visitDate: z.string().optional(),
+  rating: z.number().min(0.5).max(5),
+  notes: z.string().optional().default(""),
+  dishesTried: z.array(z.string()).default([]),
+  tags: z.array(z.string()).optional(),
+  photos: z.array(z.string()).optional(),
+});
+export type SaveVisitLogInput = z.infer<typeof saveVisitLogInputSchema>;
+
 

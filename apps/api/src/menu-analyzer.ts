@@ -25,7 +25,13 @@ export interface MenuAnalyzer {
   analyze(
     menu: MenuDraft,
     uploads: Upload[],
-    options?: { highAccuracy?: boolean; includeDrinks?: boolean },
+    options?: {
+      highAccuracy?: boolean;
+      includeDrinks?: boolean;
+      isVegan?: boolean;
+      isVegetarian?: boolean;
+      restaurantName?: string;
+    },
   ): Promise<MenuDraft>;
 }
 
@@ -33,16 +39,33 @@ export class GeminiMenuAnalyzer implements MenuAnalyzer {
   async analyze(
     menu: MenuDraft,
     uploads: Upload[],
-    options?: { highAccuracy?: boolean; includeDrinks?: boolean },
+    options?: {
+      highAccuracy?: boolean;
+      includeDrinks?: boolean;
+      isVegan?: boolean;
+      isVegetarian?: boolean;
+      restaurantName?: string;
+    },
   ): Promise<MenuDraft> {
     if (!process.env.GEMINI_API_KEY) {
-      return demoMenu(menu, uploads);
+      return demoMenu(menu, uploads, options);
     }
 
     const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
     const drinksInstruction = options?.includeDrinks
       ? "Extract food items and drinks. For wines, beers and beverages, audit ingredients and clarifiers for animal derivatives (isinglass, gelatin, albumin, carmine E120, honey)."
       : "Extract every food item from these menu files. Ignore drinks to save tokens and focus strictly on dining.";
+
+    const dietaryContextInstruction = options?.isVegan
+      ? `\nCRITICAL CONTEXT - 100% VEGAN RESTAURANT:
+This restaurant is a confirmed 100% VEGAN establishment. All dishes, cheeses, milks, meats, patties, sausages, bacons, mayos, pastries, and ingredients served here are strictly plant-based by default (for example: "burger", "formatge", "cheese", "mayo", "bacon", "croissant" are all 100% vegan plant-based versions made by the restaurant, even if not prefixed with "vegan" on every single line).
+Therefore, classify all regular dishes as "vegan" (verdict: "vegan"). Never mark them as "unknown", "vegetarian", or "non_vegetarian".
+Set the reason to "100% vegan establishment; plant-based ingredients." (and in Catalan: "Local 100% vegà; ingredients d'origen vegetal.").`
+      : options?.isVegetarian
+        ? `\nCRITICAL CONTEXT - 100% VEGETARIAN RESTAURANT:
+This restaurant is a confirmed 100% VEGETARIAN establishment. No animal meat or slaughter products (gelatin, rennet) are served here.
+Classify dishes without dairy or egg as "vegan", and dishes with dairy or egg as "vegetarian". Never classify dishes as "non_vegetarian".`
+        : "";
 
     const parts = [
       ...uploads.map((upload) => ({
@@ -52,7 +75,7 @@ export class GeminiMenuAnalyzer implements MenuAnalyzer {
         },
       })),
       {
-        text: `${drinksInstruction}
+        text: `${drinksInstruction}${dietaryContextInstruction}
 Translate display text to English while retaining each original dish name.
 Also translate section names, dish names and dish descriptions to Catalan.
 The "name" must be the full translated dish name as printed, including meaningful qualifiers such as "with pappa al pomodoro and arugula".
@@ -132,13 +155,20 @@ Return JSON matching the supplied schema.${options?.highAccuracy ? "\nExtract wi
       },
     });
 
-    const configuredModel = process.env.GEMINI_MODEL ?? "gemini-3.1-flash-lite";
+    const configuredModel = process.env.GEMINI_MODEL ?? "gemini-3.5-flash-lite";
+    const backupModels = [
+      "gemini-3.1-flash-lite",
+      "gemma-4-31b-it",
+      "gemma-4-26b-a4b-it",
+    ];
+
+    // Quan l'usuari demana aprofundir (highAccuracy / si l'extracció ha fallat), utilitzem gemini-3.5-flash
     const models = options?.highAccuracy
-      ? [...new Set(["gemini-2.5-pro", "gemini-3.0-flash", configuredModel])]
-      : [...new Set([configuredModel, "gemini-3.0-flash", "gemini-2.5-flash"])];
+      ? [...new Set(["gemini-3.5-flash", configuredModel, ...backupModels])]
+      : [...new Set([configuredModel, ...backupModels, "gemini-3.5-flash"])];
     let response: Awaited<ReturnType<typeof generate>> | undefined;
     let lastError: unknown;
-    let selectedModel = configuredModel;
+    let selectedModel = models[0];
 
     for (const model of models) {
       for (const delay of [0, 800, 2_000]) {
@@ -151,24 +181,74 @@ Return JSON matching the supplied schema.${options?.highAccuracy ? "\nExtract wi
           lastError = error;
           const message = error instanceof Error ? error.message : String(error);
           const retryable = /429|503|resource_exhausted|unavailable|high demand|overload/i.test(message);
-          const unsupported = /404|not found|not supported/i.test(message);
-          if (!retryable && !unsupported) throw error;
-          if (unsupported) break;
+          if (!retryable) {
+            // Try next fallback model instead of aborting immediately
+            break;
+          }
         }
       }
       if (response) break;
     }
     if (!response) throw lastError;
 
-    const parsed = JSON.parse(response.text ?? "{}") as Record<string, unknown>;
+    const rawText = (response.text ?? "{}").trim();
+    const cleanJson = rawText
+      .replace(/^```(?:json)?\s*/i, "")
+      .replace(/\s*```$/i, "")
+      .trim();
+
+    let parsed: Record<string, unknown>;
+    try {
+      parsed = JSON.parse(cleanJson || "{}") as Record<string, unknown>;
+    } catch {
+      const match = cleanJson.match(/\{[\s\S]*\}/);
+      if (match) {
+        parsed = JSON.parse(match[0]) as Record<string, unknown>;
+      } else {
+        throw new Error("Failed to parse menu analysis JSON from AI response.");
+      }
+    }
+
     const analyzed = menuDraftSchema.parse({
       ...menu,
       ...parsed,
       status: "ready",
       sections: ((parsed.sections as Array<Record<string, unknown>>) ?? []).map((section) => ({
-        ...section,
         id: randomUUID(),
+        name: typeof section.name === "string" && section.name.trim() ? section.name.trim() : "Menu",
+        nameCa: typeof section.nameCa === "string" && section.nameCa.trim() ? section.nameCa.trim() : (typeof section.name === "string" ? section.name : "Carta"),
         items: ((section.items as Array<Record<string, unknown>>) ?? []).map((item) => {
+          const rawVerdict = String(item.verdict ?? "").toLowerCase().trim();
+          const verdict =
+            rawVerdict === "vegan" ||
+            rawVerdict === "probably_vegan" ||
+            rawVerdict === "vegetarian" ||
+            rawVerdict === "probably_vegetarian" ||
+            rawVerdict === "non_vegetarian"
+              ? rawVerdict
+              : "unknown";
+
+          const originalName = typeof item.originalName === "string" && item.originalName.trim()
+            ? item.originalName.trim()
+            : typeof item.name === "string" && item.name.trim()
+              ? item.name.trim()
+              : "Dish";
+          const name = typeof item.name === "string" && item.name.trim()
+            ? item.name.trim()
+            : originalName;
+          const nameCa = typeof item.nameCa === "string" && item.nameCa.trim()
+            ? item.nameCa.trim()
+            : name;
+          const description = typeof item.description === "string" ? item.description.trim() : "";
+          const descriptionCa = typeof item.descriptionCa === "string" ? item.descriptionCa.trim() : description;
+          const price = typeof item.price === "string" ? item.price.trim() : "";
+          const reason = typeof item.reason === "string" && item.reason.trim()
+            ? item.reason.trim()
+            : "Ingredients analyzed";
+          const reasonCa = typeof item.reasonCa === "string" && item.reasonCa.trim()
+            ? item.reasonCa.trim()
+            : reason;
+
           const modifiableTo =
             item.modifiableTo === "vegan" || item.modifiableTo === "vegetarian"
               ? item.modifiableTo
@@ -186,15 +266,41 @@ Return JSON matching the supplied schema.${options?.highAccuracy ? "\nExtract wi
               ? [{ target: modifiableTo, note: modificationNote, noteCa: modificationNoteCa }]
               : [];
 
+          let finalVerdict = verdict;
+          let finalReason = reason;
+          let finalReasonCa = reasonCa;
+
+          if (options?.isVegan) {
+            if (finalVerdict !== "non_vegetarian") {
+              finalVerdict = "vegan";
+              if (finalReason === "Ingredients analyzed" || !finalReason) {
+                finalReason = "100% vegan establishment; plant-based ingredients.";
+                finalReasonCa = "Local 100% vegà; ingredients d'origen vegetal.";
+              }
+            }
+          } else if (options?.isVegetarian) {
+            if (finalVerdict === "non_vegetarian") {
+              finalVerdict = "vegetarian";
+              finalReason = "100% vegetarian establishment; no meat or fish.";
+              finalReasonCa = "Local 100% vegetarià; sense carn ni peix.";
+            }
+          }
+
           return {
-            description: "",
-            price: "",
-            ...item,
+            id: randomUUID(),
+            originalName,
+            name,
+            nameCa,
+            description,
+            descriptionCa,
+            price,
+            verdict: finalVerdict,
+            reason: finalReason,
+            reasonCa: finalReasonCa,
             modifiableTo,
             modificationNote,
             modificationNoteCa,
             modifications: explicitMods,
-            id: randomUUID(),
           };
         }),
       })),
@@ -290,7 +396,13 @@ export function isPracticalAdaptation(
   return true;
 }
 
-function demoMenu(menu: MenuDraft, uploads: Upload[]): MenuDraft {
+function demoMenu(
+  menu: MenuDraft,
+  uploads: Upload[],
+  options?: { isVegan?: boolean; isVegetarian?: boolean },
+): MenuDraft {
+  const isVegan = options?.isVegan;
+  const isVegetarian = options?.isVegetarian;
   return {
     ...menu,
     status: "ready",
@@ -299,17 +411,29 @@ function demoMenu(menu: MenuDraft, uploads: Upload[]): MenuDraft {
     sections: [
       {
         id: randomUUID(),
-        name: "Review required",
+        name: isVegan ? "Plats 100% vegans" : "Review required",
+        nameCa: isVegan ? "Plats 100% vegans" : "Revisió necessària",
         items: [
           {
             id: randomUUID(),
-            originalName: "Example dish",
-            name: "Example dish",
-            description:
-              "Gemini is not configured. Replace this sample with the dishes visible in the uploaded menu.",
+            originalName: isVegan ? "Plat vegà de la casa" : "Example dish",
+            name: isVegan ? "Plat vegà de la casa" : "Example dish",
+            nameCa: isVegan ? "Plat vegà de la casa" : "Plat d'exemple",
+            description: isVegan
+              ? "Elaborat exclusivament amb ingredients d'origen vegetal."
+              : "Gemini is not configured. Replace this sample with the dishes visible in the uploaded menu.",
             price: "",
-            verdict: "unknown",
-            reason: "No automated analysis was run.",
+            verdict: isVegan ? "vegan" : isVegetarian ? "vegetarian" : "unknown",
+            reason: isVegan
+              ? "100% vegan establishment; plant-based ingredients."
+              : isVegetarian
+                ? "100% vegetarian establishment."
+                : "No automated analysis was run.",
+            reasonCa: isVegan
+              ? "Local 100% vegà; ingredients d'origen vegetal."
+              : isVegetarian
+                ? "Local 100% vegetarià."
+                : "No s'ha executat anàlisi automàtica.",
             modifications: [],
             sourcePage: 1,
           },

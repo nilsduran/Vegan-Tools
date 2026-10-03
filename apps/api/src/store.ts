@@ -6,7 +6,9 @@ import {
   type MenuPatch,
   type ProductResult,
 } from "@vegan-tools/domain";
+import { createClient, type SupabaseClient } from "@supabase/supabase-js";
 import { supabaseCredentialsFromEnvironment } from "./environment.js";
+import { getSupabaseClient } from "./supabase.js";
 
 export interface Repository {
   getProduct(gtin: string): Promise<ProductResult | undefined>;
@@ -124,24 +126,16 @@ function menuFromRow(row: SupabaseMenuRow, editToken = "") {
 }
 
 export class SupabaseRepository implements Repository {
-  constructor(
-    private readonly url: string,
-    private readonly secretKey: string,
-  ) {}
+  private readonly client: SupabaseClient;
 
-  private headers(extra: Record<string, string> = {}) {
-    return {
-      apikey: this.secretKey,
-      Authorization: `Bearer ${this.secretKey}`,
-      "Content-Type": "application/json",
-      ...extra,
-    };
-  }
-
-  private endpoint(table: string, query?: Record<string, string>) {
-    const endpoint = new URL(`/rest/v1/${table}`, this.url);
-    if (query) endpoint.search = new URLSearchParams(query).toString();
-    return endpoint;
+  constructor(clientOrUrl: SupabaseClient | string, secretKey?: string) {
+    if (typeof clientOrUrl === "string") {
+      this.client = createClient(clientOrUrl, secretKey || "", {
+        auth: { persistSession: false, autoRefreshToken: false },
+      });
+    } else {
+      this.client = clientOrUrl;
+    }
   }
 
   private async menuRow(
@@ -149,25 +143,23 @@ export class SupabaseRepository implements Repository {
     token: string,
   ): Promise<SupabaseMenuRow | undefined> {
     if (!token) return undefined;
-    const response = await fetch(this.endpoint("menus", {
-      select: "id,edit_token_hash,status,public_slug,payload",
-      id: `eq.${id}`,
-      edit_token_hash: `eq.${tokenHash(token)}`,
-      limit: "1",
-    }), { headers: this.headers() });
-    if (!response.ok) {
-      throw new Error(`Supabase menu read failed (${response.status}).`);
+    const { data, error } = await this.client
+      .from("menus")
+      .select("id,edit_token_hash,status,public_slug,payload")
+      .eq("id", id)
+      .eq("edit_token_hash", tokenHash(token))
+      .maybeSingle();
+
+    if (error) {
+      throw new Error(`Supabase menu read failed: ${error.message}`);
     }
-    return (await response.json() as SupabaseMenuRow[])[0];
+    return (data as SupabaseMenuRow) || undefined;
   }
 
   private async writeMenu(menu: MenuDraft) {
-    const response = await fetch(this.endpoint("menus", { on_conflict: "id" }), {
-      method: "POST",
-      headers: this.headers({
-        Prefer: "resolution=merge-duplicates,return=minimal",
-      }),
-      body: JSON.stringify({
+    const { error } = await this.client
+      .from("menus")
+      .upsert({
         id: menu.id,
         edit_token_hash: tokenHash(menu.editToken),
         status: menu.status,
@@ -182,43 +174,40 @@ export class SupabaseRepository implements Repository {
         original_delete_at: menu.originalDeleteAt,
         created_at: menu.createdAt,
         updated_at: new Date().toISOString(),
-      }),
-    });
-    if (!response.ok) {
-      throw new Error(`Supabase menu write failed (${response.status}).`);
+      }, { onConflict: "id" });
+
+    if (error) {
+      throw new Error(`Supabase menu write failed: ${error.message}`);
     }
   }
 
   async getProduct(gtin: string) {
-    const response = await fetch(this.endpoint("products", {
-      select: "payload",
-      gtin: `eq.${gtin}`,
-      limit: "1",
-    }), { headers: this.headers() });
-    if (!response.ok) {
-      throw new Error(`Supabase product read failed (${response.status}).`);
+    const { data, error } = await this.client
+      .from("products")
+      .select("payload")
+      .eq("gtin", gtin)
+      .maybeSingle();
+
+    if (error) {
+      throw new Error(`Supabase product read failed: ${error.message}`);
     }
-    const row = (await response.json() as Array<{ payload: unknown }>)[0];
-    return row?.payload ? productResultSchema.parse(row.payload) : undefined;
+    return data?.payload ? productResultSchema.parse(data.payload) : undefined;
   }
 
   async saveProduct(product: ProductResult) {
-    const response = await fetch(this.endpoint("products", { on_conflict: "gtin" }), {
-      method: "POST",
-      headers: this.headers({
-        Prefer: "resolution=merge-duplicates,return=minimal",
-      }),
-      body: JSON.stringify({
+    const { error } = await this.client
+      .from("products")
+      .upsert({
         gtin: product.gtin,
         product_name: product.productName ?? null,
         brand: product.brand ?? null,
         current_revision: product.revision,
         payload: product,
         updated_at: new Date().toISOString(),
-      }),
-    });
-    if (!response.ok) {
-      throw new Error(`Supabase product write failed (${response.status}).`);
+      }, { onConflict: "gtin" });
+
+    if (error) {
+      throw new Error(`Supabase product write failed: ${error.message}`);
     }
   }
 
@@ -271,25 +260,23 @@ export class SupabaseRepository implements Repository {
   }
 
   async getPublicMenu(slug: string) {
-    const response = await fetch(this.endpoint("menus", {
-      select: "id,edit_token_hash,status,public_slug,payload",
-      public_slug: `eq.${slug}`,
-      status: "eq.published",
-      limit: "1",
-    }), { headers: this.headers() });
-    if (!response.ok) {
-      throw new Error(`Supabase public menu read failed (${response.status}).`);
+    const { data, error } = await this.client
+      .from("menus")
+      .select("id,edit_token_hash,status,public_slug,payload")
+      .eq("public_slug", slug)
+      .eq("status", "published")
+      .maybeSingle();
+
+    if (error) {
+      throw new Error(`Supabase public menu read failed: ${error.message}`);
     }
-    const row = (await response.json() as SupabaseMenuRow[])[0];
-    return row ? menuFromRow(row) : undefined;
+    return data ? menuFromRow(data as SupabaseMenuRow) : undefined;
   }
 }
 
 export function createRepositoryFromEnvironment(): Repository {
-  const credentials = supabaseCredentialsFromEnvironment();
-  return credentials
-    ? new SupabaseRepository(credentials.url, credentials.secretKey)
-    : new MemoryRepository();
+  const client = getSupabaseClient();
+  return client ? new SupabaseRepository(client) : new MemoryRepository();
 }
 
 export const repository: Repository = new MemoryRepository();

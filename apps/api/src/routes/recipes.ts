@@ -10,6 +10,7 @@ import { veganizeRecipe } from "@vegan-tools/domain";
 export async function recipeRoutes(app: FastifyInstance) {
   app.post<{ Body: { recipeText?: string } }>(
     "/v1/recipes/veganize",
+    { config: { rateLimit: { max: 10, timeWindow: "1 minute" } } },
     async (request, reply) => {
       if (!request.body?.recipeText?.trim()) {
         return reply.code(400).send({

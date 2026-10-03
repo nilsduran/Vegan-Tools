@@ -1,5 +1,6 @@
 import type { MenuDraft, RestaurantCandidate } from "@vegan-tools/domain";
 import { supabaseCredentialsFromEnvironment } from "./environment.js";
+import { CURATED_MENUS } from "./curated-menus.js";
 
 export interface CachedRestaurantMenu {
   restaurant: RestaurantCandidate;
@@ -14,7 +15,9 @@ export interface RestaurantMenuCache {
 }
 
 function restaurantKey(restaurant: RestaurantCandidate) {
-  if (restaurant.id !== "manual") return `${restaurant.provider}:${restaurant.id}`;
+  if (restaurant.id && restaurant.id !== "manual") {
+    return restaurant.id.toLowerCase();
+  }
   return `manual:${restaurant.name.trim().toLocaleLowerCase()}:${
     restaurant.address.trim().toLocaleLowerCase()
   }`;
@@ -28,7 +31,20 @@ export class MemoryRestaurantMenuCache implements RestaurantMenuCache {
   private readonly menus = new Map<string, CachedRestaurantMenu>();
 
   async get(restaurant: RestaurantCandidate) {
-    return this.menus.get(restaurantKey(restaurant));
+    const key = restaurantKey(restaurant);
+    const direct = this.menus.get(key);
+    if (direct) return direct;
+
+    const curated = CURATED_MENUS[restaurant.id] || CURATED_MENUS[key];
+    if (curated) {
+      return {
+        restaurant,
+        menu: cachedMenu(curated),
+        savedAt: curated.createdAt,
+      };
+    }
+
+    return undefined;
   }
 
   async list(limit = 12) {

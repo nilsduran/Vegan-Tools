@@ -1,6 +1,6 @@
 [
   {
-    "id": "featured-par-charlotte",
+    "id": "par-charlotte",
     "name": "Le Potager de Charlotte",
     "address": "12 Rue de la Tour d'Auvergne, 75009 Paris",
     "latitude": 48.8789,
@@ -17,7 +17,7 @@
     "imageUrl": "https://images.unsplash.com/photo-1504674900247-0877df9cc836?auto=format&fit=crop&w=800&q=80"
   },
   {
-    "id": "featured-par-land-monkeys",
+    "id": "par-land-monkeys",
     "name": "Land&Monkeys",
     "address": "86 Boulevard Beaumarchais, 75011 Paris",
     "latitude": 48.8576,

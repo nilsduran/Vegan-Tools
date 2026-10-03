@@ -13,6 +13,8 @@ import {
   restaurantCandidateSchema,
   restaurantReviewSchema,
   restaurantReviewStatsSchema,
+  restaurantVisitLogSchema,
+  saveVisitLogInputSchema,
   type CreateReviewRequest,
   type IngredientAnalysis,
   type MenuDraft,
@@ -22,15 +24,25 @@ import {
   type RestaurantCandidate,
   type RestaurantReview,
   type RestaurantReviewStats,
+  type RestaurantVisitLog,
+  type SaveVisitLogInput,
   classifyIngredients as classifyIngredientsLocally,
   veganizeRecipe as veganizeRecipeLocally,
 } from "@vegan-tools/domain";
 
+const isLocalhost =
+  typeof window !== "undefined" &&
+  (window.location.hostname === "localhost" ||
+    window.location.hostname === "127.0.0.1" ||
+    window.location.hostname.startsWith("192.168."));
+
 const API_URL =
-  import.meta.env.VITE_API_URL ??
-  (typeof window !== "undefined"
+  import.meta.env.DEV && isLocalhost
     ? `${window.location.protocol}//${window.location.hostname}:3001`
-    : "http://localhost:3001");
+    : (import.meta.env.VITE_API_URL ??
+       (typeof window !== "undefined"
+         ? `${window.location.protocol}//${window.location.hostname}:3001`
+         : "http://localhost:3001"));
 
 export function resolveApiUrl(path: string) {
   return /^https?:\/\//i.test(path) ? path : `${API_URL}${path}`;
@@ -129,6 +141,12 @@ export async function createMenuAnalysis(files: File[]): Promise<MenuDraft> {
   return menuDraftSchema.parse(await response.json());
 }
 
+const clientSearchCache = new Map<string, { data: RestaurantCandidate[]; expiresAt: number }>();
+
+export function clearRestaurantSearchCache() {
+  clientSearchCache.clear();
+}
+
 export async function searchRestaurants(
   query: string,
   options: {
@@ -150,21 +168,62 @@ export async function searchRestaurants(
   const lat = options.latitude ?? options.location?.latitude;
   const lng = options.longitude ?? options.location?.longitude;
   if (typeof lat === "number" && typeof lng === "number") {
-    params.set("latitude", String(lat));
-    params.set("longitude", String(lng));
+    params.set("latitude", lat.toFixed(5));
+    params.set("longitude", lng.toFixed(5));
   }
   if (typeof options.radius === "number" && Number.isFinite(options.radius)) {
-    params.set("radius", String(Math.round(options.radius)));
+    params.set("radius", String(Math.round(options.radius / 250) * 250));
   }
   if (options.bbox) {
-    const bboxStr = Array.isArray(options.bbox) ? options.bbox.join(",") : options.bbox;
+    const bboxStr = Array.isArray(options.bbox)
+      ? options.bbox.map((b) => b.toFixed(6)).join(",")
+      : options.bbox;
     params.set("bbox", bboxStr);
   }
+
+  const cacheKey = params.toString();
+  const cached = clientSearchCache.get(cacheKey);
+  if (cached && cached.expiresAt > Date.now()) {
+    return cached.data;
+  }
+
   const response = await checkedFetch(
     `/v1/restaurants/search?${params}`,
     { signal: options.signal },
   );
-  return restaurantCandidateSchema.array().parse(await response.json());
+  const data = restaurantCandidateSchema.array().parse(await response.json());
+
+  // Bounded cache with 5 minutes TTL
+  if (clientSearchCache.size > 100) {
+    const oldestKey = clientSearchCache.keys().next().value;
+    if (oldestKey) clientSearchCache.delete(oldestKey);
+  }
+  clientSearchCache.set(cacheKey, {
+    data,
+    expiresAt: Date.now() + 5 * 60_000,
+  });
+
+  return data;
+}
+
+export async function getRestaurantById(id: string): Promise<RestaurantCandidate | null> {
+  if (!id) return null;
+  try {
+    const response = await checkedFetch(`/v1/restaurants/${encodeURIComponent(id)}`);
+    return restaurantCandidateSchema.parse(await response.json());
+  } catch {
+    return null;
+  }
+}
+
+export async function getRestaurantMenu(id: string): Promise<MenuDraft | null> {
+  if (!id) return null;
+  try {
+    const response = await checkedFetch(`/v1/restaurants/${encodeURIComponent(id)}/menu`);
+    return menuDraftSchema.parse(await response.json());
+  } catch {
+    return null;
+  }
 }
 
 export async function resolveRestaurant(
@@ -452,4 +511,97 @@ export async function getUserReviews(token: string): Promise<RestaurantReview[]>
     return parsed.success ? [parsed.data] : [];
   });
 }
+
+export async function fetchUserVisits(userId: string): Promise<RestaurantVisitLog[]> {
+  try {
+    const response = await checkedFetch(`/v1/users/${encodeURIComponent(userId)}/visits`, {
+      method: "GET",
+    });
+    const json = (await response.json()) as { visits: unknown[] };
+    if (!Array.isArray(json.visits)) return [];
+    return json.visits.flatMap((v) => {
+      const parsed = restaurantVisitLogSchema.safeParse(v);
+      return parsed.success ? [parsed.data] : [];
+    });
+  } catch (error) {
+    console.warn("Failed to fetch user visits from cloud:", error);
+    return [];
+  }
+}
+
+export async function saveUserVisitApi(
+  visit: SaveVisitLogInput,
+  token: string,
+): Promise<RestaurantVisitLog> {
+  const response = await checkedFetch(
+    `/v1/users/${encodeURIComponent(visit.userId || "")}/visits`,
+    {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${token}`,
+      },
+      body: JSON.stringify(visit),
+    },
+  );
+  const json = (await response.json()) as { visit: unknown };
+  return restaurantVisitLogSchema.parse(json.visit);
+}
+
+export async function deleteUserVisitApi(
+  visitId: string,
+  userId: string,
+  token: string,
+): Promise<boolean> {
+  const response = await checkedFetch(
+    `/v1/users/${encodeURIComponent(userId)}/visits/${encodeURIComponent(visitId)}`,
+    {
+      method: "DELETE",
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+    },
+  );
+  const json = (await response.json()) as { ok?: boolean; success?: boolean };
+  return Boolean(json.ok || json.success);
+}
+
+export async function fetchUserTop4(userId: string): Promise<RestaurantCandidate[]> {
+  try {
+    const response = await checkedFetch(`/v1/users/${encodeURIComponent(userId)}/top4`, {
+      method: "GET",
+    });
+    const json = (await response.json()) as { restaurants: unknown[] };
+    if (!Array.isArray(json.restaurants)) return [];
+    return json.restaurants.flatMap((r) => {
+      const parsed = restaurantCandidateSchema.safeParse(r);
+      return parsed.success ? [parsed.data] : [];
+    });
+  } catch (error) {
+    console.warn("Failed to fetch user top 4 from cloud:", error);
+    return [];
+  }
+}
+
+export async function saveUserTop4Api(
+  userId: string,
+  restaurants: RestaurantCandidate[],
+  token: string,
+): Promise<RestaurantCandidate[]> {
+  const response = await checkedFetch(`/v1/users/${encodeURIComponent(userId)}/top4`, {
+    method: "PUT",
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${token}`,
+    },
+    body: JSON.stringify({ restaurants: restaurants.slice(0, 4) }),
+  });
+  const json = (await response.json()) as { restaurants: unknown[] };
+  if (!Array.isArray(json.restaurants)) return [];
+  return json.restaurants.flatMap((r) => {
+    const parsed = restaurantCandidateSchema.safeParse(r);
+    return parsed.success ? [parsed.data] : [];
+  });
+}
+
 

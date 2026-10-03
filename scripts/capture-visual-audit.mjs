@@ -74,7 +74,7 @@ async function run() {
     });
 
     console.log("Capturing Mobile Restaurant Detail Page...");
-    await mobilePage.goto(`${baseUrl}/restaurant/featured-roots-bcn`, { waitUntil: "domcontentloaded" });
+    await mobilePage.goto(`${baseUrl}/restaurant/roots-bcn`, { waitUntil: "domcontentloaded" });
     await mobilePage.waitForTimeout(1000);
     await mobilePage.screenshot({
       path: resolve(outputDir, "mobile-restaurant-detail.png"),
@@ -96,10 +96,10 @@ async function run() {
       window.localStorage.setItem(
         "vegan_tools_top4_restaurants_v1",
         JSON.stringify([
-          "featured-asante-bcn",
-          "featured-vrutal-bcn",
-          "featured-blubar-bcn",
-          "featured-madmadvegan-bcn",
+          "asante-bcn",
+          "vrutal-bcn",
+          "blubar-bcn",
+          "madmadvegan-bcn",
         ])
       );
       window.localStorage.setItem(
@@ -107,7 +107,7 @@ async function run() {
         JSON.stringify([
           {
             id: "v1",
-            restaurantId: "featured-roots-bcn",
+            restaurantId: "roots-bcn",
             restaurantName: "Roots Vegan",
             visitDate: "2026-09-08",
             rating: 5.0,
@@ -116,7 +116,7 @@ async function run() {
           },
           {
             id: "v2",
-            restaurantId: "featured-santoni-bcn",
+            restaurantId: "santoni-bcn",
             restaurantName: "Santoni Vegan Bakery & Cafe",
             visitDate: "2026-09-05",
             rating: 4.5,
@@ -125,7 +125,7 @@ async function run() {
           },
           {
             id: "v3",
-            restaurantId: "featured-gallosanto-bcn",
+            restaurantId: "gallosanto-bcn",
             restaurantName: "Gallo Santo",
             visitDate: "2026-08-28",
             rating: 4.5,
@@ -134,7 +134,7 @@ async function run() {
           },
           {
             id: "v4",
-            restaurantId: "featured-desoriente-bcn",
+            restaurantId: "desoriente-bcn",
             restaurantName: "Desoriente",
             visitDate: "2026-08-15",
             rating: 4.0,
@@ -155,7 +155,7 @@ async function run() {
     });
 
     console.log("Capturing Desktop Restaurant Detail Page...");
-    await desktopPage.goto(`${baseUrl}/restaurant/featured-roots-bcn`, { waitUntil: "domcontentloaded" });
+    await desktopPage.goto(`${baseUrl}/restaurant/roots-bcn`, { waitUntil: "domcontentloaded" });
     await desktopPage.waitForTimeout(1000);
     await desktopPage.screenshot({
       path: resolve(outputDir, "desktop-restaurant-detail.png"),

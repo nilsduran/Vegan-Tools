@@ -1,6 +1,6 @@
 [
   {
-    "id": "featured-asante-bcn",
+    "id": "asante-bcn",
     "name": "Asante",
     "address": "Carrer de Verdi, 67, Gràcia, 08012 Barcelona",
     "latitude": 41.4045,
@@ -16,7 +16,7 @@
     "imageUrl": "https://images.unsplash.com/photo-1550547660-d9450f859349?auto=format&fit=crop&w=800&q=80"
   },
   {
-    "id": "featured-vrutal-bcn",
+    "id": "vrutal-bcn",
     "name": "Vrutal",
     "address": "Rambla del Poblenou, 16, 08005 Barcelona",
     "latitude": 41.3998,
@@ -32,7 +32,7 @@
     "imageUrl": "https://images.unsplash.com/photo-1520072959219-c595dc870360?auto=format&fit=crop&w=800&q=80"
   },
   {
-    "id": "featured-blubar-bcn",
+    "id": "blubar-bcn",
     "name": "Blu Bar",
     "address": "Rambla del Poblenou, 11, 08005 Barcelona",
     "latitude": 41.3994,
@@ -48,7 +48,7 @@
     "imageUrl": "https://images.unsplash.com/photo-1574071318508-1cdbab80d002?auto=format&fit=crop&w=800&q=80"
   },
   {
-    "id": "featured-madmadvegan-bcn",
+    "id": "madmadvegan-bcn",
     "name": "Mad Mad Vegan",
     "address": "Carrer dels Escudellers, 44, Ciutat Vella, 08002 Barcelona",
     "latitude": 41.3798,
@@ -64,7 +64,7 @@
     "imageUrl": "https://images.unsplash.com/photo-1586190848861-99aa4a171e90?auto=format&fit=crop&w=800&q=80"
   },
   {
-    "id": "featured-gallosanto-bcn",
+    "id": "gallosanto-bcn",
     "name": "Gallo Santo",
     "address": "Carrer del Torrent de l'Olla, 64, Gràcia, 08012 Barcelona",
     "latitude": 41.4012,
@@ -80,7 +80,7 @@
     "imageUrl": "https://images.unsplash.com/photo-1565299585323-38d6b0865b47?auto=format&fit=crop&w=800&q=80"
   },
   {
-    "id": "featured-desoriente-bcn",
+    "id": "desoriente-bcn",
     "name": "Desoriente",
     "address": "Carrer de Ramón y Cajal, 36, Gràcia, 08012 Barcelona",
     "latitude": 41.4026,
@@ -96,7 +96,7 @@
     "imageUrl": "https://images.unsplash.com/photo-1579871494447-9811cf80d66c?auto=format&fit=crop&w=800&q=80"
   },
   {
-    "id": "featured-alive-bcn",
+    "id": "alive-bcn",
     "name": "Alive Restaurant",
     "address": "Travessera de les Corts, 180, Les Corts, 08028 Barcelona",
     "latitude": 41.3852,
@@ -112,7 +112,7 @@
     "imageUrl": "https://images.unsplash.com/photo-1540420773420-3366772f4999?auto=format&fit=crop&w=800&q=80"
   },
   {
-    "id": "featured-goodshit-bcn",
+    "id": "goodshit-bcn",
     "name": "Good Shit Vegan Kebabs",
     "address": "Carrer del Torrent de l'Olla, 138, Gràcia, 08012 Barcelona",
     "latitude": 41.4048,
@@ -128,13 +128,13 @@
     "imageUrl": "https://images.unsplash.com/photo-1561651823-34feb02250e4?auto=format&fit=crop&w=800&q=80"
   },
   {
-    "id": "featured-velada-bcn",
+    "id": "velada-bcn",
     "name": "Velada",
-    "address": "Carrer dels Còdols, 13, Ciutat Vella, 08002 Barcelona",
-    "latitude": 41.3789,
-    "longitude": 2.1772,
+    "address": "Carrer de Ferran, 25, Ciutat Vella, 08002 Barcelona",
+    "latitude": 41.38128,
+    "longitude": 2.17527,
     "websiteUrl": "https://www.instagram.com/velada_bcn/",
-    "mapUrl": "https://www.openstreetmap.org/?mlat=41.3789&mlon=2.1772#map=17/41.3789/2.1772",
+    "mapUrl": "https://www.openstreetmap.org/node/9977397107",
     "provider": "curated",
     "cuisine": "tapas",
     "tags": ["tapas", "spanish", "cocktails", "vegan", "featured"],
@@ -144,7 +144,7 @@
     "imageUrl": "https://images.unsplash.com/photo-1541544741938-0af808871cc0?auto=format&fit=crop&w=800&q=80"
   },
   {
-    "id": "featured-bubita-bcn",
+    "id": "bubita-bcn",
     "name": "Bubita Sangria Bar",
     "address": "Carrer dels Flassaders, 15, El Born, 08003 Barcelona",
     "latitude": 41.3851,
@@ -160,7 +160,7 @@
     "imageUrl": "https://images.unsplash.com/photo-1534080564583-6be75777b70a?auto=format&fit=crop&w=800&q=80"
   },
   {
-    "id": "featured-hanai-bcn",
+    "id": "hanai-bcn",
     "name": "Hanai Vegana",
     "address": "Carrer de Carders, 28, El Born, 08003 Barcelona",
     "latitude": 41.3868,
@@ -176,12 +176,12 @@
     "imageUrl": "https://images.unsplash.com/photo-1509440159596-0249088772ff?auto=format&fit=crop&w=800&q=80"
   },
   {
-    "id": "featured-laperraverde-bcn",
+    "id": "laperraverde-bcn",
     "name": "La Perra Verde",
     "address": "Carrer de la Mare de Déu dels Desemparats, 18, Gràcia, 08012 Barcelona",
     "latitude": 41.4019,
     "longitude": 2.1588,
-    "websiteUrl": "https://www.instagram.com/laperraverdebcn/",
+    "websiteUrl": "https://www.laperraverdebarcelona.es/",
     "mapUrl": "https://www.openstreetmap.org/?mlat=41.4019&mlon=2.1588#map=17/41.4019/2.1588",
     "provider": "curated",
     "cuisine": "tapas",
@@ -192,7 +192,7 @@
     "imageUrl": "https://images.unsplash.com/photo-1504674900247-0877df9cc836?auto=format&fit=crop&w=800&q=80"
   },
   {
-    "id": "featured-morgentau-bcn",
+    "id": "morgentau-bcn",
     "name": "Morgentau",
     "address": "Carrer de Pujades, 162, Poblenou, 08005 Barcelona",
     "latitude": 41.4009,
@@ -208,7 +208,7 @@
     "imageUrl": "https://images.unsplash.com/photo-1495474472287-4d71bcdd2085?auto=format&fit=crop&w=800&q=80"
   },
   {
-    "id": "featured-quinoa-bcn",
+    "id": "quinoa-bcn",
     "name": "Quinoa Bar",
     "address": "Travessia de Sant Antoni, 18, Gràcia, 08012 Barcelona",
     "latitude": 41.4018,
@@ -224,7 +224,7 @@
     "imageUrl": "https://images.unsplash.com/photo-1512621776951-a57141f2eefd?auto=format&fit=crop&w=800&q=80"
   },
   {
-    "id": "featured-vjfb-bcn",
+    "id": "vjfb-bcn",
     "name": "Vegan Junk Food Bar",
     "address": "Carrer de Manresa, 4, 08003 Barcelona",
     "latitude": 41.3842,
@@ -240,7 +240,7 @@
     "imageUrl": "https://images.unsplash.com/photo-1551782450-a2132b4ba21d?auto=format&fit=crop&w=800&q=80"
   },
   {
-    "id": "featured-roots-bcn",
+    "id": "roots-bcn",
     "name": "Roots Vegan",
     "address": "Carrer d'Aragó, 208, 08011 Barcelona",
     "latitude": 41.3892,
@@ -257,7 +257,7 @@
     "imageUrl": "https://images.unsplash.com/photo-1568901346375-23c9450c58cd?auto=format&fit=crop&w=800&q=80"
   },
   {
-    "id": "featured-santoni-bcn",
+    "id": "santoni-bcn",
     "name": "Santoni Vegan Bakery & Cafe",
     "address": "Ronda de Sant Antoni, 63, 08011 Barcelona",
     "latitude": 41.3831,

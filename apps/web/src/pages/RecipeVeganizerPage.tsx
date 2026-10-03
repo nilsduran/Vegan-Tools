@@ -6,12 +6,34 @@
  */
 
 import { useState } from "react";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import { useMutation } from "@tanstack/react-query";
-import { ArrowRight, Check, CookingPot, Copy, LoaderCircle } from "lucide-react";
+import {
+  ArrowRight,
+  BookOpen,
+  Check,
+  ChefHat,
+  CookingPot,
+  Copy,
+  LoaderCircle,
+  Search,
+  X as ClearIcon,
+} from "lucide-react";
+import {
+  MASTER_RECIPES,
+  type RecipeCategory,
+  type RecipeCost,
+  type RecipeDifficulty,
+  type RecipeItem,
+  filterRecipes,
+} from "@vegan-tools/domain";
 import { veganizeRecipe } from "../api";
 import { IngredientFindings } from "../components/IngredientFindings";
 import { VerdictBadge } from "../components/VerdictBadge";
+import { RecipeCard } from "../components/RecipeCard";
+import { RecipeDetailModal } from "../components/RecipeDetailModal";
 import { t, tx, useLanguage } from "../i18n";
+import { useDocumentHead } from "../utils/seo";
 import {
   localizeGeneratedText,
   localizeIngredientName,
@@ -225,6 +247,33 @@ Instruccions:
 
 export function RecipeVeganizerPage() {
   const language = useLanguage();
+  useDocumentHead({
+    title: t("recipes"),
+    description: t("recipesSummary"),
+    path: "/recipes",
+    type: "website",
+  });
+
+  const navigate = useNavigate();
+  const [searchParams, setSearchParams] = useSearchParams();
+  const activeTab = (searchParams.get("tab") === "veganizer" ? "veganizer" : "cookbook") as "cookbook" | "veganizer";
+
+  const handleTabChange = (nextTab: "cookbook" | "veganizer") => {
+    if (nextTab === "veganizer") {
+      setSearchParams({ tab: "veganizer" });
+    } else {
+      setSearchParams({});
+    }
+  };
+
+  // Cookbook state
+  const [searchQuery, setSearchQuery] = useState("");
+  const [selectedCategory, setSelectedCategory] = useState<RecipeCategory | "all">("all");
+  const [selectedDifficulty, setSelectedDifficulty] = useState<RecipeDifficulty | "all">("all");
+  const [selectedCost, setSelectedCost] = useState<RecipeCost | "all">("all");
+  const [selectedRecipe, setSelectedRecipe] = useState<RecipeItem | null>(null);
+
+  // Veganizer state
   const [recipeText, setRecipeText] = useState("");
   const [veganizedText, setVeganizedText] = useState("");
   const [copied, setCopied] = useState(false);
@@ -258,146 +307,365 @@ export function RecipeVeganizerPage() {
     analysis.reset();
   };
 
+  const currSym = language === "ca" ? "€" : "$";
+
+  const categories: { id: RecipeCategory | "all"; label: string }[] = [
+    { id: "all", label: tx("All") },
+    { id: "traditional", label: tx("Traditional") },
+    { id: "quick", label: tx("Quick (<20 min)") },
+    { id: "baking", label: tx("Baking & Desserts") },
+    { id: "basics", label: tx("Basics & Sauces") },
+    { id: "protein", label: tx("High Protein") },
+  ];
+
+  const difficulties: { id: RecipeDifficulty | "all"; label: string; count?: number }[] = [
+    { id: "all", label: tx("All difficulties") },
+    { id: "easy", label: tx("Easy"), count: 1 },
+    { id: "medium", label: tx("Medium"), count: 2 },
+    { id: "hard", label: tx("Hard"), count: 3 },
+  ];
+
+  const costs: { id: RecipeCost | "all"; label: string; count?: number }[] = [
+    { id: "all", label: tx("All budgets") },
+    { id: "1", label: tx("Budget"), count: 1 },
+    { id: "2", label: tx("Moderate"), count: 2 },
+    { id: "3", label: tx("Gourmet"), count: 3 },
+  ];
+
+  const filteredRecipes = filterRecipes(
+    MASTER_RECIPES,
+    searchQuery,
+    selectedCategory,
+    language,
+    selectedDifficulty,
+    selectedCost,
+  );
+
   return (
-    <div className="page narrow-page">
+    <div className={`page ${activeTab === "veganizer" ? "narrow-page" : "recipes-page"}`}>
       <header className="page-heading">
         <h1>{t("recipes")}</h1>
         <p>
-          {tx("Paste the ingredients or the full recipe. Vegan Tools will identify known animal-derived ingredients and suggest how much to use and how to use it where a reliable substitution rule exists.")}
+          {activeTab === "cookbook"
+            ? tx("Discover 100% plant-based recipes, from traditional classics to quick everyday meals, or veganize any traditional recipe.")
+            : tx("Paste the ingredients or the full recipe. Vegan Tools will identify known animal-derived ingredients and suggest how much to use and how to use it where a reliable substitution rule exists.")}
         </p>
       </header>
 
-      <form
-        className="text-analysis-form"
-        onSubmit={(event) => {
-          event.preventDefault();
-          if (recipeText.trim()) analysis.mutate({ text: recipeText, selections });
-        }}
-      >
-        <div className="form-header-row">
-          <label htmlFor="recipe-text">{tx("Recipe")}</label>
-          <div className="recipe-example-pills" aria-label={tx("Examples")}>
-            <span className="example-label">{tx("Examples")}:</span>
-            {RECIPE_EXAMPLES.map((example) => (
-              <button
-                key={example.id}
-                type="button"
-                className="example-pill-button"
-                onClick={() => handleSelectExample(example)}
-              >
-                {example.name[language]}
-              </button>
-            ))}
-          </div>
-        </div>
-        <textarea
-          id="recipe-text"
-          value={recipeText}
-          onChange={(event) => setRecipeText(event.target.value)}
-          placeholder={RECIPE_EXAMPLES[0]?.text[language] ?? ""}
-          rows={7}
-        />
-        <div className="form-actions">
-          <button
-            type="button"
-            className="text-button"
-            onClick={() => {
-              const defaultExample = RECIPE_EXAMPLES[0];
-              if (defaultExample) handleSelectExample(defaultExample);
-            }}
-          >
-            {tx("Use an example")}
-          </button>
-          <button className="primary-button" disabled={!recipeText.trim() || analysis.isPending}>
-            {analysis.isPending ? <LoaderCircle className="spin" /> : <CookingPot />}
-            {tx("Veganize recipe")}
-          </button>
-        </div>
-      </form>
+      {/* Primary Section Tabs */}
+      <nav className="recipe-tabs" aria-label="Section tabs">
+        <button
+          type="button"
+          className={`recipe-tab-btn ${activeTab === "cookbook" ? "active" : ""}`}
+          onClick={() => handleTabChange("cookbook")}
+          aria-pressed={activeTab === "cookbook"}
+        >
+          <BookOpen size={18} aria-hidden="true" />
+          <span>{tx("Cookbook")}</span>
+        </button>
+        <button
+          type="button"
+          className={`recipe-tab-btn ${activeTab === "veganizer" ? "active" : ""}`}
+          onClick={() => handleTabChange("veganizer")}
+          aria-pressed={activeTab === "veganizer"}
+        >
+          <CookingPot size={18} aria-hidden="true" />
+          <span>{tx("Recipe Veganizer")}</span>
+        </button>
+      </nav>
 
-      {analysis.error && <div className="error-banner">{analysis.error.message}</div>}
-      {analysis.data && (
-        <section className="analysis-result">
-          <VerdictBadge verdict={analysis.data.verdict} />
-          <h2>{localizeGeneratedText(analysis.data.summary, language)}</h2>
-          <div className="veganized-editor">
-            <div className="veganized-header-row">
-              <h3>{tx("Veganized recipe")}</h3>
-              <button
-                type="button"
-                className="copy-recipe-button"
-                onClick={handleCopy}
-                title={tx("Copy to clipboard")}
-              >
-                {copied ? <Check className="copied-icon" /> : <Copy />}
-                <span>{copied ? tx("Copied!") : tx("Copy")}</span>
-              </button>
+      {activeTab === "cookbook" ? (
+        <section className="cookbook-section" aria-label={tx("Cookbook")}>
+          {/* Search and Category Filters */}
+          <div className="recipe-toolbar">
+            <div className="recipe-search-wrap">
+              <Search size={18} className="search-icon" aria-hidden="true" />
+              <input
+                type="search"
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                placeholder={tx("Search recipes or ingredients…")}
+                aria-label={tx("Search recipes or ingredients…")}
+              />
+              {searchQuery && (
+                <button
+                  type="button"
+                  className="clear-search-btn"
+                  onClick={() => setSearchQuery("")}
+                  aria-label="Clear search"
+                >
+                  <ClearIcon size={16} aria-hidden="true" />
+                </button>
+              )}
             </div>
-            <p>
-              {tx("This is an editable draft. Review the suggested quantities and instructions before cooking.")}
-            </p>
-            <textarea
-              aria-label={tx("Veganized recipe")}
-              value={veganizedText}
-              onChange={(event) => setVeganizedText(event.target.value)}
-              rows={14}
-            />
-          </div>
-          <IngredientFindings findings={analysis.data.findings} />
 
-          {analysis.data.substitutions.length > 0 && (
-            <>
-              <h3>{tx("Suggested substitutions")}</h3>
-              <div className="substitution-list">
-                {analysis.data.substitutions.map((substitution) => (
-                  <article key={substitution.ingredientId}>
-                    <div className="substitution-title">
-                      <strong>{localizeIngredientName({
-                        id: substitution.ingredientId,
-                        name: substitution.ingredient,
-                      }, language)}</strong>
-                      {substitution.detectedText && <small>{substitution.detectedText}</small>}
-                    </div>
-                    <ArrowRight aria-hidden="true" />
-                    <div>
-                      <p>{localizeGeneratedText(substitution.guidance, language)}</p>
-                      <span>{tx("Choose a substitute")}</span>
-                      <div className="substitute-options">
-                        {substitution.suggestions.map((suggestion) => (
-                          <button
-                            key={suggestion}
-                            type="button"
-                            className={`substitute-option${
-                              substitution.selectedSuggestion === suggestion ? " active" : ""
-                            }`}
-                            aria-pressed={substitution.selectedSuggestion === suggestion}
-                            disabled={analysis.isPending}
-                            onClick={() => {
-                              const nextSelections = {
-                                ...selections,
-                                [substitution.ingredientId]: suggestion,
-                              };
-                              setSelections(nextSelections);
-                              analysis.mutate({
-                                text: recipeText,
-                                selections: nextSelections,
-                              });
-                            }}
-                          >
-                            {localizeSuggestion(suggestion, language)}
-                          </button>
-                        ))}
-                      </div>
-                    </div>
-                  </article>
+            <div className="recipe-categories-bar" role="toolbar" aria-label="Categories">
+              {categories.map((cat) => (
+                <button
+                  key={cat.id}
+                  type="button"
+                  className={`recipe-category-pill ${selectedCategory === cat.id ? "active" : ""}`}
+                  onClick={() => setSelectedCategory(cat.id)}
+                  aria-pressed={selectedCategory === cat.id}
+                >
+                  {cat.label}
+                </button>
+              ))}
+            </div>
+
+            {/* Sub-filters: Difficulty & Cost */}
+            <div
+              className="recipe-subfilters-bar"
+              style={{
+                display: "flex",
+                flexWrap: "wrap",
+                gap: "1.25rem",
+                marginTop: "0.75rem",
+                paddingTop: "0.75rem",
+                borderTop: "1px solid var(--color-border, #e2e8f0)",
+                alignItems: "center",
+              }}
+            >
+              {/* Difficulty Filter */}
+              <div
+                style={{ display: "flex", alignItems: "center", gap: "0.35rem", flexWrap: "wrap" }}
+                role="toolbar"
+                aria-label={tx("Difficulty")}
+              >
+                <span style={{ fontSize: "0.82rem", fontWeight: 600, color: "var(--color-muted, #64748b)", marginRight: "2px" }}>
+                  {tx("Difficulty")}:
+                </span>
+                {difficulties.map((diff) => (
+                  <button
+                    key={diff.id}
+                    type="button"
+                    className={`recipe-category-pill recipe-subfilter-pill ${selectedDifficulty === diff.id ? "active" : ""}`}
+                    onClick={() => setSelectedDifficulty(diff.id)}
+                    aria-pressed={selectedDifficulty === diff.id}
+                    style={{
+                      display: "inline-flex",
+                      alignItems: "center",
+                      gap: "3px",
+                      fontSize: "0.8rem",
+                      padding: "0.22rem 0.6rem",
+                    }}
+                  >
+                    {diff.count && Array.from({ length: diff.count }).map((_, idx) => (
+                      <ChefHat key={idx} size={13} aria-hidden="true" />
+                    ))}
+                    <span>{diff.label}</span>
+                  </button>
                 ))}
               </div>
-            </>
+
+              {/* Cost Filter */}
+              <div
+                style={{ display: "flex", alignItems: "center", gap: "0.35rem", flexWrap: "wrap" }}
+                role="toolbar"
+                aria-label={tx("Cost")}
+              >
+                <span style={{ fontSize: "0.82rem", fontWeight: 600, color: "var(--color-muted, #64748b)", marginRight: "2px" }}>
+                  {tx("Cost")}:
+                </span>
+                {costs.map((cost) => (
+                  <button
+                    key={cost.id}
+                    type="button"
+                    className={`recipe-category-pill recipe-subfilter-pill ${selectedCost === cost.id ? "active" : ""}`}
+                    onClick={() => setSelectedCost(cost.id)}
+                    aria-pressed={selectedCost === cost.id}
+                    style={{
+                      display: "inline-flex",
+                      alignItems: "center",
+                      gap: "3px",
+                      fontSize: "0.8rem",
+                      padding: "0.22rem 0.6rem",
+                    }}
+                  >
+                    {cost.count && (
+                      <strong style={{ letterSpacing: "1px" }}>{currSym.repeat(cost.count)}</strong>
+                    )}
+                    <span>{cost.label}</span>
+                  </button>
+                ))}
+              </div>
+            </div>
+          </div>
+
+          {/* Curated Recipes Catalog Grid */}
+          {filteredRecipes.length > 0 ? (
+            <div className="recipes-grid">
+              {filteredRecipes.map((recipe) => (
+                <RecipeCard
+                  key={recipe.id}
+                  recipe={recipe}
+                  onSelect={(r) => {
+                    navigate(`/recipes/${r.slug}`);
+                  }}
+                />
+              ))}
+            </div>
+          ) : (
+            <div className="recipe-empty-state">
+              <p>{tx("No recipes found. Try a different search term or category.")}</p>
+              <button
+                type="button"
+                className="text-button"
+                onClick={() => {
+                  setSearchQuery("");
+                  setSelectedCategory("all");
+                  setSelectedDifficulty("all");
+                  setSelectedCost("all");
+                }}
+              >
+                {tx("Reset")}
+              </button>
+            </div>
           )}
 
-          <p className="disclaimer">
-            {tx("Suggestions are starting points: quantities and behaviour depend on the recipe. Check branded ingredients and adjust texture, moisture and cooking time.")}
-          </p>
+          {/* Recipe Detail Modal */}
+          {selectedRecipe && (
+            <RecipeDetailModal
+              recipe={selectedRecipe}
+              onClose={() => setSelectedRecipe(null)}
+            />
+          )}
+        </section>
+      ) : (
+        <section className="veganizer-section" aria-label={tx("Recipe Veganizer")}>
+          <form
+            className="text-analysis-form"
+            onSubmit={(event) => {
+              event.preventDefault();
+              if (recipeText.trim()) analysis.mutate({ text: recipeText, selections });
+            }}
+          >
+            <div className="form-header-row">
+              <label htmlFor="recipe-text">{tx("Recipe")}</label>
+              <div className="recipe-example-pills" aria-label={tx("Examples")}>
+                <span className="example-label">{tx("Examples")}:</span>
+                {RECIPE_EXAMPLES.map((example) => (
+                  <button
+                    key={example.id}
+                    type="button"
+                    className="example-pill-button"
+                    onClick={() => handleSelectExample(example)}
+                  >
+                    {example.name[language]}
+                  </button>
+                ))}
+              </div>
+            </div>
+            <textarea
+              id="recipe-text"
+              value={recipeText}
+              onChange={(event) => setRecipeText(event.target.value)}
+              placeholder={RECIPE_EXAMPLES[0]?.text[language] ?? ""}
+              rows={7}
+            />
+            <div className="form-actions">
+              <button
+                type="button"
+                className="text-button"
+                onClick={() => {
+                  const defaultExample = RECIPE_EXAMPLES[0];
+                  if (defaultExample) handleSelectExample(defaultExample);
+                }}
+              >
+                {tx("Use an example")}
+              </button>
+              <button className="primary-button" disabled={!recipeText.trim() || analysis.isPending}>
+                {analysis.isPending ? <LoaderCircle className="spin" /> : <CookingPot />}
+                {tx("Veganize recipe")}
+              </button>
+            </div>
+          </form>
+
+          {analysis.error && <div className="error-banner">{analysis.error.message}</div>}
+          {analysis.data && (
+            <section className="analysis-result">
+              <VerdictBadge verdict={analysis.data.verdict} />
+              <h2>{localizeGeneratedText(analysis.data.summary, language)}</h2>
+              <div className="veganized-editor">
+                <div className="veganized-header-row">
+                  <h3>{tx("Veganized recipe")}</h3>
+                  <button
+                    type="button"
+                    className="copy-recipe-button"
+                    onClick={handleCopy}
+                    title={tx("Copy to clipboard")}
+                  >
+                    {copied ? <Check className="copied-icon" /> : <Copy />}
+                    <span>{copied ? tx("Copied!") : tx("Copy")}</span>
+                  </button>
+                </div>
+                <p>
+                  {tx("This is an editable draft. Review the suggested quantities and instructions before cooking.")}
+                </p>
+                <textarea
+                  aria-label={tx("Veganized recipe")}
+                  value={veganizedText}
+                  onChange={(event) => setVeganizedText(event.target.value)}
+                  rows={14}
+                />
+              </div>
+              <IngredientFindings findings={analysis.data.findings} />
+
+              {analysis.data.substitutions.length > 0 && (
+                <>
+                  <h3>{tx("Suggested substitutions")}</h3>
+                  <div className="substitution-list">
+                    {analysis.data.substitutions.map((substitution) => (
+                      <article key={substitution.ingredientId}>
+                        <div className="substitution-title">
+                          <strong>{localizeIngredientName({
+                            id: substitution.ingredientId,
+                            name: substitution.ingredient,
+                          }, language)}</strong>
+                          {substitution.detectedText && <small>{substitution.detectedText}</small>}
+                        </div>
+                        <ArrowRight aria-hidden="true" />
+                        <div>
+                          <p>{localizeGeneratedText(substitution.guidance, language)}</p>
+                          <span>{tx("Choose a substitute")}</span>
+                          <div className="substitute-options">
+                            {substitution.suggestions.map((suggestion) => (
+                              <button
+                                key={suggestion}
+                                type="button"
+                                className={`substitute-option${
+                                  substitution.selectedSuggestion === suggestion ? " active" : ""
+                                }`}
+                                aria-pressed={substitution.selectedSuggestion === suggestion}
+                                disabled={analysis.isPending}
+                                onClick={() => {
+                                  const nextSelections = {
+                                    ...selections,
+                                    [substitution.ingredientId]: suggestion,
+                                  };
+                                  setSelections(nextSelections);
+                                  analysis.mutate({
+                                    text: recipeText,
+                                    selections: nextSelections,
+                                  });
+                                }}
+                              >
+                                {localizeSuggestion(suggestion, language)}
+                              </button>
+                            ))}
+                          </div>
+                        </div>
+                      </article>
+                    ))}
+                  </div>
+                </>
+              )}
+
+              <p className="disclaimer">
+                {tx("Suggestions are starting points: quantities and behaviour depend on the recipe. Check branded ingredients and adjust texture, moisture and cooking time.")}
+              </p>
+            </section>
+          )}
         </section>
       )}
     </div>

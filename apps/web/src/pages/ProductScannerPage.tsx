@@ -29,6 +29,7 @@ import { IngredientFindings } from "../components/IngredientFindings";
 import { IngredientCamera } from "../components/IngredientCamera";
 import { VerdictBadge } from "../components/VerdictBadge";
 import { t, tx, useLanguage } from "../i18n";
+import { useDocumentHead } from "../utils/seo";
 import {
   localizeGeneratedText,
   localizeIngredientName,
@@ -145,6 +146,14 @@ export function ProductScannerPage() {
     queryFn: () => getProduct(routeGtin ?? ""),
     enabled: Boolean(routeGtin),
   });
+
+  useDocumentHead({
+    title: routeGtin && lookup.data ? `${lookup.data.productName || routeGtin} · ${t("scanner")}` : t("scanner"),
+    description: t("scannerSummary"),
+    image: lookup.data?.imageUrl,
+    path: routeGtin ? `/product/${routeGtin}` : "/scanner",
+    type: "website",
+  });
   const ingredientAnalysis = useMutation({ mutationFn: classifyIngredientList });
   const photoExtraction = useMutation({ mutationFn: extractIngredientText });
   const productPhotoExtraction = useMutation({
@@ -167,13 +176,17 @@ export function ProductScannerPage() {
   }, [lookup.data]);
 
   useEffect(() => {
-    if (!ingredientPhoto) {
+    if (!ingredientPhoto || typeof URL.createObjectURL !== "function") {
       setPhotoUrl("");
       return;
     }
     const url = URL.createObjectURL(ingredientPhoto);
     setPhotoUrl(url);
-    return () => URL.revokeObjectURL(url);
+    return () => {
+      if (typeof URL.revokeObjectURL === "function") {
+        URL.revokeObjectURL(url);
+      }
+    };
   }, [ingredientPhoto]);
 
   const runLookup = useCallback((value: string) => {
@@ -185,7 +198,12 @@ export function ProductScannerPage() {
     setRemotePhotoUrl("");
     setIngredientPhoto(file);
     photoExtraction.mutate(file, {
-      onSuccess: (text) => setIngredientsText(text),
+      onSuccess: (text) => {
+        setIngredientsText(text);
+        if (text.trim()) {
+          ingredientAnalysis.mutate(text);
+        }
+      },
     });
   };
 
@@ -318,12 +336,88 @@ export function ProductScannerPage() {
                 </div>
               )}
               <div className="product-result-body">
-                <VerdictBadge verdict={lookup.data.verdict} />
+                <div style={{ display: "flex", flexWrap: "wrap", alignItems: "center", gap: "0.5rem", marginBottom: "0.4rem" }}>
+                  <VerdictBadge verdict={lookup.data.verdict} />
+                  {lookup.data.isBeautyProduct && (
+                    <span
+                      style={{
+                        fontSize: "0.78rem",
+                        fontWeight: 600,
+                        padding: "0.2rem 0.55rem",
+                        borderRadius: "999px",
+                        background: "var(--bg-subtle)",
+                        border: "1px solid var(--line)",
+                        color: "var(--text-secondary)",
+                        display: "inline-flex",
+                        alignItems: "center",
+                        gap: "0.3rem",
+                      }}
+                    >
+                      🧴 {tx("Cosmetics & Care")}
+                    </span>
+                  )}
+                  {lookup.data.crueltyFree && (
+                    <span
+                      style={{
+                        fontSize: "0.78rem",
+                        fontWeight: 700,
+                        padding: "0.2rem 0.6rem",
+                        borderRadius: "999px",
+                        background: "#ecfdf5",
+                        border: "1px solid #10b981",
+                        color: "#065f46",
+                        display: "inline-flex",
+                        alignItems: "center",
+                        gap: "0.3rem",
+                      }}
+                    >
+                      🐰 {tx("Cruelty-Free")}
+                    </span>
+                  )}
+                </div>
                 <h2>{lookup.data.productName ?? `Product ${lookup.data.gtin}`}</h2>
                 {cleanBrand(lookup.data.brand, lookup.data.productName) && (
                   <p className="muted">
                     {cleanBrand(lookup.data.brand, lookup.data.productName)}
                   </p>
+                )}
+                {lookup.data.crueltyFreeCertifications && lookup.data.crueltyFreeCertifications.length > 0 && (
+                  <div style={{ display: "flex", flexWrap: "wrap", gap: "0.35rem", margin: "0.35rem 0" }}>
+                    {lookup.data.crueltyFreeCertifications.map((cert) => (
+                      <span
+                        key={cert}
+                        style={{
+                          fontSize: "0.72rem",
+                          fontWeight: 600,
+                          padding: "0.15rem 0.45rem",
+                          borderRadius: "6px",
+                          background: "var(--green-light)",
+                          color: "var(--green-dark)",
+                          border: "1px solid var(--green-border)",
+                        }}
+                      >
+                        ✓ {cert}
+                      </span>
+                    ))}
+                  </div>
+                )}
+                {lookup.data.isBeautyProduct && !lookup.data.crueltyFree && (
+                  <div style={{ margin: "0.35rem 0" }}>
+                    <span
+                      style={{
+                        fontSize: "0.74rem",
+                        fontWeight: 500,
+                        padding: "0.2rem 0.5rem",
+                        borderRadius: "6px",
+                        background: "rgba(245, 158, 11, 0.1)",
+                        color: "#b45309",
+                        border: "1px solid rgba(245, 158, 11, 0.3)",
+                        display: "inline-block",
+                      }}
+                    >
+                      ⚠️ {tx("No cruelty-free certification registered in open databases")}
+                    </span>
+                  </div>
                 )}
                 <p className="result-reason">{localizeGeneratedText(lookup.data.reason, language)}</p>
                 <FlaggedIngredientChips findings={lookup.data.findings} language={language} />
@@ -357,8 +451,15 @@ export function ProductScannerPage() {
                       if (lookup.data.ingredientsImageUrl) {
                         setRemotePhotoUrl(lookup.data.ingredientsImageUrl);
                         productPhotoExtraction.mutate(lookup.data.gtin, {
-                          onSuccess: (text) => setIngredientsText(text),
+                          onSuccess: (text) => {
+                            setIngredientsText(text);
+                            if (text.trim()) {
+                              ingredientAnalysis.mutate(text);
+                            }
+                          },
                         });
+                      } else if (label?.trim()) {
+                        ingredientAnalysis.mutate(label);
                       }
                     }}
                   >
@@ -434,6 +535,7 @@ export function ProductScannerPage() {
                   setRemotePhotoUrl("");
                   photoExtraction.reset();
                   productPhotoExtraction.reset();
+                  ingredientAnalysis.reset();
                 }}
               >
                 <Camera />{tx("Retake photo")}

@@ -15,6 +15,8 @@ vi.mock("../api.js", () => ({
   createRestaurantMenuAnalysis: vi.fn(),
   getRecentRestaurantMenus: vi.fn().mockResolvedValue([]),
   getMenuDraft: vi.fn(),
+  getRestaurantMenu: vi.fn().mockResolvedValue(null),
+  getRestaurantById: vi.fn().mockResolvedValue(null),
   getApproximateLocation: vi.fn().mockResolvedValue({
     latitude: 41.3879,
     longitude: 2.1699,
@@ -41,17 +43,17 @@ describe("MenuReaderPage Form UI", () => {
     async () => {
     const candidate: RestaurantCandidate = {
       id: "foursquare-123",
-      name: "Teresa Carles",
+      name: "Bistro Desconegut",
       address: "Carrer de Jovellanos, 2, Barcelona",
       latitude: 41.385,
       longitude: 2.168,
-      websiteUrl: "https://teresacarles.com",
+      websiteUrl: "https://bistrodesconegut.cat",
       mapUrl: "https://foursquare.com/v/123",
       provider: "foursquare",
     };
 
     vi.mocked(api.searchRestaurants).mockImplementation(async (q) => {
-      if (typeof q === "string" && q.includes("Teresa Carles")) {
+      if (typeof q === "string" && q.includes("Bistro Desconegut")) {
         return [candidate];
       }
       return [];
@@ -61,7 +63,7 @@ describe("MenuReaderPage Form UI", () => {
       id: "menu-123",
       editToken: "token-123",
       status: "processing",
-      restaurantName: "Teresa Carles",
+      restaurantName: "Bistro Desconegut",
       sourceLabel: "Website menu",
       sourceFiles: [],
       sourceCapturedAt: new Date().toISOString(),
@@ -80,18 +82,18 @@ describe("MenuReaderPage Form UI", () => {
     const searchInput = screen.getByRole("textbox", { name: /search for a restaurant/i });
     expect(searchInput).toBeDefined();
 
-    fireEvent.change(searchInput, { target: { value: "Teresa Carles Barcelona" } });
+    fireEvent.change(searchInput, { target: { value: "Bistro Desconegut Barcelona" } });
     const searchButton = screen.getByRole("button", { name: /search restaurants/i });
     fireEvent.click(searchButton);
 
     await waitFor(() => {
       expect(api.searchRestaurants).toHaveBeenCalledWith(
-        "Teresa Carles Barcelona",
+        "Bistro Desconegut Barcelona",
         expect.anything(),
       );
     });
 
-    expect(await screen.findByText("Teresa Carles")).toBeDefined();
+    expect(await screen.findByText("Bistro Desconegut")).toBeDefined();
     expect(screen.getByText(/Carrer de Jovellanos, 2, Barcelona/)).toBeDefined();
 
     const useButton = screen.getByRole("button", { name: /^(?:menu|carta)$/i });
@@ -99,11 +101,46 @@ describe("MenuReaderPage Form UI", () => {
 
     await waitFor(() => {
       expect(api.resolveRestaurant).toHaveBeenCalledWith(candidate);
-      expect(api.discoverRestaurantMenu).toHaveBeenCalledWith(candidate, "https://teresacarles.com");
+      expect(api.discoverRestaurantMenu).toHaveBeenCalledWith(candidate, "https://bistrodesconegut.cat");
     });
 
     expect(await screen.findByRole("button", { name: /back to map/i })).toBeDefined();
   }, 15000);
+
+  it("opens curated restaurant menu instantly without network discovery", async () => {
+    const candidate: RestaurantCandidate = {
+      id: "featured-hanai-bcn",
+      name: "Hanai Vegana",
+      address: "Carrer dels Carders, 28, Barcelona",
+      latitude: 41.3865,
+      longitude: 2.1812,
+      mapUrl: "https://maps.google.com",
+      provider: "curated",
+    };
+
+    vi.mocked(api.searchRestaurants).mockResolvedValue([candidate]);
+
+    render(
+      <MemoryRouter>
+        <MenuReaderPage />
+      </MemoryRouter>
+    );
+
+    const searchInput = screen.getByRole("textbox", { name: /search for a restaurant/i });
+    fireEvent.change(searchInput, { target: { value: "Hanai Vegana" } });
+    const searchButton = screen.getByRole("button", { name: /search restaurants/i });
+    fireEvent.click(searchButton);
+
+    expect(await screen.findByText("Hanai Vegana")).toBeDefined();
+
+    const useButton = screen.getByRole("button", { name: /^(?:menu|carta)$/i });
+    fireEvent.click(useButton);
+
+    // Curated menu opens instantly with its verified heading and sections
+    expect(await screen.findByRole("heading", { name: "Hanai Vegana" })).toBeDefined();
+    expect(await screen.findByRole("heading", { name: /Pastisseria Artesanal/i })).toBeDefined();
+    expect(api.discoverRestaurantMenu).not.toHaveBeenCalled();
+  });
 
   it("clears search query and results when clicking the X clear button", async () => {
     const candidate: RestaurantCandidate = {

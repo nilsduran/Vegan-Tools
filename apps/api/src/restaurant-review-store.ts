@@ -1,5 +1,7 @@
 import type { RestaurantReview, RestaurantReviewStats } from "@vegan-tools/domain";
+import { createClient, type SupabaseClient } from "@supabase/supabase-js";
 import { supabaseCredentialsFromEnvironment } from "./environment.js";
+import { getSupabaseClient } from "./supabase.js";
 
 export interface RestaurantReviewsResult {
   reviews: RestaurantReview[];
@@ -11,6 +13,7 @@ export interface RestaurantReviewStore {
   getUserReviews(userId: string): Promise<RestaurantReview[]>;
   saveReview(review: RestaurantReview): Promise<RestaurantReview>;
   deleteReview(restaurantId: string, userId: string): Promise<boolean>;
+  updateAuthorUsername(userId: string, newUsername: string): Promise<number>;
 }
 
 export function calculateReviewStats(reviews: RestaurantReview[]): RestaurantReviewStats {
@@ -87,6 +90,20 @@ export class MemoryRestaurantReviewStore implements RestaurantReviewStore {
     if (!userMap) return false;
     return userMap.delete(userId);
   }
+
+  async updateAuthorUsername(userId: string, newUsername: string): Promise<number> {
+    let count = 0;
+    const formattedName = newUsername.startsWith("@") ? newUsername : `@${newUsername}`;
+    for (const userMap of this.store.values()) {
+      const review = userMap.get(userId);
+      if (review) {
+        review.userName = formattedName;
+        review.updatedAt = new Date().toISOString();
+        count++;
+      }
+    }
+    return count;
+  }
 }
 
 interface SupabaseReviewRow {
@@ -102,20 +119,17 @@ interface SupabaseReviewRow {
 }
 
 export class SupabaseRestaurantReviewStore implements RestaurantReviewStore {
+  private readonly client: SupabaseClient;
   private readonly memoryFallback = new MemoryRestaurantReviewStore();
 
-  constructor(
-    private readonly url: string,
-    private readonly secretKey: string,
-  ) {}
-
-  private headers(extra: Record<string, string> = {}) {
-    return {
-      apikey: this.secretKey,
-      Authorization: `Bearer ${this.secretKey}`,
-      "Content-Type": "application/json",
-      ...extra,
-    };
+  constructor(clientOrUrl: SupabaseClient | string, secretKey?: string) {
+    if (typeof clientOrUrl === "string") {
+      this.client = createClient(clientOrUrl, secretKey || "", {
+        auth: { persistSession: false, autoRefreshToken: false },
+      });
+    } else {
+      this.client = clientOrUrl;
+    }
   }
 
   private rowToReview(row: SupabaseReviewRow): RestaurantReview {
@@ -134,26 +148,17 @@ export class SupabaseRestaurantReviewStore implements RestaurantReviewStore {
 
   async getReviews(restaurantId: string): Promise<RestaurantReviewsResult> {
     try {
-      const queryUrl = `${this.url}/rest/v1/restaurant_reviews?restaurant_id=eq.${encodeURIComponent(
-        restaurantId,
-      )}&order=created_at.desc`;
+      const { data, error } = await this.client
+        .from("restaurant_reviews")
+        .select("*")
+        .eq("restaurant_id", restaurantId)
+        .order("created_at", { ascending: false });
 
-      const response = await fetch(queryUrl, {
-        method: "GET",
-        headers: this.headers(),
-      });
-
-      if (!response.ok) {
+      if (error || !data || data.length === 0) {
         return this.memoryFallback.getReviews(restaurantId);
       }
 
-      const rows = (await response.json()) as SupabaseReviewRow[];
-      const reviews = Array.isArray(rows) ? rows.map((r) => this.rowToReview(r)) : [];
-
-      if (reviews.length === 0) {
-        return this.memoryFallback.getReviews(restaurantId);
-      }
-
+      const reviews = (data as SupabaseReviewRow[]).map((r) => this.rowToReview(r));
       return {
         reviews,
         stats: calculateReviewStats(reviews),
@@ -165,33 +170,23 @@ export class SupabaseRestaurantReviewStore implements RestaurantReviewStore {
 
   async getUserReviews(userId: string): Promise<RestaurantReview[]> {
     try {
-      const queryUrl = `${this.url}/rest/v1/restaurant_reviews?user_id=eq.${encodeURIComponent(
-        userId,
-      )}&order=created_at.desc`;
+      const { data, error } = await this.client
+        .from("restaurant_reviews")
+        .select("*")
+        .eq("user_id", userId)
+        .order("created_at", { ascending: false });
 
-      const response = await fetch(queryUrl, {
-        method: "GET",
-        headers: this.headers(),
-      });
-
-      if (!response.ok) {
+      if (error || !data || data.length === 0) {
         return this.memoryFallback.getUserReviews(userId);
       }
 
-      const rows = (await response.json()) as SupabaseReviewRow[];
-      const reviews = Array.isArray(rows) ? rows.map((r) => this.rowToReview(r)) : [];
-      if (reviews.length === 0) {
-        return this.memoryFallback.getUserReviews(userId);
-      }
-      return reviews;
+      return (data as SupabaseReviewRow[]).map((r) => this.rowToReview(r));
     } catch {
       return this.memoryFallback.getUserReviews(userId);
     }
   }
 
   async saveReview(review: RestaurantReview): Promise<RestaurantReview> {
-    const upsertUrl = `${this.url}/rest/v1/restaurant_reviews?on_conflict=restaurant_id,user_id`;
-
     const payload: SupabaseReviewRow = {
       id: review.id,
       restaurant_id: review.restaurantId,
@@ -205,26 +200,20 @@ export class SupabaseRestaurantReviewStore implements RestaurantReviewStore {
     };
 
     try {
-      const response = await fetch(upsertUrl, {
-        method: "POST",
-        headers: this.headers({
-          Prefer: "resolution=merge-duplicates,return=representation",
-        }),
-        body: JSON.stringify(payload),
-      });
+      const { data, error } = await this.client
+        .from("restaurant_reviews")
+        .upsert(payload, { onConflict: "restaurant_id,user_id" })
+        .select()
+        .single();
 
-      if (!response.ok) {
+      if (error || !data) {
         console.warn(
-          `[SupabaseRestaurantReviewStore] Supabase returned status ${response.status}. Using in-memory fallback. Ensure the 'restaurant_reviews' table exists in Supabase.`,
+          `[SupabaseRestaurantReviewStore] Supabase error (${error?.message}). Using in-memory fallback.`,
         );
         return this.memoryFallback.saveReview(review);
       }
 
-      const result = (await response.json()) as SupabaseReviewRow[];
-      if (Array.isArray(result) && result[0]) {
-        return this.rowToReview(result[0]);
-      }
-      return review;
+      return this.rowToReview(data as SupabaseReviewRow);
     } catch (error) {
       console.warn(
         `[SupabaseRestaurantReviewStore] Network error connecting to Supabase (${error instanceof Error ? error.message : String(error)}). Using in-memory fallback.`,
@@ -235,35 +224,45 @@ export class SupabaseRestaurantReviewStore implements RestaurantReviewStore {
 
   async deleteReview(restaurantId: string, userId: string): Promise<boolean> {
     try {
-      const deleteUrl = `${this.url}/rest/v1/restaurant_reviews?restaurant_id=eq.${encodeURIComponent(
-        restaurantId,
-      )}&user_id=eq.${encodeURIComponent(userId)}`;
+      const { data, error } = await this.client
+        .from("restaurant_reviews")
+        .delete()
+        .eq("restaurant_id", restaurantId)
+        .eq("user_id", userId)
+        .select();
 
-      const response = await fetch(deleteUrl, {
-        method: "DELETE",
-        headers: this.headers({
-          Prefer: "return=representation",
-        }),
-      });
-
-      if (!response.ok) {
-        return this.memoryFallback.deleteReview(restaurantId, userId);
-      }
-
-      const result = (await response.json()) as SupabaseReviewRow[];
-      const deletedFromSupabase = Array.isArray(result) && result.length > 0;
+      const deletedFromSupabase = !error && Array.isArray(data) && data.length > 0;
       const deletedFromMemory = await this.memoryFallback.deleteReview(restaurantId, userId);
       return deletedFromSupabase || deletedFromMemory;
     } catch {
       return this.memoryFallback.deleteReview(restaurantId, userId);
     }
   }
+
+  async updateAuthorUsername(userId: string, newUsername: string): Promise<number> {
+    const formattedName = newUsername.startsWith("@") ? newUsername : `@${newUsername}`;
+    try {
+      const { data, error } = await this.client
+        .from("restaurant_reviews")
+        .update({ user_name: formattedName, updated_at: new Date().toISOString() })
+        .eq("user_id", userId)
+        .select();
+
+      const memoryCount = await this.memoryFallback.updateAuthorUsername(userId, newUsername);
+      if (!error && Array.isArray(data)) {
+        return Math.max(data.length, memoryCount);
+      }
+      return memoryCount;
+    } catch {
+      return this.memoryFallback.updateAuthorUsername(userId, newUsername);
+    }
+  }
 }
 
 export function createRestaurantReviewStore(): RestaurantReviewStore {
-  const credentials = supabaseCredentialsFromEnvironment();
-  if (credentials) {
-    return new SupabaseRestaurantReviewStore(credentials.url, credentials.secretKey);
+  const client = getSupabaseClient();
+  if (client) {
+    return new SupabaseRestaurantReviewStore(client);
   }
   return new MemoryRestaurantReviewStore();
 }

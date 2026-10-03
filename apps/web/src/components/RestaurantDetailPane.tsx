@@ -5,38 +5,58 @@
  * menu trigger actions, and community review threads.
  */
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, type ReactNode } from "react";
 import { Link } from "react-router-dom";
 import type { RestaurantCandidate } from "@vegan-tools/domain";
 import {
+  Bookmark,
+  Check,
   Clock,
+  Copy,
   ExternalLink,
+  FolderPlus,
   Globe,
+  Heart,
   Info,
   Leaf,
   LoaderCircle,
   MapPin,
   Navigation,
+  Share2,
   Upload,
   User,
   Utensils,
   X,
 } from "lucide-react";
 import { t, tx, useLanguage } from "../i18n";
-import { getTransitEstimate, type TransitEstimate } from "../utils/transit";
+import { evaluateOpeningHours } from "@vegan-tools/domain";
 import { getDirectionsUrl } from "../utils/navigation";
-
+import { getTransitEstimate, type TransitEstimate } from "../utils/transit";
+import { saveCachedRestaurant } from "../utils/restaurantCache";
 import { RestaurantReviews } from "./RestaurantReviews";
+import {
+  isRestaurantInList,
+  toggleRestaurantInList,
+  loadUserLists,
+  createCustomList,
+  isLiked,
+  isWantToGo,
+  toggleLiked,
+  toggleWantToGo,
+  type UserRestaurantList,
+} from "../utils/userLists";
+import { ListSelectModal } from "./ListSelectModal";
+import { VeganBadgeIcon, VegetarianBadgeIcon, VeganOptionsBadgeIcon } from "./DietIcons";
 
-// Helper to determine the vegan status badge of the restaurant
-function getVeganBadge(restaurant: RestaurantCandidate): {
-  type: "all_vegan" | "vegetarian" | "vegan_options" | "general";
+export function getDietBadge(restaurant: RestaurantCandidate): {
+  type: "all_vegan" | "vegetarian" | "vegan_options";
   label: string;
+  icon: ReactNode;
   className: string;
-} {
-  const name = (restaurant.name || "").toLowerCase();
+} | undefined {
   const tags = (restaurant.tags ?? []).map((t) => t.toLowerCase());
   const cuisine = (restaurant.cuisine ?? "").toLowerCase();
+  const name = (restaurant.name ?? "").toLowerCase();
 
   const isAllVegan =
     Boolean(restaurant.isVegan) ||
@@ -54,7 +74,8 @@ function getVeganBadge(restaurant: RestaurantCandidate): {
   if (isAllVegan) {
     return {
       type: "all_vegan",
-      label: tx("Vegan"),
+      label: tx("100% Vegà"),
+      icon: <VeganBadgeIcon size={16} />,
       className: "badge-all-vegan",
     };
   }
@@ -63,6 +84,7 @@ function getVeganBadge(restaurant: RestaurantCandidate): {
     Boolean(restaurant.isVegetarian) ||
     tags.includes("vegetarian") ||
     tags.includes("diet:vegetarian=only") ||
+    tags.includes("diet:vegetarian=yes") ||
     cuisine === "vegetarian" ||
     name.includes("vegetarian") ||
     name.includes("vegetarià") ||
@@ -71,26 +93,52 @@ function getVeganBadge(restaurant: RestaurantCandidate): {
   if (isVegetarian) {
     return {
       type: "vegetarian",
-      label: tx("Vegetarian"),
+      label: tx("Vegetarià"),
+      icon: <VegetarianBadgeIcon size={16} />,
       className: "badge-vegetarian",
     };
   }
 
-  return {
-    type: "vegan_options",
-    label: tx("Vegan options"),
-    className: "badge-vegan-options",
-  };
+  // Only show Veg-friendly badge if verified by explicit OSM tags or catalog evidence
+  const isVegFriendly =
+    tags.includes("vegan_options") ||
+    tags.includes("diet:vegan=yes") ||
+    tags.some((t) => t.includes("vegan"));
+
+  if (isVegFriendly) {
+    return {
+      type: "vegan_options",
+      label: tx("Veg-friendly"),
+      icon: <VeganOptionsBadgeIcon size={15} />,
+      className: "badge-vegan-options",
+    };
+  }
+
+  return undefined;
 }
 
 function formatDisplayAddress(address: string): string {
   if (!address) return "";
-  return address
+  const cleaned = address
     .replace(/,\s*(?:Spain|España|Espanya|Catalunya|Catalonia|United Kingdom|France|Deutschland|Italy|Italia)$/i, "")
     .replace(/,\s*\d{4,5}\s+([^,]+)/, ", $1")
     .replace(/,\s*\d{4,5}/, "")
-    .replace(/,\s*(?:Catalunya|Catalonia|Comunitat de Madrid|Andalucía|Valencia)$/i, "")
+    .replace(/,\s*(?:Barcelonès|Gironès|Vallès [^,]+|Baix Llobregat|Maresme|Comunitat de Madrid|Andalucía|Valencia)$/i, "")
     .trim();
+
+  // Deduplicate repeated tokens (e.g. "Barcelona, Barcelonès, Barcelona" -> "Barcelona")
+  const parts = cleaned.split(",").map((p) => p.trim()).filter(Boolean);
+  const deduped: string[] = [];
+  for (const p of parts) {
+    if (!deduped.some((existing) => existing.toLowerCase() === p.toLowerCase())) {
+      deduped.push(p);
+    }
+  }
+
+  if (deduped.length > 2) {
+    return `${deduped[0]}, ${deduped[deduped.length - 1]}`;
+  }
+  return deduped.join(", ") || address;
 }
 
 // Extract cuisine tags from restaurant cuisine, tags, notes or name (each distinct category gets its own tag)
@@ -118,9 +166,9 @@ export function getCuisineTags(restaurant: RestaurantCandidate): Array<{ icon: s
     addTag("🥪", "Brunch");
   }
 
-  // 2. Coffee & Cafeteria (coffee cup icon)
+  // 2. Coffee & Café (coffee cup icon)
   if (text.includes("cafe") || text.includes("cafè") || text.includes("cafeter") || text.includes("coffee") || text.includes("matcha") || text.includes("chai") || text.includes("morgentau")) {
-    addTag("☕", "Cafeteria");
+    addTag("☕", "Café");
   }
 
   // 3. Fleca / Bakery (bread icon)
@@ -183,9 +231,9 @@ export function getCuisineTags(restaurant: RestaurantCandidate): Array<{ icon: s
     addTag("🥘", "Paella & Rice");
   }
 
-  // 15. Indian Cuisine
+  // 15. Indian
   if (text.includes("curry") || text.includes("india") || text.includes("masala") || text.includes("tandoori") || text.includes("nepal")) {
-    addTag("🍛", "Indian Cuisine");
+    addTag("🍛", "Indian");
   }
 
   // 16. Tapas & Pinchos (olive icon)
@@ -213,14 +261,25 @@ export function getCuisineTags(restaurant: RestaurantCandidate): Array<{ icon: s
     addTag("🍸", "Cocktails & Bar");
   }
 
-  // 21. Dumplings & Gyoza
-  if (text.includes("dumpling") || text.includes("gyoza") || text.includes("dim sum") || text.includes("chinese") || text.includes("xines")) {
-    addTag("🥟", "Dumplings & Gyoza");
+  // 21. Chinese & Dumplings
+  if (
+    text.includes("dumpling") ||
+    text.includes("gyoza") ||
+    text.includes("dim sum") ||
+    text.includes("chinese") ||
+    text.includes("xines") ||
+    text.includes("xina") ||
+    text.includes("chino") ||
+    text.includes("china") ||
+    text.includes("canton")
+  ) {
+    addTag("🥟", "Chinese & Dumplings");
   }
 
   // Fallback if none matched
   if (result.length === 0) {
-    result.push({ icon: "🍽️", label: "Dining" });
+    if (text.includes("cafe") || text.includes("cafeteria")) addTag("☕", "Café");
+    else if (text.includes("bar") || text.includes("pub")) addTag("🍸", "Cocktails & Bar");
   }
 
   return result;
@@ -229,12 +288,14 @@ export function getCuisineTags(restaurant: RestaurantCandidate): Array<{ icon: s
 export function RestaurantDetailPane({
   restaurant,
   userCoords,
+  hasRealGps,
   onClose,
   onOpenMenu,
   onUploadMenu,
 }: {
   restaurant: RestaurantCandidate;
   userCoords?: { lat: number; lng: number };
+  hasRealGps?: boolean;
   onClose: () => void;
   onOpenMenu: (restaurant: RestaurantCandidate) => void;
   onUploadMenu: (restaurant: RestaurantCandidate) => void;
@@ -243,12 +304,12 @@ export function RestaurantDetailPane({
   const [transit, setTransit] = useState<TransitEstimate>();
   const [showRatingInfo, setShowRatingInfo] = useState(false);
 
-  // Approximate leaf score (e.g. 4.5 or 5 for vegan places, 4.0 for veg-friendly places)
-  const isVeganPlace = getVeganBadge(restaurant).type === "all_vegan";
+  // Approximate leaf score (e.g. 4.8 for vegan places, 4.2 for veg-friendly places)
+  const isVeganPlace = getDietBadge(restaurant)?.type === "all_vegan";
   const leafScore = isVeganPlace ? 4.8 : 4.2;
 
   useEffect(() => {
-    if (!userCoords || !restaurant.latitude || !restaurant.longitude) {
+    if (!hasRealGps || !userCoords || !restaurant.latitude || !restaurant.longitude) {
       setTransit(undefined);
       return;
     }
@@ -262,12 +323,78 @@ export function RestaurantDetailPane({
     return () => {
       cancelled = true;
     };
-  }, [userCoords, restaurant.latitude, restaurant.longitude]);
+  }, [hasRealGps, userCoords, restaurant.latitude, restaurant.longitude]);
 
-  const badge = getVeganBadge(restaurant);
+  const badge = getDietBadge(restaurant);
   const cuisineTags = getCuisineTags(restaurant);
 
   const [loadingMenu, setLoadingMenu] = useState(false);
+  const [isLikedState, setIsLikedState] = useState(() => isLiked(restaurant.id));
+  const [isWantToGoState, setIsWantToGoState] = useState(() => isWantToGo(restaurant.id));
+  const [isListModalOpen, setIsListModalOpen] = useState(false);
+  const [copiedAddress, setCopiedAddress] = useState(false);
+  const [copiedShare, setCopiedShare] = useState(false);
+
+  useEffect(() => {
+    setIsLikedState(isLiked(restaurant.id));
+    setIsWantToGoState(isWantToGo(restaurant.id));
+    setCopiedAddress(false);
+    setCopiedShare(false);
+  }, [restaurant.id]);
+
+  useEffect(() => {
+    const handleUpdate = () => {
+      setIsLikedState(isLiked(restaurant.id));
+      setIsWantToGoState(isWantToGo(restaurant.id));
+    };
+    window.addEventListener("vt-user-lists-updated", handleUpdate);
+    return () => window.removeEventListener("vt-user-lists-updated", handleUpdate);
+  }, [restaurant.id]);
+
+  const handleToggleLiked = () => {
+    const next = toggleLiked(restaurant.id);
+    setIsLikedState(next);
+  };
+
+  const handleToggleWantToGo = () => {
+    const next = toggleWantToGo(restaurant.id);
+    setIsWantToGoState(next);
+  };
+
+  const handleShare = async () => {
+    const shareUrl = `${window.location.origin}/restaurant/${encodeURIComponent(restaurant.id)}`;
+    const shareData = {
+      title: `${restaurant.name} | Vegan Tools`,
+      text: `${restaurant.name}${restaurant.address ? ` - ${restaurant.address}` : ""}`,
+      url: shareUrl,
+    };
+    if (typeof navigator !== "undefined" && navigator.share) {
+      try {
+        await navigator.share(shareData);
+      } catch {
+        // User cancelled share
+      }
+    } else if (typeof navigator !== "undefined" && navigator.clipboard) {
+      await navigator.clipboard.writeText(shareUrl);
+      setCopiedShare(true);
+      setTimeout(() => setCopiedShare(false), 2200);
+    }
+  };
+
+  useEffect(() => {
+    saveCachedRestaurant(restaurant);
+  }, [restaurant]);
+
+  const handleCopyAddress = async () => {
+    if (!restaurant.address) return;
+    try {
+      await navigator.clipboard.writeText(formatDisplayAddress(restaurant.address));
+      setCopiedAddress(true);
+      setTimeout(() => setCopiedAddress(false), 2000);
+    } catch {
+      // Fallback silently
+    }
+  };
 
   const directionsUrl = getDirectionsUrl(restaurant);
 
@@ -276,10 +403,14 @@ export function RestaurantDetailPane({
       <header className="detail-pane-header">
         <div className="detail-pane-titles">
           <div className="detail-badges-row">
-            <span className={`vegan-status-badge ${badge.className}`}>
-              <Leaf aria-hidden="true" />
-              <span>{badge.label}</span>
-            </span>
+            {badge && (
+              <span className={`vegan-status-badge ${badge.className}`}>
+                <span aria-hidden="true" style={{ marginRight: "0.25rem", fontSize: "0.95rem" }}>
+                  {badge.icon}
+                </span>
+                <span>{badge.label}</span>
+              </span>
+            )}
             {cuisineTags.map((cuisine) => (
               <span key={cuisine.label} className="cuisine-badge">
                 <span aria-hidden="true" style={{ marginRight: "0.25rem" }}>{cuisine.icon}</span>
@@ -309,6 +440,105 @@ export function RestaurantDetailPane({
       </header>
 
       <div className="detail-pane-body">
+        {/* Letterboxd Action Bar: Liked (💖) + Want to go (🔖) + Lists (📁) + Share */}
+        <div className="detail-letterboxd-bar" style={{ display: "flex", gap: "0.5rem", padding: "0.2rem 0", width: "100%" }}>
+          <button
+            type="button"
+            className={`letterboxd-action-btn ${isLikedState ? "active-liked" : ""}`}
+            onClick={handleToggleLiked}
+            title={tx("Liked")}
+            aria-label={tx("Liked")}
+            style={{
+              flex: 1,
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              height: "42px",
+              padding: "0.55rem 0.6rem",
+              borderRadius: "0.65rem",
+              border: `1.5px solid ${isLikedState ? "#f43f5e" : "var(--line)"}`,
+              background: isLikedState ? "rgba(244, 63, 94, 0.08)" : "var(--bg-card)",
+              color: isLikedState ? "#e11d48" : "var(--text-secondary)",
+              cursor: "pointer",
+              transition: "all 0.15s ease",
+            }}
+          >
+            <Heart size={18} fill={isLikedState ? "#e11d48" : "none"} strokeWidth={isLikedState ? 2.5 : 2} aria-hidden="true" />
+          </button>
+
+          <button
+            type="button"
+            className={`letterboxd-action-btn ${isWantToGoState ? "active-watchlist" : ""}`}
+            onClick={handleToggleWantToGo}
+            title={tx("Want to go")}
+            aria-label={tx("Want to go")}
+            style={{
+              flex: 1,
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              height: "42px",
+              padding: "0.55rem 0.6rem",
+              borderRadius: "0.65rem",
+              border: `1.5px solid ${isWantToGoState ? "var(--green)" : "var(--line)"}`,
+              background: isWantToGoState ? "rgba(4, 120, 87, 0.08)" : "var(--bg-card)",
+              color: isWantToGoState ? "var(--green)" : "var(--text-secondary)",
+              cursor: "pointer",
+              transition: "all 0.15s ease",
+            }}
+          >
+            <Bookmark size={18} fill={isWantToGoState ? "currentColor" : "none"} strokeWidth={isWantToGoState ? 2.5 : 2} aria-hidden="true" />
+          </button>
+
+          <button
+            type="button"
+            className="letterboxd-action-btn"
+            onClick={() => setIsListModalOpen(true)}
+            title={tx("Lists")}
+            aria-label={tx("Lists")}
+            style={{
+              flex: 1,
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              height: "42px",
+              padding: "0.55rem 0.6rem",
+              borderRadius: "0.65rem",
+              border: "1.5px solid var(--line)",
+              background: "var(--bg-card)",
+              color: "var(--text-secondary)",
+              cursor: "pointer",
+              transition: "all 0.15s ease",
+            }}
+          >
+            <FolderPlus size={18} aria-hidden="true" />
+          </button>
+
+          <button
+            type="button"
+            className="letterboxd-action-btn"
+            onClick={() => void handleShare()}
+            title={copiedShare ? tx("Copied!") : tx("Share")}
+            aria-label={copiedShare ? tx("Copied!") : tx("Share")}
+            style={{
+              flex: 1,
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              height: "42px",
+              padding: "0.55rem 0.6rem",
+              borderRadius: "0.65rem",
+              border: "1.5px solid var(--line)",
+              background: "var(--bg-card)",
+              color: copiedShare ? "var(--green)" : "var(--text-secondary)",
+              cursor: "pointer",
+              transition: "all 0.15s ease",
+            }}
+          >
+            {copiedShare ? <Check size={18} aria-hidden="true" /> : <Share2 size={18} aria-hidden="true" />}
+          </button>
+        </div>
+
         {/* Transit estimate badge if GPS is enabled */}
         {transit && (
           <div className={`detail-transit-banner ${transit.mode}`}>
@@ -325,11 +555,26 @@ export function RestaurantDetailPane({
         {/* Community Reviews & Leaf Ratings Section */}
         <RestaurantReviews restaurant={restaurant} />
 
-        {/* Address */}
+        {/* Address with click-to-copy */}
         {restaurant.address && (
-          <div className="detail-info-row">
-            <MapPin aria-hidden="true" />
-            <span>{formatDisplayAddress(restaurant.address)}</span>
+          <div
+            className="detail-info-row clickable-address-row"
+            onClick={handleCopyAddress}
+            style={{ cursor: "pointer", display: "flex", alignItems: "center", gap: "0.5rem" }}
+            title={tx("Copy address")}
+          >
+            <MapPin aria-hidden="true" style={{ flexShrink: 0 }} />
+            <span style={{ flex: 1 }}>{formatDisplayAddress(restaurant.address)}</span>
+            <span style={{ fontSize: "0.76rem", color: copiedAddress ? "var(--green)" : "var(--muted)", fontWeight: 700, display: "inline-flex", alignItems: "center", gap: "0.25rem" }}>
+              {copiedAddress ? (
+                <>
+                  <Check size={13} strokeWidth={3} />
+                  <span>{tx("Address copied!")}</span>
+                </>
+              ) : (
+                <Copy size={13} />
+              )}
+            </span>
           </div>
         )}
 
@@ -341,7 +586,7 @@ export function RestaurantDetailPane({
           </div>
         )}
 
-        {/* Action Buttons Row */}
+        {/* Action Buttons Row with Direct Maps selector */}
         <div className="detail-actions-grid">
           <button
             type="button"
@@ -368,7 +613,13 @@ export function RestaurantDetailPane({
               className="secondary-button action-btn-web"
             >
               <Globe aria-hidden="true" />
-              <span>{tx("Website")}</span>
+              <span>
+                {/instagram\.com/i.test(restaurant.websiteUrl)
+                  ? tx("Instagram")
+                  : /facebook\.com/i.test(restaurant.websiteUrl)
+                    ? tx("Facebook")
+                    : tx("Website")}
+              </span>
             </a>
           )}
 
@@ -391,6 +642,14 @@ export function RestaurantDetailPane({
             <span>{tx("Full details")}</span>
           </Link>
         </div>
+
+        {/* Custom Lists Selection Modal */}
+        <ListSelectModal
+          isOpen={isListModalOpen}
+          restaurantId={restaurant.id}
+          restaurantName={restaurant.name}
+          onClose={() => setIsListModalOpen(false)}
+        />
 
         {/* Add / Upload menu option */}
         <div className="detail-upload-card">

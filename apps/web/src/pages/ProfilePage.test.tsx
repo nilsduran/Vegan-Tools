@@ -9,12 +9,17 @@ import * as authModule from "../auth";
 vi.mock("../api", () => ({
   getUserReviews: vi.fn().mockResolvedValue([]),
   deleteRestaurantReview: vi.fn().mockResolvedValue(undefined),
+  fetchUserVisits: vi.fn().mockResolvedValue([]),
+  saveUserVisitApi: vi.fn(),
+  deleteUserVisitApi: vi.fn().mockResolvedValue(true),
+  fetchUserTop4: vi.fn().mockResolvedValue([]),
+  saveUserTop4Api: vi.fn().mockResolvedValue([]),
 }));
 
 describe("ProfilePage with Letterboxd Diary & Top 4", () => {
   beforeEach(() => {
     localStorage.clear();
-    vi.restoreAllMocks();
+    vi.clearAllMocks();
   });
 
   afterEach(() => {
@@ -44,8 +49,9 @@ describe("ProfilePage with Letterboxd Diary & Top 4", () => {
       </MemoryRouter>,
     );
 
-    expect(screen.getByRole("heading", { name: /My Profile/i })).toBeDefined();
-    expect(screen.getByText(/Sign in to manage your reviews/i)).toBeDefined();
+    expect(screen.queryByRole("heading", { name: /My Profile/i })).toBeNull();
+    expect(screen.getByRole("heading", { name: /Sign in to manage your reviews/i })).toBeDefined();
+    expect(screen.getByText(/Showcase your 4 essential spots/i)).toBeDefined();
   });
 
   it("displays Top 4, rating histogram and visit logs when logged in", () => {
@@ -73,7 +79,7 @@ describe("ProfilePage with Letterboxd Diary & Top 4", () => {
 
     saveVisitLog({
       userId: mockUser.id,
-      restaurantId: "featured-roots-bcn",
+      restaurantId: "roots-bcn",
       restaurantName: "Roots Vegan",
       visitDate: "2026-09-08",
       rating: 4.5,
@@ -81,7 +87,7 @@ describe("ProfilePage with Letterboxd Diary & Top 4", () => {
       dishesTried: ["Roots Burger"],
     });
 
-    setUserTop4(["featured-roots-bcn"], mockUser.id);
+    setUserTop4(["roots-bcn"], mockUser.id);
 
     render(
       <MemoryRouter>
@@ -89,8 +95,8 @@ describe("ProfilePage with Letterboxd Diary & Top 4", () => {
       </MemoryRouter>,
     );
 
-    expect(screen.getByRole("heading", { name: /@vegi_chef/i })).toBeDefined();
-    expect(screen.getByText(/Top 4 Restaurants/i)).toBeDefined();
+    expect(screen.getByRole("heading", { name: /vegi_chef/i })).toBeDefined();
+    expect(screen.getByText(/Favourite restaurants|Restaurants preferits/i)).toBeDefined();
     expect(screen.getByText(/Rating distribution/i)).toBeDefined();
     expect(screen.getByText(/Phenomenal brunch and burgers!/i)).toBeDefined();
     expect(screen.getByText(/Roots Burger/i)).toBeDefined();

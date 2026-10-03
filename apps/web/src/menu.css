@@ -682,9 +682,9 @@
   top: 1rem;
   left: 1rem;
   bottom: 1rem;
-  width: var(--map-sidebar-width, 400px);
+  width: var(--map-sidebar-width, 360px);
   min-width: 0;
-  max-width: min(430px, calc(100vw - 2rem));
+  max-width: min(380px, calc(100vw - 2rem));
   z-index: 100;
   background: rgba(255, 255, 255, 0.97);
   backdrop-filter: blur(12px);
@@ -699,6 +699,8 @@
 
 .map-floating-sidebar.compact-sidebar {
   bottom: auto;
+  width: min(360px, calc(100vw - 2rem));
+  max-width: min(360px, calc(100vw - 2rem));
   background: transparent;
   border: 0;
   box-shadow: none;
@@ -902,16 +904,16 @@
 .filter-pill {
   display: inline-flex;
   align-items: center;
-  gap: 0.28rem;
-  height: 32px;
-  min-height: 32px;
+  gap: 0.35rem;
+  height: 36px;
+  min-height: 36px;
   box-sizing: border-box;
-  padding: 0 0.6rem;
+  padding: 0 0.72rem;
   border-radius: 999px;
   border: 1px solid var(--line);
   background: white;
   color: #374151;
-  font-size: 0.78rem;
+  font-size: 0.86rem;
   font-weight: 600;
   cursor: pointer;
   white-space: nowrap;
@@ -944,12 +946,13 @@
   box-shadow: 0 2px 6px rgba(4, 120, 87, 0.28);
 }
 
-/* Vegan options: Cobalt Blue (matching blue pin) */
-.filter-pill.pill-vegan-options.active {
-  background: #2563eb;
+/* Veg-friendly / Vegan options: Warm carrot orange */
+.filter-pill.pill-vegan-options.active,
+.filter-pill.pill-veg-friendly.active {
+  background: #ea580c;
   color: white;
-  border-color: #1d4ed8;
-  box-shadow: 0 2px 6px rgba(37, 99, 235, 0.28);
+  border-color: #c2410c;
+  box-shadow: 0 2px 6px rgba(234, 88, 12, 0.28);
 }
 
 /* Vegetarian: Warm Amber (matching amber pin) */
@@ -961,9 +964,9 @@
 }
 
 .filter-pill.leaves-pill {
-  padding: 0 0.52rem;
-  height: 32px;
-  min-height: 32px;
+  padding: 0 0.62rem;
+  height: 36px;
+  min-height: 36px;
 }
 
 .leaves-group {
@@ -974,8 +977,8 @@
 }
 
 .rating-leaf-icon {
-  width: 12.5px;
-  height: 12.5px;
+  width: 14.5px;
+  height: 14.5px;
   color: #86efac;
   fill: #86efac;
   stroke: #047857;
@@ -991,10 +994,10 @@
 }
 
 .rating-plus {
-  font-size: 0.78rem;
+  font-size: 0.9rem;
   font-weight: 800;
   line-height: 1;
-  margin-left: 0.5px;
+  margin-left: 1px;
   color: #047857;
 }
 
@@ -1006,14 +1009,18 @@
   background: #f8fafc;
   border-style: solid;
   color: #4b5563;
-  padding: 0 0.55rem;
-  height: 32px;
-  min-height: 32px;
+  width: 36px;
+  height: 36px;
+  min-height: 36px;
+  padding: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
 }
 
 .filter-pill.expand-pill .pill-funnel-icon {
-  width: 14px;
-  height: 14px;
+  width: 16px;
+  height: 16px;
   color: #4b5563;
 }
 
@@ -1508,15 +1515,15 @@
 
 .vegan-map-pin-rating {
   position: absolute;
-  top: -8px;
+  top: -9px;
   left: 50%;
   right: auto;
   transform: translateX(-50%);
   background: #ffffff;
   border: 1.5px solid;
   border-radius: 9999px;
-  padding: 1px 5px;
-  font-size: 9px;
+  padding: 1.5px 6px;
+  font-size: 10px;
   font-weight: 800;
   font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
   box-shadow: 0 2px 5px rgba(0, 0, 0, 0.25);
@@ -1613,6 +1620,9 @@
   flex-direction: column;
   height: 100%;
   animation: fadeInPane 0.2s ease-out;
+  overflow-x: hidden;
+  max-width: 100%;
+  box-sizing: border-box;
 }
 
 @keyframes fadeInPane {
@@ -1666,9 +1676,9 @@
 }
 
 .badge-vegan-options {
-  background: #f1f5f9;
-  color: #334155;
-  border: 1px solid #e2e8f0;
+  background: #fff7ed;
+  color: #c2410c;
+  border: 1px solid #fed7aa;
 }
 
 .cuisine-badge {
@@ -3074,7 +3084,72 @@
   line-height: 0 !important;
 }
 
-/* Minimalist Dataviz map filter: soft muted palette with high street-level clarity up to zoom 20 */
+/* Map Tile Pane */
 .map-fullscreen-canvas .leaflet-tile-pane {
-  filter: saturate(0.35) brightness(1.06) contrast(0.96);
+  /* Natural map rendering without artificial desaturation */
 }
+
+[data-theme="dark"] .map-fullscreen-canvas .leaflet-tile-pane {
+  /* Carto rastertiles/dark_all natively renders crisp dark tiles without destructive CSS filters */
+}
+
+/* ==========================================================================
+   Desktop Side-by-Side Split-Pane Layout (Search Results + Selected Restaurant)
+   ========================================================================== */
+
+@media (min-width: 800px) {
+  .map-floating-sidebar.has-split-pane {
+    width: min(840px, calc(100vw - 2rem)) !important;
+    max-width: min(840px, calc(100vw - 2rem)) !important;
+  }
+
+  .desktop-split-pane-layout {
+    display: flex;
+    flex-direction: row;
+    flex: 1;
+    min-height: 0;
+    overflow: hidden;
+  }
+
+  .desktop-split-results {
+    width: 360px;
+    flex-shrink: 0;
+    overflow-y: auto;
+    border-right: 1px solid var(--line);
+  }
+
+  .desktop-split-detail {
+    flex: 1;
+    min-width: 0;
+    overflow-y: auto;
+  }
+}
+
+@media (max-width: 799px) {
+  .desktop-split-pane-layout {
+    display: flex;
+    flex-direction: column;
+    flex: 1;
+    min-height: 0;
+    overflow-y: auto;
+  }
+
+  .desktop-split-results {
+    display: none;
+  }
+
+  .desktop-split-detail {
+    flex: 1;
+    min-height: 0;
+    overflow-y: auto;
+  }
+}
+
+.reviews-center-leaves .leaf-slot {
+  transition: transform 0.15s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+.reviews-center-leaves .leaf-slot:hover {
+  transform: scale(1.15);
+}
+

@@ -15,7 +15,10 @@ import {
 import type { Repository } from "../store.js";
 import type { MenuAnalyzer } from "../menu-analyzer.js";
 import type { MenuDiscoverer } from "../menu-discovery.js";
-import type { RestaurantWebsiteFinder } from "../restaurant-website-finder.js";
+import {
+  type RestaurantWebsiteFinder,
+  isPlausibleOfficialWebsite,
+} from "../restaurant-website-finder.js";
 import type { RestaurantMenuCache } from "../restaurant-menu-cache.js";
 import { loadSourcesFromStore, type MenuSourceStore } from "../menu-source-store.js";
 import type { DishFeedbackPolisher } from "../dish-feedback-polisher.js";
@@ -100,11 +103,46 @@ export async function menuRoutes(app: FastifyInstance, options: MenuRoutesOption
       websiteUrl?: string;
       restaurant?: unknown;
     };
-  }>("/v1/menus/discover", async (request, reply) => {
+  }>("/v1/menus/discover", { config: { rateLimit: { max: 15, timeWindow: "1 minute" } } }, async (request, reply) => {
     const parsedRestaurant = restaurantCandidateSchema.safeParse(
       request.body?.restaurant,
     );
-    const websiteUrl = request.body?.websiteUrl?.trim();
+    const restaurant = parsedRestaurant.success
+      ? parsedRestaurant.data
+      : undefined;
+
+    let websiteUrl = request.body?.websiteUrl?.trim();
+    if (!websiteUrl && restaurant) {
+      if (restaurant.websiteUrl && isPlausibleOfficialWebsite(restaurant.websiteUrl)) {
+        websiteUrl = restaurant.websiteUrl.trim();
+      } else {
+        try {
+          const found = await restaurantWebsiteFinder.find(
+            restaurant,
+            restaurant.websiteUrl,
+          );
+          if (found) {
+            websiteUrl = found.trim();
+            restaurant.websiteUrl = websiteUrl;
+          } else if (restaurant.websiteUrl) {
+            websiteUrl = restaurant.websiteUrl.trim();
+          }
+        } catch {
+          // Fall through to error below
+        }
+      }
+    } else if (websiteUrl && restaurant && !isPlausibleOfficialWebsite(websiteUrl)) {
+      try {
+        const found = await restaurantWebsiteFinder.find(restaurant, websiteUrl);
+        if (found) {
+          websiteUrl = found.trim();
+          restaurant.websiteUrl = websiteUrl;
+        }
+      } catch {
+        // Fall back to original
+      }
+    }
+
     if (!websiteUrl) {
       return reply.code(400).send({
         code: "RESTAURANT_WEBSITE_REQUIRED",
@@ -128,9 +166,12 @@ export async function menuRoutes(app: FastifyInstance, options: MenuRoutesOption
       });
     }
 
-    const restaurant = parsedRestaurant.success
-      ? parsedRestaurant.data
-      : undefined;
+    if (!isPlausibleOfficialWebsite(normalizedWebsite)) {
+      return reply.code(422).send({
+        code: "SOCIAL_MEDIA_NOT_CRAWLABLE",
+        message: "This restaurant only has a social profile (such as Instagram). Enter a direct link to their menu or upload photos/PDF.",
+      });
+    }
 
     const restaurantName =
       restaurant?.name ?? (request.body?.restaurantName?.trim() || fallbackName || "Restaurant");
@@ -182,12 +223,14 @@ export async function menuRoutes(app: FastifyInstance, options: MenuRoutesOption
         );
       }
     };
+    let discoveredOpeningHours: string | undefined;
     void withTimeout(
       discoverWithFallback(),
       55_000,
       "Finding a menu on the restaurant website took too long.",
     )
       .then(async (discovered) => {
+        discoveredOpeningHours = discovered.openingHours;
         let sourceFiles: Awaited<ReturnType<MenuSourceStore["save"]>> = [];
         try {
           sourceFiles = await menuSourceStore.save(draft.id, [discovered.upload]);
@@ -197,7 +240,11 @@ export async function menuRoutes(app: FastifyInstance, options: MenuRoutesOption
         const draftWithSources = { ...draft, sourceFiles };
         await repo.setMenu(draftWithSources);
         return withTimeout(
-          menuAnalyzer.analyze(draftWithSources, [discovered.upload]),
+          menuAnalyzer.analyze(draftWithSources, [discovered.upload], {
+            isVegan: restaurant?.isVegan,
+            isVegetarian: restaurant?.isVegetarian,
+            restaurantName,
+          }),
           180_000,
           "Menu analysis took too long. Please try again.",
         ).then((result) => {
@@ -221,6 +268,9 @@ export async function menuRoutes(app: FastifyInstance, options: MenuRoutesOption
       .then(async (result) => {
         await repo.setMenu(result);
         if (restaurant) {
+          if (discoveredOpeningHours && !restaurant.openingHours) {
+            restaurant.openingHours = discoveredOpeningHours;
+          }
           try {
             await restaurantMenuCache.save(restaurant, result);
           } catch (cacheError) {
@@ -249,7 +299,7 @@ export async function menuRoutes(app: FastifyInstance, options: MenuRoutesOption
     });
   });
 
-  app.post("/v1/menus/analyses", async (request, reply) => {
+  app.post("/v1/menus/analyses", { config: { rateLimit: { max: 15, timeWindow: "1 minute" } } }, async (request, reply) => {
     const uploads: Array<{ filename: string; mimetype: string; buffer: Buffer }> = [];
     let restaurantName = "";
     let sourceUrl: string | undefined;
@@ -293,7 +343,11 @@ export async function menuRoutes(app: FastifyInstance, options: MenuRoutesOption
     const draftWithSources = { ...draft, sourceFiles };
     await repo.setMenu(draftWithSources);
     void withTimeout(
-      menuAnalyzer.analyze(draftWithSources, uploads),
+      menuAnalyzer.analyze(draftWithSources, uploads, {
+        isVegan: restaurant?.isVegan,
+        isVegetarian: restaurant?.isVegetarian,
+        restaurantName: restaurantName || restaurant?.name,
+      }),
       180_000,
       "Menu analysis took too long. Please try again.",
     )
@@ -442,7 +496,7 @@ export async function menuRoutes(app: FastifyInstance, options: MenuRoutesOption
     Params: { id: string; dishId: string };
     Querystring: { token?: string };
     Body: unknown;
-  }>("/v1/menus/:id/dishes/:dishId/feedback", async (request, reply) => {
+  }>("/v1/menus/:id/dishes/:dishId/feedback", { config: { rateLimit: { max: 15, timeWindow: "1 minute" } } }, async (request, reply) => {
     const parsed = dishFeedbackRequestSchema.safeParse(request.body);
     if (!parsed.success) {
       return reply.code(400).send({ code: "INVALID_FEEDBACK", issues: parsed.error.issues });
@@ -518,7 +572,7 @@ export async function menuRoutes(app: FastifyInstance, options: MenuRoutesOption
     Params: { id: string };
     Querystring: { token?: string };
     Body: unknown;
-  }>("/v1/menus/:id/notes", async (request, reply) => {
+  }>("/v1/menus/:id/notes", { config: { rateLimit: { max: 15, timeWindow: "1 minute" } } }, async (request, reply) => {
     const parsed = restaurantNotesRequestSchema.safeParse(request.body);
     if (!parsed.success) {
       return reply.code(400).send({ code: "INVALID_NOTES", issues: parsed.error.issues });

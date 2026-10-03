@@ -10,14 +10,66 @@
 import { useState, useEffect } from "react";
 import {
   ArrowRight,
+  ChevronDown,
   CookingPot,
+  Heart,
   MapPin,
   ScanBarcode,
   Utensils,
 } from "lucide-react";
 import { Link } from "react-router-dom";
 import { tx } from "../i18n";
+import { useDocumentHead } from "../utils/seo";
 import { getCuisineIcon } from "../components/RestaurantMap";
+import { getCuisineTags } from "../components/RestaurantDetailPane";
+import { CityPickerModal, type SelectedCity } from "../components/CityPickerModal";
+
+export function extractNeighborhood(address?: string): string {
+  if (!address) return "";
+  const knownNeighborhoods = [
+    "Gràcia", "Poblenou", "El Born", "Born", "Gòtic", "Barri Gòtic", "El Raval", "Raval",
+    "Eixample", "L'Eixample", "Les Corts", "Sants", "Sarrià", "Sant Antoni",
+    "Poble-sec", "Poble Sec", "Sant Martí", "Sant Andreu", "Horta", "Guinardó",
+    "Ciutat Vella", "Barceloneta", "La Barceloneta", "Sagrada Família", "Vila de Gràcia",
+    "Soho", "Camden", "Shoreditch", "Brixton", "Hackney", "Islington", "Kensington",
+    "Kreuzberg", "Neukölln", "Friedrichshain", "Mitte", "Prenzlauer Berg",
+    "Le Marais", "Montmartre", "Bastille", "Belleville",
+    "Brooklyn", "Williamsburg", "Manhattan", "East Village", "Greenwich Village",
+    "Barri Vell", "Eixample Sud", "Mercadal"
+  ];
+
+  for (const n of knownNeighborhoods) {
+    const regex = new RegExp(`\\b${n}\\b`, "i");
+    if (regex.test(address)) {
+      return n;
+    }
+  }
+
+  const parts = address.split(",").map((s) => s.trim()).filter(Boolean);
+  for (let i = 1; i < parts.length; i++) {
+    const part = parts[i];
+    if (!part) continue;
+    if (/^\d+$/.test(part)) continue;
+    if (/^\d{4,5}/.test(part)) continue;
+    const lower = part.toLowerCase();
+    if (
+      lower.includes("barcelona") ||
+      lower.includes("london") ||
+      lower.includes("berlin") ||
+      lower.includes("paris") ||
+      lower.includes("girona") ||
+      lower.includes("new york") ||
+      lower.includes("spain") ||
+      lower.includes("espanya") ||
+      lower.includes("españa")
+    ) {
+      continue;
+    }
+    return part;
+  }
+
+  return parts[0] || address || "";
+}
 import {
   getApproximateLocation,
   getCuratedRestaurants,
@@ -25,18 +77,42 @@ import {
   type CachedRestaurantMenu,
 } from "../api";
 import {
+  FEATURED_CITY_HUBS,
   FEATURED_RESTAURANTS_BARCELONA,
   findClosestCityHub,
   type RestaurantCandidate,
 } from "@vegan-tools/domain";
 
 export function HomePage() {
+  useDocumentHead({
+    path: "/",
+    type: "website",
+  });
+
   // Location detection: starts with Barcelona default hub, snaps to nearest city hub
   const [userCity, setUserCity] = useState<string>("Barcelona");
+  const [isCityPickerOpen, setIsCityPickerOpen] = useState(false);
   const [featuredPlaces, setFeaturedPlaces] = useState<RestaurantCandidate[]>(
     FEATURED_RESTAURANTS_BARCELONA.slice(0, 8),
   );
   const [recentMenus, setRecentMenus] = useState<CachedRestaurantMenu[]>([]);
+
+  const handleSelectCity = (city: SelectedCity) => {
+    setUserCity(city.name);
+    const hub = FEATURED_CITY_HUBS.find(
+      (h) => h.id === city.hubId || h.name.toLowerCase() === city.name.toLowerCase(),
+    );
+    if (hub) {
+      setFeaturedPlaces(hub.restaurants.slice(0, 8));
+    }
+    getCuratedRestaurants({ latitude: city.latitude, longitude: city.longitude })
+      .then((curated) => {
+        if (curated && curated.length > 0) {
+          setFeaturedPlaces(curated.slice(0, 8));
+        }
+      })
+      .catch(() => {});
+  };
 
   useEffect(() => {
     let active = true;
@@ -97,12 +173,19 @@ export function HomePage() {
         <header className="home-greeting-banner">
           <div className="home-greeting-title-wrap">
             <h1 className="home-greeting-title">
-              {tx("What do you want to eat today in")} {userCity}?
+              {tx("What do you want to eat today?")}
             </h1>
-            <span className="home-location-badge">
+            <button
+              type="button"
+              className="home-location-badge home-location-btn"
+              onClick={() => setIsCityPickerOpen(true)}
+              title={tx("Change city")}
+              aria-label={`${tx("Change city")}: ${userCity}`}
+            >
               <MapPin size={15} aria-hidden="true" />
               <span>{userCity}</span>
-            </span>
+              <ChevronDown size={14} aria-hidden="true" style={{ opacity: 0.7 }} />
+            </button>
           </div>
           <p className="home-greeting-subtitle">
             {tx(
@@ -125,9 +208,6 @@ export function HomePage() {
                   {tx("Scan label or barcode")}
                 </span>
               </span>
-              <span className="home-hero-btn-sub">
-                {tx("Identify animal derivatives and E-numbers instantly")}
-              </span>
             </div>
             <div className="home-hero-btn-icon-wrap" aria-hidden="true">
               <ScanBarcode size={32} />
@@ -143,9 +223,6 @@ export function HomePage() {
                   {tx("Explore restaurants on map")}
                 </span>
               </span>
-              <span className="home-hero-btn-sub">
-                {tx("OpenStreetMap pins and reviewed vegan menus")}
-              </span>
             </div>
             <div className="home-hero-btn-icon-wrap" aria-hidden="true">
               <MapPin size={32} />
@@ -158,8 +235,7 @@ export function HomePage() {
           <div className="home-section-header">
             <div className="home-section-title-wrap">
               <h2 id="featured-places-title" className="home-section-title">
-                {tx("Featured")}{" "}
-                <span className="hand-drawn-highlight">{tx("vegans")}</span>
+                {tx("Featured")}
               </h2>
             </div>
             <Link to="/map" className="home-section-link">
@@ -169,52 +245,56 @@ export function HomePage() {
           </div>
 
           <div className="home-featured-scroll-container">
-            {featuredPlaces.map((place) => (
-              <Link
-                key={place.id}
-                to={`/restaurant/${place.id}`}
-                className="home-place-card"
-              >
-                <div className="home-place-cover">
-                  {place.imageUrl ? (
-                    <img
-                      src={place.imageUrl}
-                      alt={place.name}
-                      className="home-place-img"
-                      loading="lazy"
-                    />
-                  ) : (
-                    <div className="home-place-cover-placeholder" aria-hidden="true">
-                      <span>{getCuisineIcon(place)}</span>
-                    </div>
-                  )}
-                  {place.rating ? (
-                    <span className="home-place-rating-badge">
-                      <span>★</span>
-                      <span>{place.rating.toFixed(1)}</span>
-                    </span>
-                  ) : null}
-                  <span className="home-place-cuisine-badge" aria-hidden="true">
-                    {getCuisineIcon(place)}
-                  </span>
-                </div>
-                <div className="home-place-content">
-                  <h3 className="home-place-name">{place.name}</h3>
-                  <p className="home-place-address">{place.address.split(",")[0]}</p>
-                  <div className="home-place-footer">
-                    <span className="home-badge-vegan">{tx("Vegan")}</span>
-                    <span className="home-place-action">
-                      <span>{tx("Open")}</span>
-                      <ArrowRight size={13} aria-hidden="true" />
-                    </span>
+            {featuredPlaces.map((place) => {
+              const cuisineTags = getCuisineTags(place);
+              const primaryCuisine = cuisineTags[0];
+              const neighborhood = extractNeighborhood(place.address);
+
+              return (
+                <Link
+                  key={place.id}
+                  to={`/restaurant/${place.id}`}
+                  className="home-place-card"
+                >
+                  <div className="home-place-cover">
+                    {place.imageUrl ? (
+                      <img
+                        src={place.imageUrl}
+                        alt={place.name}
+                        className="home-place-img"
+                        loading="lazy"
+                      />
+                    ) : (
+                      <div className="home-place-cover-placeholder" aria-hidden="true">
+                        <span>{getCuisineIcon(place)}</span>
+                      </div>
+                    )}
+                    {place.rating ? (
+                      <span className="home-place-rating-badge">
+                        <span>★</span>
+                        <span>{place.rating.toFixed(1)}</span>
+                      </span>
+                    ) : null}
                   </div>
-                </div>
-              </Link>
-            ))}
+                  <div className="home-place-content">
+                    <h3 className="home-place-name">{place.name}</h3>
+                    <p className="home-place-address">{neighborhood}</p>
+                    <div className="home-place-footer">
+                      {primaryCuisine && (
+                        <span className="home-badge-cuisine">
+                          <span className="home-badge-icon" aria-hidden="true">{primaryCuisine.icon}</span>
+                          <span>{tx(primaryCuisine.label)}</span>
+                        </span>
+                      )}
+                    </div>
+                  </div>
+                </Link>
+              );
+            })}
           </div>
         </section>
 
-        {/* Veganize Recipe Quick Card */}
+        {/* Recipes Quick Card */}
         <section className="home-section">
           <Link to="/recipes" className="home-recipe-card">
             <div className="home-recipe-card-icon-wrap" aria-hidden="true">
@@ -222,7 +302,7 @@ export function HomePage() {
             </div>
             <div className="home-recipe-card-text">
               <h2 className="home-recipe-card-title">
-                {tx("Veganize a recipe")}
+                {tx("Recipes")}
               </h2>
               <p className="home-recipe-card-desc">
                 {tx(
@@ -231,6 +311,28 @@ export function HomePage() {
               </p>
             </div>
             <div className="home-recipe-card-arrow" aria-hidden="true">
+              <ArrowRight size={20} />
+            </div>
+          </Link>
+        </section>
+
+        {/* Resources & Ethics Quick Card */}
+        <section className="home-section">
+          <Link to="/resources" className="home-recipe-card home-resources-card">
+            <div className="home-recipe-card-icon-wrap home-resources-card-icon-wrap" aria-hidden="true">
+              <Heart size={28} />
+            </div>
+            <div className="home-recipe-card-text">
+              <h2 className="home-recipe-card-title">
+                {tx("Understand veganism")}
+              </h2>
+              <p className="home-recipe-card-desc">
+                {tx(
+                  "History from ancient origins to modern thinkers, debates, essential books, and documentaries.",
+                )}
+              </p>
+            </div>
+            <div className="home-recipe-card-arrow home-resources-card-arrow" aria-hidden="true">
               <ArrowRight size={20} />
             </div>
           </Link>
@@ -266,6 +368,13 @@ export function HomePage() {
           </section>
         )}
       </div>
+
+      <CityPickerModal
+        isOpen={isCityPickerOpen}
+        onClose={() => setIsCityPickerOpen(false)}
+        currentCity={userCity}
+        onSelectCity={handleSelectCity}
+      />
     </div>
   );
 }

@@ -91,6 +91,7 @@ describe("LogVisitModal", () => {
         restaurantId: sampleRestaurant.id,
         dishesTried: ["Roots Classic Burger", "Postre especial de la casa (fora de carta)"],
       }),
+      "test-token",
     );
   });
 
@@ -127,6 +128,7 @@ describe("LogVisitModal", () => {
       expect.objectContaining({
         visitDate: undefined,
       }),
+      "test-token",
     );
   });
 });

@@ -57,16 +57,21 @@ Tasques de baixa complexitat tècnica amb un impacte immediat i directe en la fi
     - *Problema*: S'havia detectat l'ús del terme prohibit «menú» en diverses cadenes catalanes de `i18n.ts` i `generated-i18n.ts`, i l'ús de la clau interna `"meat"` a `MenuView.tsx`.
     - *Solució*: Substituir per «carta» i canviar la clau interna a `"non_vegan"`.
 
-### ⚡ Estabilitat del Desenvolupament
+#### ⚡ Estabilitat del Desenvolupament
 12. **✅ [COMPLETAT] Configuració de timeout a Vitest (`vitest.config.ts`)**:
     - *Problema*: La manca d'un fitxer de configuració a l'arrel feia que proves pesades com `restaurant-search.test.ts` fallessin per timeout (5.000 ms) sota alta concurrència de CPU a Windows.
     - *Solució*: Crear `vitest.config.ts` amb `testTimeout: 10000`.
 
+### 🛒 Monetització Ètica & Conversió Ràpida (Termini 180 dies)
+13. **🛒 Redirecció Geogràfica d'Afiliats d'Amazon & OneLink (`/recursos`)**:
+    - *Objectiu*: Donada l'estricta política d'Amazon Associates que cancel·la el compte si no s'aconsegueixen 3 vendes qualificades en 180 dies, tots els enllaços de compra de llibres i suplements de `/recursos` han de redirigir de forma intel·ligent segons el mercat de l'usuari (usuaris de Catalunya/Espanya cap a `amazon.es` amb tag d'afiliat espanyol/OneLink, Regne Unit cap a `amazon.co.uk`, etc., en lloc de forçar sempre `amazon.com`).
+    - *Solució*: Utilitat de resolució geogràfica d'enllaços al client que adapta el domini de destí conservant el format de divulgació FTC/Associates.
+
 ---
 
-## 🟡 Nivell 2: Canvis Petits i No Tant Importants (Poliment i Neteja) — ✅ COMPLETAT
+## 🟡 Nivell 2: Canvis Petits i No Tant Importants (Poliment i Neteja)
 
-Tasques de baixa dificultat que resolen deute tècnic menor, inconsistències visuals i neteja de codi sense bloquejar el funcionament de l'aplicació.
+Tasques de baixa dificultat que resolen deute tècnic menor, inconsistències visuals, neteja de codi i comunicació bàsica.
 
 1. **✅ [COMPLETAT] Neteja de càsting de tipus innecessari a TypeScript (`RestaurantMap.tsx`)**:
    - Eliminar `(restaurant as { isFeatured?: boolean }).isFeatured`, ja que `isFeatured` ja està definit formalment a `RestaurantCandidateSchema`.
@@ -80,10 +85,12 @@ Tasques de baixa dificultat que resolen deute tècnic menor, inconsistències vi
    - Substituir l'ús massiu de `style={{ ... }}` per regles dedicades i reutilitzables a `styles.css` (`.home-*` i `.profile-*`).
 6. **✅ [COMPLETAT] Formulari ràpid «Suggereix un canvi» a la fitxa del restaurant**:
    - Botó i diàleg lleuger perquè qualsevol usuari pugui notificar ràpidament una correcció d'adreça, tancament permanent o novetat a la carta sense necessitat d'editar fitxers font.
+7. **📱 Presència a xarxes socials i enllaços comunitaris (Instagram)**:
+   - Afegir enllaços visibles i elegants al perfil d'Instagram (`@vegantools`) al peu de pàgina (`App.tsx`), capçalera i a la secció de comunitat de `/recursos` per canalitzar usuaris i difondre contingut ètic.
 
 ---
 
-## 🟠 Nivell 3: Canvis Mitjans-Grans Importants (Arquitectura i Funcionalitats Clau) — ✅ COMPLETAT
+## 🟠 Nivell 3: Canvis Mitjans-Grans Importants (Arquitectura i Funcionalitats Clau)
 
 Tasques que requereixen disseny d'enginyeria, modificació d'esquemes o canvis estructurals que tenen un impacte estratègic clau en el rendiment, la seguretat i el valor del producte.
 
@@ -95,7 +102,7 @@ Tasques que requereixen disseny d'enginyeria, modificació d'esquemes o canvis e
 ### 🏛️ Dades i Catàleg de Destacats
 2. **✅ [COMPLETAT] Desacoblament dels Restaurants Destacats (*Curated Top Picks*) en fitxers JSON per ciutat**:
    - *Problema*: Anteriorment `CURATED_RESTAURANTS` a `apps/api` barrejava locals carnis/no vegans, mentre que els destacats de Barcelona estaven codificats rígidament en TypeScript.
-   - *Solució*: Modularitzat en fitxers JSON independents (`barcelona.json`, `girona.json`, `vic.json`, `tarragona.json`, `manresa.json`, `london.json`, `berlin.json`, `paris.json`), garantint per contracte que **el 100% dels destacats siguin estrictament vegans (`isVegan: true`)** i unificant `CURATED_RESTAURANTS` directament des de la font de domini.
+   - *Solució*: Modularitzat en fitxers JSON independents (`barcelona.json`, `girona.json`, `london.json`, `berlin.json`, `paris.json`, `newyork.json`), garantint per contracte que **el 100% dels destacats siguin estrictament vegans (`isVegan: true`)** i unificant `CURATED_RESTAURANTS` directament des de la font de domini.
 3. **✅ [COMPLETAT] Arrodoniment automàtic al hub de ciutat més proper a la portada (`HomePage.tsx`, `featured-restaurants.ts`)**:
    - Detecció d'ubicació per coordenades GPS o IP que "arrodoneix" a la gran ciutat més propera amb selecció curada de restaurants vegans mitjançant `findClosestCityHub()`. Com a prova local o fallback per defecte arrenca a Barcelona.
 4. **✅ [COMPLETAT] Reordenació del Top 3 de filtres immediats i normalització a «Vegà» (`FilterPills.tsx`, `i18n.ts`)**:
@@ -137,53 +144,63 @@ Tasques que requereixen disseny d'enginyeria, modificació d'esquemes o canvis e
 13. **✅ [COMPLETAT] Pàgines de perfil dedicades per a cada restaurant (`/restaurant/:id`)**:
     - Fitxes independents indexables (`RestaurantDetailPage.tsx`) amb portada d'alta definició, horaris detallats calculats en local sense dependències (`evaluateOpeningHours`), indicacions de transport, enllaç oficial, diari de visites personals i ressenyes ètiques comunitàries.
 14. **✅ [COMPLETAT] Auditoria i revisió periòdica dels pins curats i comunitaris del mapa (`scripts/audit-curated-pins.mjs`)**:
-    - Script automatitzat d'auditoria sistemàtica (`npm run audit:pins`) que valida la integritat del 100% dels pins curats dels 8 hubs (30 restaurants):
+    - Script automatitzat d'auditoria sistemàtica (`npm run audit:pins`) que valida la integritat del 100% dels pins curats dels 6 hubs (30 restaurants):
       - Verificació estricta del 100% vegà (`isVegan: true`).
       - Rangs geogràfics vàlids (latitud [-90, 90], longitud [-180, 180]).
       - Sintaxi i validesa d'horaris comercials segons format OSM (`openingHours`).
       - Coherència de protocol web (`https://`) i existència d'imatges d'Espai Segur.
       - Integrat directament a la pipeline de verificació `npm run check`.
+15. **🏷️ Distintius d'Usuari al Perfil i Ressenyes (`Vegan`, `Vegetarian`, `Non Veg`) & Onboarding Suau**:
+    - *Onboarding suau en 3 passos al registre*: 1) Idioma (anglès per defecte, amb selecció de Català o English), 2) Nom d'usuari lliure i net, 3) Preferència dietètica (`Vegan`, `Vegetarian`, `Non Veg`). S'executa una sola vegada per nou perfil sense insistències repetitives.
+    - *Distintius d'estil de vida a la comunitat*: Els perfils d'usuari i les seves ressenyes mostren de manera transparent la seva etiqueta dietètica per contextualitzar les valoracions.
+    - *Format de nom d'usuari*: Noms d'usuari sense prefix forçat d'arroba (`@`), amb suport per a majúscules (`Nils`, `VegiChef`) i filtre estricte que impedeix registrar combinacions de `vegan` i `tool`/`tools` per evitar suplantacions de la plataforma oficial.
+
+### 🐾 Expansió Ètica & Culinària (Noves Funcionalitats Clau)
+16. **🐾 Capa ètica de Santuaris d'Animals i Refugis al mapa (`/map`)**:
+    - *Reclassificat des de Nivell 4 per importància ètica troncal*: Creació de la categoria de santuaris i refugis d'animals (`type: "sanctuary"` al domini) amb pin verd distintiu, filtre ràpid al mapa i fitxa de detall que prioritzi la visita respectuosa, donacions i l'apadrinament d'animals rescatats.
+17. **✅ [COMPLETAT] Receptari 100% Vegetal com a Base de `/recipes`, Mode Cuina & Veganitzador com a Subfeature**:
+    - *Reestructuració estratègica de la secció de receptes*: El Receptari (col·lecció de 12 receptes mestres 100% vegetals) esdevé la base principal de `/recipes`, amb filtres per categories (Tradicionals, Ràpides, Postres, Bàsics, Proteiques), cerca per ingredients, escalat interactiu de racions, acreditació de fonts culinàries (`source`), etiquetatge enriquit (`tags`), fotografies culinàries d'alta fidelitat allotjades en local, i Mode Cuina pas a pas a pantalla completa (lletra gran, pantalla desperta via Wake Lock API i temporitzadors de cocció). El Veganitzador de receptes intel·ligent s'integra com a subfeature especialitzada i accessible des d'una pestanya dedicada.
+18. **✅ [COMPLETAT] Model Lleuger Propi (Edge Classifier ONNX) & Dataset Multilingüe**:
+    - *Pipeline de dades i model completada*: Dataset equilibrat de 12.000 mostres amb la distribució exacta (25% ca, 25% en, 15% de, 15% es, 20% altres) extret de la taxonomia canònica d'Open Food Facts, particionat per família taxonòmica (*GroupStratifiedSplit*).
+    - *Entrenament i calibració*: Notebook a punt per a Google Colab GPU T4 (`notebooks/train_vegan_classifier_colab.ipynb`) amb funció de pèrdua asimètrica `BCEWithLogitsLoss(pos_weight=[2.5, 1.8, 1.5])` per protegir contra el risc moral, calibració en CPU (*Threshold Moving*) i exportació automàtica a ONNX INT8.
+    - *Integració a l'API Fastify*: Servei en cascada a `apps/api/src/edge-classifier.ts` i `apps/api/src/routes/products.ts` que executa inferència local (~15 ms) amb `onnxruntime-node` i fallback transparent a Gemini si el model no és present o la incertesa és màxima.
+    - *Especificació tècnica i mètriques reals*: Veure [`docs/ml-classifier-design.md`](./ml-classifier-design.md) i [`docs/benchmark-results.md`](./benchmark-results.md).
 
 ---
 
 ## 🔵 Nivell 4: Canvis Grans o Molt Grans No Immediats (Llarg Termini)
 
-Projectes de gran envergadura o expansions estratègiques de menor urgència operativa immediata, que es desenvoluparan un cop consolidada la base de codi.
+Projectes d'infraestructura, investigació o serveis en segon pla que requereixen recursos externs continuats o es posposen un cop consolidats els nivells 1 a 3.
 
-1. **🏛️ Consolidació global de la base de dades relacional**:
-   - Migració completa de tots els repositoris fragmentats cap a un model relacional unificat (`restaurants`, `restaurant_media`, `restaurant_reviews`, `restaurant_menus`, `dishes`, `community_tags`) amb suport complet per a SQLite/libSQL en local i PostgreSQL/Supabase en producció.
-2. **🏛️ Unificació del SDK de Supabase al backend**:
-   - Substituir les consultes manuals `fetch` cap a PostgREST a `store.ts` pel client SDK oficial `@supabase/supabase-js`.
-3. **🍳 Hub complet de Receptes Mestres Veganes & Mode Cuina**:
-   - Desenvolupament del directori complet de receptes tradicionals, formatges artesans i rebosteria sense ou/llet, amb instruccions pas a pas a pantalla completa, temporitzadors i generador de llista de la compra.
-4. **🐾 Capa ètica de Santuaris d'Animals i Refugis al mapa**:
-   - Creació d'un filtre i marcadors cartogràfics propis per a santuaris i projectes de rescat d'animals (amb el tipus `sanctuary` al model de domini).
-5. **📚 Hub de Recursos, Nutrició i Antiespecisme (`/resources`)**:
-   - Desenvolupament de la secció de divulgació ètica, guies nutricionals basades en evidències (B12, ferro, proteïnes) i catàleg de llibres i documentals.
-6. **🎨 Suport complet per a Mode Clar / Mode Fosc**:
-   - Sistema global de commutació de tema visual amb sincronització automàtica segons la preferència del sistema (`prefers-color-scheme`).
-7. **🕒 Estratègia d'horaris en segon pla per reactivar el filtre «Obert ara»**:
+1. **✅ [COMPLETAT] Consolidació Relacional de la Base de Dades i SDK Supabase (Fase 2)**:
+   - Substitució de crides manuals PostgREST pel client SDK oficial `@supabase/supabase-js`.
+   - Migracions PostgreSQL declaratives (`supabase/migrations/202609080001_restaurant_visits.sql`) amb Row Level Security (RLS).
+   - Repositoris duals (memòria per a tests i Supabase per a producció) per a visites, ressenyes i Top 4 amb sincronització transparent en línia i suport offline.
+2. **✅ [COMPLETAT] Suport complet per a Mode Clar / Mode Fosc (`theme.ts`, `styles.css`, `RestaurantMap.tsx`)**:
+   - Detecció de sistema, commutador manual a la capçalera, persistència i adaptació automàtica de les rajoles Leaflet.
+3. **✅ [COMPLETAT] Pàgina dedicada del manifest de valors (`/valors` i `/about`)**:
+   - Manifest antiespecista, política d'Espai Segur, privacitat zero-tracking i 3 preguntes de governança.
+4. **✅ [COMPLETAT] Hub de Recursos, Mitjans, Llibres i Guia Pràctica (`/recursos`)**:
+   - Pàgina àgil amb vídeos integrats de Gary Yourofsky, Earthling Ed i debats Jubilee; directori de documentals; recomanacions de llibres amb enllaços d'afiliat Amazon i advertències legals FTC; guia de B12, cosmètica i teixits vegans.
+5. **🕒 Estratègia d'horaris en segon pla per reactivar el filtre «Obert ara»**:
    - Sistema de recol·lecció periòdica d'horaris comercials mitjançant Gemini Search Grounding / webs oficials / Google Places fins a assolir una cobertura massiva (>90%) abans d'activar el filtre públic.
-8. **🌐 Subdominis d'idioma i enrutament internacional**:
+6. **🌐 Subdominis d'idioma i enrutament internacional**:
    - Configuració per a resolució d'idiomes mitjançant subdominis (`ca.vegantools.org` / `en.vegantools.org`) o prefixes de ruta per a posicionament SEO global.
-9. **🌱 Pàgina dedicada del projecte i manifest de valors (`/valors` o `/about`)**:
-   - Desenvolupar una pàgina institucional independent per explicar la missió antiespecista, la política d'Espai Segur (tolerància zero amb imatges d'explotació), la privacitat radical zero-tracking i el rigor del 99% d'evidències.
-10. **🐮 Investigació exhaustiva de HappyCow i proposta de valor guanyadora**:
-    - **Objectiu**: Analitzar a fons el disseny, arquitectura de la informació, funcionalitats i dinàmiques de comunitat de HappyCow (el referent històric del sector) per tancar mancances i consolidar les àrees on **Vegan Tools** pot oferir una experiència substancialment superior:
-      - *Què té de bo HappyCow*: Massa crítica d'usuaris, directori global ampli, ressenyes amb fotografies aportades per la comunitat, filtres bàsics (vegà, vegetarià, opcions) i sistema de gamificació/ambaixadors.
-      - *Mancances estructurals de HappyCow que Vegan Tools supera*:
-        1. **Anàlisi real de la carta amb IA**: HappyCow es limita a etiquetes genèriques i ressenyes d'usuaris sovint desfasades; Vegan Tools llegeix la carta real en PDF/foto/web i audita plat per plat amb justificació d'ingredients.
-        2. **Detecció automàtica de plats adaptables**: Suggeriments d'enginyeria culinària per saber exactament com demanar un plat en llocs no 100% vegans (ex: "sense formatge", "substituir maionesa").
-        3. **Plataforma 360° integrada**: HappyCow és només un directori de restaurants; Vegan Tools integra en una sola app la cerca de restauració, l'escàner de productes de supermercat (codi de barres + OCR d'ingredients) i el veganitzador de receptes casolanes.
-        4. **Espai Segur (Safe Space) real**: HappyCow mostra freqüentment en portada fotos d'hamburgueses de carn o plats d'animals en llocs mixtes; Vegan Tools té una política estricta de filtre ètic antiespecista.
-        5. **Privacitat i transparència zero-tracking**: Sense xarxes publicitàries invasives, sense rastrejadors de dades de geolocalització a tercers, i amb una base oberta basada en OpenStreetMap i Open Food Facts.
-
+7. **🐮 Investigació exhaustiva de HappyCow i propostes comunitàries de llarg termini**:
+   - Sistema de gamificació, ambaixadors locals i llistes comunitàries compartibles.
+8. **📱 Aplicacions mòbils natives per a iOS i Android**:
+   - Empaquetament i desplegament a App Store i Google Play mitjançant Capacitor o solució multi-plataforma nativa per oferir una experiència fluida, notificacions locals i millor integració de la càmera per a l'escàner d'ingredients i codis de barres.
+9. **📸 Fotografies pas a pas per a les receptes del Mode Cuina**:
+   - Integració de fotografies intermèdies opcionals per a cada pas de cocció al Receptari i Mode Cuina, garantint sempre que el 100% de les imatges respectin estrictament la política d'Espai Segur (sense productes ni sofriment animal).
+10. **📦 Historial d'Escaneig Personal i Base de Dades Global de Productes**:
+    - Historial d'escaneig d'aliments i cosmètics associat al perfil de l'usuari amb cerca ràpida de productes habituals.
+    - Base de dades global compartida a Supabase/PostgreSQL com a memòria cau persistent (Open Food Facts + Open Beauty Facts) per garantir respostes a 0ms i estalviar quota d'APIs externes per a tota la comunitat.
+11. **📊 Estadístiques Personals i Comunitàries d'Impacte (`/profile` & Comunitat)**:
+    - *Objectiu de futur*: Quan la plataforma assoleixi volum d'usuaris i activitat suficient, introduir un mòdul d'estadístiques: resum d'impacte ètic acumulat (àpats vegans gaudits, petjada ecològica i d'animals), mapa de calor de ciutats i barris més explorats, estils culinaris favorits i mètriques agregades de valoracions comunitàries.
 
 ---
 
 ## 🛡️ Documents de Referència
-- 💚 **Manifest Ètic i Carta de Valors**: [`docs/values.md`](./values.md)
+- 🗺️ **Full de Ruta i Backlog Prioritzat**: [`docs/roadmap.md`](./roadmap.md)
 - 🏛️ **Guia d'Arquitectura i Descoberta de Cartes**: [`docs/architecture.md`](./architecture.md)
-- 🐛 **Registre d'Incidències i Bug Tracking**: [`docs/bugs.md`](./bugs.md)
-- 📊 **Auditoria de Dades d'OpenStreetMap**: [`docs/osm-audit-results.md`](./osm-audit-results.md)
-- 🎯 **Metodologia de Fiabilitat**: [`docs/reliability.md`](./reliability.md)
+- 💚 **Manifest Ètic i Carta de Valors**: [`docs/values.md`](./values.md)

@@ -49,6 +49,8 @@ describe("ProductScannerPage Form UI", () => {
   beforeEach(() => {
     vi.clearAllMocks();
     localStorage.clear();
+    globalThis.URL.createObjectURL = vi.fn(() => "blob:mock-image-url");
+    globalThis.URL.revokeObjectURL = vi.fn();
   });
 
   afterEach(() => {
@@ -237,5 +239,46 @@ describe("ProductScannerPage Form UI", () => {
       brand: "Taifun",
       verdict: "vegan",
     });
+  });
+
+  it("automatically submits ingredient analysis once photo extraction succeeds", async () => {
+    vi.mocked(api.extractIngredientText).mockResolvedValueOnce("Oat flakes, sugar, sunflower oil");
+    vi.mocked(api.classifyIngredientList).mockResolvedValueOnce({
+      verdict: "vegan",
+      assurance: "label_based",
+      definitive: true,
+      reason: "All ingredients plant-based granola.",
+      findings: [],
+      matchedIngredients: ["oats", "sugar", "sunflower oil"],
+      traces: [],
+      classifierVersion: "1.0",
+    });
+
+    renderScanner("/product");
+
+    // Switch to ingredients mode
+    const ingredientsTab = screen.getByRole("tab", { name: /ingredients/i });
+    fireEvent.click(ingredientsTab);
+
+    // Upload an image file
+    const fileInput = document.querySelector('input[type="file"]') as HTMLInputElement;
+    expect(fileInput).toBeDefined();
+
+    const testFile = new File(["dummy content"], "ingredients.jpg", { type: "image/jpeg" });
+    fireEvent.change(fileInput, { target: { files: [testFile] } });
+
+    await waitFor(() => {
+      expect(api.extractIngredientText).toHaveBeenCalledWith(testFile, expect.anything());
+    });
+
+    // Verify classifyIngredientList was automatically invoked without clicking "Check ingredients"
+    await waitFor(() => {
+      expect(api.classifyIngredientList).toHaveBeenCalledWith(
+        "Oat flakes, sugar, sunflower oil",
+        expect.anything(),
+      );
+    });
+
+    expect(await screen.findByText("All ingredients plant-based granola.")).toBeDefined();
   });
 });

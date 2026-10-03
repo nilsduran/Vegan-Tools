@@ -1,7 +1,13 @@
 import { useState, type FormEvent } from "react";
-import { CheckCircle, Loader2, Mail, X } from "lucide-react";
+import { CheckCircle, KeyRound, Loader2, Mail, UserPlus, X } from "lucide-react";
 import { useAuth } from "../auth";
 import { tx, useLanguage } from "../i18n";
+import { useLifestyle, type LifestyleIdentity } from "../lifestyle";
+import {
+  VeganBadgeIcon,
+  VegetarianBadgeIcon,
+  RestaurantBadgeIcon,
+} from "./DietIcons";
 
 function GoogleIcon() {
   return (
@@ -26,14 +32,6 @@ function GoogleIcon() {
   );
 }
 
-function AppleIcon() {
-  return (
-    <svg className="auth-provider-icon" viewBox="0 0 170 170" width="18" height="18" fill="currentColor" aria-hidden="true">
-      <path d="M150.37 130.25c-2.45 5.66-5.35 10.87-8.71 15.66-4.58 6.53-8.33 11.05-11.22 13.56-4.48 4.12-9.28 6.23-14.42 6.35-3.69 0-8.14-1.05-13.32-3.18-5.19-2.12-9.97-3.17-14.34-3.17-4.58 0-9.49 1.05-14.75 3.17-5.26 2.13-9.5 3.24-12.74 3.35-4.35.13-9.16-1.9-14.42-6.08-3.7-3.04-7.6-7.85-11.7-14.43-6.1-9.79-10.9-20.93-14.4-33.43-3.5-12.5-5.25-24.3-5.25-35.4 0-14.52 3.63-26.69 10.9-36.5 7.27-9.82 16.5-14.82 27.69-15.01 4.9 0 10.3 1.25 16.2 3.75 5.9 2.5 9.7 3.8 11.4 3.9 1.3 0 5.4-1.4 12.3-4.2 6.9-2.8 12.5-4 16.8-3.6 12.5.8 22.3 5.4 29.4 13.8-10.9 6.6-16.3 15.7-16.1 27.3.2 9.1 3.6 16.7 10.2 22.8 6.6 6.1 14.5 9.6 23.7 10.5-2.2 6.7-4.9 13.1-8.1 19.3zm-39.7-111.4c0-6.1 2.2-11.9 6.6-17.4 4.4-5.5 10.1-9.2 17.1-11.1.2 1.3.3 2.4.3 3.3 0 6.2-2.3 12.2-6.9 17.9-4.6 5.7-10.4 9.3-17.1 10.9 0-1.2 0-2.4 0-3.6z" />
-    </svg>
-  );
-}
-
 export function AuthDialog({
   isOpen,
   onClose,
@@ -46,31 +44,30 @@ export function AuthDialog({
   const language = useLanguage();
   const {
     signInWithGoogle,
-    signInWithApple,
-    signInWithMagicLink,
     signInWithPassword,
     signUpWithPassword,
+    requestPasswordReset,
     loginWithUsername,
   } = useAuth();
+  const { lifestyle, setLifestyle } = useLifestyle();
 
   const [username, setUsername] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-  const [mode, setMode] = useState<"username" | "magic_link" | "password" | "signup">("username");
+  const [mode, setMode] = useState<"login" | "signup" | "reset">("login");
+  const [signupLifestyle, setSignupLifestyle] = useState<LifestyleIdentity>(lifestyle || "vegan");
   const [loading, setLoading] = useState(false);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
   const [successMsg, setSuccessMsg] = useState<string | null>(null);
 
   if (!isOpen) return null;
 
-  const handleOAuth = async (provider: "google" | "apple") => {
+  const handleOAuth = async () => {
     setErrorMsg(null);
     setSuccessMsg(null);
     setLoading(true);
     try {
-      const res = provider === "google"
-        ? await signInWithGoogle(username)
-        : await signInWithApple(username);
+      const res = await signInWithGoogle();
       if (res.error) {
         setErrorMsg(res.error);
       } else {
@@ -89,31 +86,11 @@ export function AuthDialog({
     setLoading(true);
 
     try {
-      if (mode === "username") {
-        if (!username.trim()) {
-          setErrorMsg(tx("Choose a public username"));
+      if (mode === "login") {
+        if (!email.trim() || !password) {
+          setErrorMsg(tx("Invalid email or password."));
           return;
         }
-        loginWithUsername(username);
-        setSuccessMsg(tx("Session started."));
-        setTimeout(() => {
-          onSuccess?.();
-          onClose();
-        }, 500);
-      } else if (mode === "magic_link") {
-        if (!email.trim()) return;
-        const res = await signInWithMagicLink(email, username);
-        if (res.error) {
-          setErrorMsg(res.error);
-        } else {
-          setSuccessMsg(res.message || tx("Link sent!"));
-          setTimeout(() => {
-            onSuccess?.();
-            onClose();
-          }, 1800);
-        }
-      } else if (mode === "password") {
-        if (!email.trim()) return;
         const res = await signInWithPassword(email, password);
         if (res.error) {
           setErrorMsg(res.error);
@@ -121,20 +98,41 @@ export function AuthDialog({
           onSuccess?.();
           onClose();
         }
-      } else {
-        if (!email.trim() || !username.trim()) {
-          setErrorMsg(tx("Choose a public username"));
+      } else if (mode === "signup") {
+        if (!email.trim() || !username.trim() || !password) {
+          setErrorMsg(tx("Please fill in all fields."));
           return;
         }
         const res = await signUpWithPassword(email, password, username);
         if (res.error) {
           setErrorMsg(res.error);
         } else {
+          setLifestyle(signupLifestyle);
           setSuccessMsg(res.message || tx("Account created successfully!"));
           setTimeout(() => {
             onSuccess?.();
             onClose();
-          }, 1800);
+          }, 1500);
+        }
+      } else if (mode === "reset") {
+        if (!email.trim()) {
+          setErrorMsg(tx("Invalid email format."));
+          return;
+        }
+        const res = requestPasswordReset
+          ? await requestPasswordReset(email)
+          : {
+              message: tx(
+                "If the account exists, we have sent instructions to reset your password."
+              ),
+            };
+        if (res.error) {
+          setErrorMsg(res.error);
+        } else {
+          setSuccessMsg(
+            res.message ||
+              tx("If the account exists, we have sent instructions to reset your password.")
+          );
         }
       }
     } finally {
@@ -162,9 +160,17 @@ export function AuthDialog({
 
         <header className="auth-dialog-header">
           <div className="auth-dialog-leaf-badge">🍃</div>
-          <h2 id="auth-dialog-title">{tx("Sign in to rate")}</h2>
+          <h2 id="auth-dialog-title">
+            {mode === "reset"
+              ? tx("Reset password")
+              : mode === "signup"
+              ? tx("Create account")
+              : tx("Sign in to rate")}
+          </h2>
           <p className="auth-dialog-subtitle">
-            {tx("Share your vegan experience to help the community.")}
+            {mode === "reset"
+              ? tx("If the account exists, we have sent instructions to reset your password.")
+              : tx("Share your vegan experience to help the community.")}
           </p>
         </header>
 
@@ -176,64 +182,76 @@ export function AuthDialog({
           </div>
         )}
 
-        {/* 1. Fast 1-Click Social Logins */}
-        <div className="auth-oauth-buttons">
-          <button
-            type="button"
-            className="auth-oauth-btn google"
-            disabled={loading}
-            onClick={() => void handleOAuth("google")}
-          >
-            <GoogleIcon />
-            <span>{tx("Continue with Google")}</span>
-          </button>
+        {/* 1. Fast Social Logins (Google & Apple) */}
+        {mode !== "reset" && (
+          <>
+            <div className="auth-oauth-buttons">
+              <button
+                type="button"
+                className="auth-oauth-btn google"
+                disabled={loading}
+                onClick={() => void handleOAuth()}
+              >
+                <GoogleIcon />
+                <span>{tx("Continue with Google")}</span>
+              </button>
+            </div>
 
-          <button
-            type="button"
-            className="auth-oauth-btn apple"
-            disabled={loading}
-            onClick={() => void handleOAuth("apple")}
-          >
-            <AppleIcon />
-            <span>{tx("Continue with Apple")}</span>
-          </button>
-        </div>
+            <div className="auth-divider">
+              <span>{tx("or with email")}</span>
+            </div>
+          </>
+        )}
 
-        <div className="auth-divider">
-          <span>{tx("or with email")}</span>
-        </div>
+        {/* Localhost developer bypass */}
+        {typeof window !== "undefined" &&
+          (window.location.hostname === "localhost" ||
+            window.location.hostname === "127.0.0.1" ||
+            window.location.hostname === "[::1]") && (
+            <div className="auth-localhost-box" style={{ marginBottom: "1.2rem" }}>
+              <div className="auth-localhost-header">
+                <span className="auth-localhost-badge">Local Dev</span>
+                <span>{tx("Quick local access")}</span>
+              </div>
+              <div style={{ display: "flex", gap: "0.5rem", marginTop: "0.5rem" }}>
+                <button
+                  type="button"
+                  className="auth-localhost-btn"
+                  onClick={() => {
+                    loginWithUsername("nils");
+                    onSuccess?.();
+                    onClose();
+                  }}
+                >
+                  ⚡ {tx("Log in as")} <strong>nils</strong>
+                </button>
+                <button
+                  type="button"
+                  className="auth-localhost-btn secondary"
+                  onClick={() => {
+                    loginWithUsername("comunitat_veg");
+                    onSuccess?.();
+                    onClose();
+                  }}
+                >
+                  {tx("Log in as")} <strong>comunitat</strong>
+                </button>
+              </div>
+            </div>
+          )}
 
-        {/* 2. Mode tabs: Username vs Magic link vs Password vs Signup */}
+        {/* 2. Mode tabs: Login vs Signup vs Reset */}
         <div className="auth-mode-tabs">
           <button
             type="button"
-            className={mode === "username" ? "active" : ""}
+            className={mode === "login" ? "active" : ""}
             onClick={() => {
-              setMode("username");
+              setMode("login");
               setErrorMsg(null);
+              setSuccessMsg(null);
             }}
           >
-            {tx("Username")}
-          </button>
-          <button
-            type="button"
-            className={mode === "magic_link" ? "active" : ""}
-            onClick={() => {
-              setMode("magic_link");
-              setErrorMsg(null);
-            }}
-          >
-            {tx("Magic link")}
-          </button>
-          <button
-            type="button"
-            className={mode === "password" ? "active" : ""}
-            onClick={() => {
-              setMode("password");
-              setErrorMsg(null);
-            }}
-          >
-            {tx("Password")}
+            {tx("Sign in")}
           </button>
           <button
             type="button"
@@ -241,54 +259,83 @@ export function AuthDialog({
             onClick={() => {
               setMode("signup");
               setErrorMsg(null);
+              setSuccessMsg(null);
             }}
           >
             {tx("Create account")}
+          </button>
+          <button
+            type="button"
+            className={mode === "reset" ? "active" : ""}
+            onClick={() => {
+              setMode("reset");
+              setErrorMsg(null);
+              setSuccessMsg(null);
+            }}
+          >
+            {tx("Reset password")}
           </button>
         </div>
 
         {/* 3. Form */}
         <form onSubmit={(e) => void handleSubmit(e)} className="auth-form">
-          {/* Public username field (Always visible on username & signup modes) */}
-          {(mode === "username" || mode === "signup") && (
+          {/* Public username field for signup */}
+          {mode === "signup" && (
             <div className="auth-field">
               <label htmlFor="auth-username">{tx("Choose a public username")}</label>
-              <div style={{ position: "relative", display: "flex", alignItems: "center" }}>
-                <span style={{ position: "absolute", left: "0.75rem", fontWeight: 700, color: "#059669" }}>@</span>
-                <input
-                  id="auth-username"
-                  type="text"
-                  required
-                  value={username}
-                  onChange={(e) => setUsername(e.target.value.toLowerCase().replace(/[^a-z0-9_.-]/g, ""))}
-                  placeholder="nom_usuari (ex: carla_vegan)"
-                  maxLength={25}
-                  style={{ paddingLeft: "1.85rem" }}
-                />
-              </div>
+              <input
+                id="auth-username"
+                type="text"
+                required
+                value={username}
+                onChange={(e) => setUsername(e.target.value.toLowerCase().replace(/[^a-z0-9_.-]/g, ""))}
+                placeholder="nom_usuari (ex: carla_vegan)"
+                minLength={3}
+                maxLength={25}
+              />
               <p style={{ margin: "0.25rem 0 0 0", fontSize: "0.76rem", color: "#64748b" }}>
-                {tx("This username will identify your reviews to the community.")}
+                {tx("This name will identify your visits, Top 4 favorites, and community reviews.")}
               </p>
             </div>
           )}
 
-          {mode !== "username" && (
-            <div className="auth-field">
-              <label htmlFor="auth-email">{tx("Email address")}</label>
-              <input
-                id="auth-email"
-                type="email"
-                required
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                placeholder="tu@exemple.cat"
-              />
-            </div>
-          )}
+          <div className="auth-field">
+            <label htmlFor="auth-email">{tx("Email address")}</label>
+            <input
+              id="auth-email"
+              type="email"
+              required
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              placeholder="tu@exemple.cat"
+            />
+          </div>
 
-          {mode !== "magic_link" && mode !== "username" && (
+          {mode !== "reset" && (
             <div className="auth-field">
-              <label htmlFor="auth-password">{tx("Password")}</label>
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                <label htmlFor="auth-password">{tx("Password")}</label>
+                {mode === "login" && (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setMode("reset");
+                      setErrorMsg(null);
+                      setSuccessMsg(null);
+                    }}
+                    style={{
+                      background: "none",
+                      border: "none",
+                      color: "#059669",
+                      fontSize: "0.8rem",
+                      cursor: "pointer",
+                      padding: 0,
+                    }}
+                  >
+                    {tx("Forgot password?")}
+                  </button>
+                )}
+              </div>
               <input
                 id="auth-password"
                 type="password"
@@ -304,24 +351,95 @@ export function AuthDialog({
           <button type="submit" className="auth-submit-btn" disabled={loading}>
             {loading ? (
               <Loader2 className="animate-spin" aria-hidden="true" />
-            ) : mode === "username" ? (
-              <span>
-                {username.trim()
-                  ? `${tx("Start as")} @${username.trim()}`
-                  : tx("Continue with username")}
-              </span>
-            ) : mode === "magic_link" ? (
-              <>
-                <Mail aria-hidden="true" />
-                <span>{tx("Send login link")}</span>
-              </>
-            ) : mode === "signup" ? (
-              <span>{tx("Sign up")}</span>
-            ) : (
+            ) : mode === "login" ? (
               <span>{tx("Sign in")}</span>
+            ) : mode === "signup" ? (
+              <>
+                <UserPlus size={18} aria-hidden="true" />
+                <span>{tx("Create account")}</span>
+              </>
+            ) : (
+              <>
+                <Mail size={18} aria-hidden="true" />
+                <span>{tx("Send reset instructions")}</span>
+              </>
             )}
           </button>
         </form>
+
+        {/* Footer Navigation */}
+        <div style={{ marginTop: "1rem", textAlign: "center", fontSize: "0.85rem" }}>
+          {mode === "login" && (
+            <p style={{ margin: 0, color: "#64748b" }}>
+              {tx("Don't have an account? Sign up")}{" "}
+              <button
+                type="button"
+                onClick={() => {
+                  setMode("signup");
+                  setErrorMsg(null);
+                  setSuccessMsg(null);
+                }}
+                style={{
+                  background: "none",
+                  border: "none",
+                  color: "#059669",
+                  fontWeight: 600,
+                  cursor: "pointer",
+                  padding: 0,
+                }}
+              >
+                {tx("Create account")}
+              </button>
+            </p>
+          )}
+
+          {mode === "signup" && (
+            <p style={{ margin: 0, color: "#64748b" }}>
+              {tx("Already have an account? Sign in")}{" "}
+              <button
+                type="button"
+                onClick={() => {
+                  setMode("login");
+                  setErrorMsg(null);
+                  setSuccessMsg(null);
+                }}
+                style={{
+                  background: "none",
+                  border: "none",
+                  color: "#059669",
+                  fontWeight: 600,
+                  cursor: "pointer",
+                  padding: 0,
+                }}
+              >
+                {tx("Sign in")}
+              </button>
+            </p>
+          )}
+
+          {mode === "reset" && (
+            <p style={{ margin: 0, color: "#64748b" }}>
+              <button
+                type="button"
+                onClick={() => {
+                  setMode("login");
+                  setErrorMsg(null);
+                  setSuccessMsg(null);
+                }}
+                style={{
+                  background: "none",
+                  border: "none",
+                  color: "#059669",
+                  fontWeight: 600,
+                  cursor: "pointer",
+                  padding: 0,
+                }}
+              >
+                ← {tx("Back to sign in")}
+              </button>
+            </p>
+          )}
+        </div>
 
         <footer className="auth-dialog-footer">
           <p className="auth-privacy-note">

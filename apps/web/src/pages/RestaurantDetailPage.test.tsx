@@ -30,7 +30,7 @@ describe("RestaurantDetailPage", () => {
 
   it("renders curated restaurant details and back link", async () => {
     render(
-      <MemoryRouter initialEntries={["/restaurant/featured-roots-bcn"]}>
+      <MemoryRouter initialEntries={["/restaurant/roots-bcn"]}>
         <Routes>
           <Route path="/restaurant/:id" element={<RestaurantDetailPage />} />
         </Routes>
@@ -41,6 +41,34 @@ describe("RestaurantDetailPage", () => {
     expect(screen.getAllByText(/Vegan/i).length).toBeGreaterThan(0);
     expect(screen.getByText(/Directions/i)).toBeDefined();
     expect(screen.getAllByText(/Log a visit/i).length).toBeGreaterThan(0);
+  });
+
+  it("resolves and renders non-curated / OpenStreetMap restaurant via getRestaurantById", async () => {
+    vi.spyOn(apiModule, "getRestaurantById").mockResolvedValue({
+      id: "node-99999",
+      name: "El Cafè de la Terra",
+      address: "Carrer de Gràcia, 45, Barcelona",
+      latitude: 41.401,
+      longitude: 2.158,
+      mapUrl: "https://www.openstreetmap.org/node/99999",
+      provider: "openstreetmap",
+      cuisine: "brunch",
+      isVegan: true,
+      openingHours: "Mo-Fr 09:00-19:00",
+    });
+
+    render(
+      <MemoryRouter initialEntries={["/restaurant/node-99999"]}>
+        <Routes>
+          <Route path="/restaurant/:id" element={<RestaurantDetailPage />} />
+        </Routes>
+      </MemoryRouter>,
+    );
+
+    expect(await screen.findByText("El Cafè de la Terra")).toBeDefined();
+    expect(screen.getByText("Carrer de Gràcia, 45, Barcelona")).toBeDefined();
+    expect(screen.getByText("Brunch")).toBeDefined();
+    expect(screen.getByText("Mo-Fr 09:00-19:00")).toBeDefined();
   });
 
   it("displays logged visits in the diary section when user is logged in", async () => {
@@ -62,7 +90,7 @@ describe("RestaurantDetailPage", () => {
 
     saveVisitLog({
       userId: mockUser.id,
-      restaurantId: "featured-roots-bcn",
+      restaurantId: "roots-bcn",
       restaurantName: "Roots Vegan",
       visitDate: "2026-09-08",
       rating: 4.8,
@@ -71,7 +99,7 @@ describe("RestaurantDetailPage", () => {
     });
 
     render(
-      <MemoryRouter initialEntries={["/restaurant/featured-roots-bcn"]}>
+      <MemoryRouter initialEntries={["/restaurant/roots-bcn"]}>
         <Routes>
           <Route path="/restaurant/:id" element={<RestaurantDetailPage />} />
         </Routes>
@@ -103,7 +131,7 @@ describe("RestaurantDetailPage", () => {
     });
 
     render(
-      <MemoryRouter initialEntries={["/restaurant/featured-roots-bcn"]}>
+      <MemoryRouter initialEntries={["/restaurant/roots-bcn"]}>
         <Routes>
           <Route path="/restaurant/:id" element={<RestaurantDetailPage />} />
         </Routes>
@@ -136,7 +164,7 @@ describe("RestaurantDetailPage", () => {
     });
 
     render(
-      <MemoryRouter initialEntries={["/restaurant/featured-roots-bcn"]}>
+      <MemoryRouter initialEntries={["/restaurant/roots-bcn"]}>
         <Routes>
           <Route path="/restaurant/:id" element={<RestaurantDetailPage />} />
         </Routes>

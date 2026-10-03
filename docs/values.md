@@ -25,9 +25,9 @@ Entenem el **veganisme com una postura ètica de justícia i respecte cap a tots
   - Només s'admeten imatges de **plats 100% vegetals**, begudes, postres veganes, l'espai físic o decoració del restaurant, façanes i fotografies de vida lliure en santuaris d'animals.
   - Els usuaris no han d'estar exposats a imatges que atemptin contra la seva sensibilitat moral o representin violència contra els animals mentre busquen un lloc on menjar o una recepta.
 
-### 🎯 III. Rigor i Fiabilitat Absoluta (Zero Greenwashing)
-- La confiança de la comunitat és sagrada. Un error d'un restaurant pot suposar que una persona vegana ingereixi productes d'origen animal contra la seva voluntat.
-- Apliquem una **jerarquia d'evidències estricta (amb un estàndard del 99% de precisió)** per auditar ingredients, traçabilitat de cartes i additius (ex: albúmina, gelatina animal, carmí E120, sèrum de llet, derivats de peix en vins i cerveses).
+### 🎯 III. Rigor i Fiabilitat (Zero Greenwashing)
+- La confiança de la comunitat és prioritària. Un error d'un restaurant pot suposar que una persona vegana ingereixi productes d'origen animal contra la seva voluntat.
+- Apliquem una **jerarquia d'evidències estricta i un principi de màxima precaució** per auditar ingredients, traçabilitat de cartes i additius (ex: albúmina, gelatina animal, carmí E120, sèrum de llet, derivats de peix en vins i cerveses). Davant del dubte, la classificació és sempre conservadora.
 - No tolerem el rentat d'imatge corporatiu (*greenwashing* / *vegan-washing*).
 
 ### 🔒 IV. Privacitat, Sobirania Digital i No-Tracking
@@ -40,7 +40,8 @@ Entenem el **veganisme com una postura ètica de justícia i respecte cap a tots
 - Fomentem la col·laboració oberta, les aportacions descentralitzades i la llibertat tecnològica (Open Source).
 
 ### 🌾 VI. Inclusió Dietètica i Accessibilitat
-- Reconeixem les necessitats creuades de la comunitat: opcions **sense gluten verificades (celiaquia)**, al·lèrgies a fruits secs i accessibilitat física per a tothom.
+- Reconeixem les necessitats creuades de la comunitat: visibilitzem dades obertes i comunitàries (ex: etiquetes d'OpenStreetMap) sobre opcions sense gluten (celiaquia) i accessibilitat física.
+- **Clarificació d'abast**: Vegan Tools és una eina d'orientació ètica antiespecista i no un servei mèdic d'al·lèrgens. No podem garantir l'absència de contaminació creuada a les cuines, per la qual cosa les persones amb celiaquia o al·lèrgies han de verificar sempre la manipulació amb el personal del restaurant.
 
 ---
 

@@ -16,7 +16,9 @@ import {
 } from "@vegan-tools/domain";
 import type { Repository } from "../store.js";
 import { lookupOpenFoodFacts } from "../open-food-facts.js";
+import { lookupOpenBeautyFacts } from "../open-beauty-facts.js";
 import type { IngredientExtractor } from "../ingredient-extractor.js";
+import { globalEdgeClassifier } from "../edge-classifier.js";
 
 async function withTimeout<T>(
   promise: Promise<T>,
@@ -52,13 +54,16 @@ export async function productRoutes(app: FastifyInstance, options: ProductRoutes
     if (cached?.classifierVersion === CLASSIFIER_VERSION) return cached;
 
     try {
-      const product = await lookupOpenFoodFacts(gtin);
+      let product = await lookupOpenFoodFacts(gtin);
+      if (!product) {
+        product = await lookupOpenBeautyFacts(gtin);
+      }
       if (product) {
         await repo.saveProduct(product);
         return product;
       }
     } catch (error) {
-      request.log.warn({ error }, "Open Food Facts lookup failed");
+      request.log.warn({ error }, "Open Food / Beauty Facts lookup failed");
     }
 
     const unknown: ProductResult = {
@@ -140,14 +145,33 @@ export async function productRoutes(app: FastifyInstance, options: ProductRoutes
         message: "Paste a readable ingredient list.",
       });
     }
-    return classifyIngredients(request.body.ingredientsText, {
+    const text = request.body.ingredientsText;
+    const regexResult = classifyIngredients(text, {
       assurance: "label_based",
       verifiedVeganClaim: request.body.verifiedVeganClaim,
       verifiedVegetarianClaim: request.body.verifiedVegetarianClaim,
     });
+
+    if (globalEdgeClassifier.isConfigured()) {
+      try {
+        const edge = await globalEdgeClassifier.classify(text);
+        if (edge && edge.verdict === "non_vegetarian" && regexResult.verdict !== "non_vegetarian") {
+          return {
+            ...regexResult,
+            verdict: "non_vegetarian",
+            reason: `Detectat possible derivat d'origen animal pel model Edge en local (${Math.round(edge.probabilities.slaughter * 100)}% certesa).`,
+            definitive: true,
+          };
+        }
+      } catch (err) {
+        request.log.warn({ err }, "Error running EdgeClassifier");
+      }
+    }
+
+    return regexResult;
   });
 
-  app.post("/v1/ingredients/extract", async (request, reply) => {
+  app.post("/v1/ingredients/extract", { config: { rateLimit: { max: 15, timeWindow: "1 minute" } } }, async (request, reply) => {
     const upload = await request.file();
     if (!upload || !upload.mimetype.startsWith("image/")) {
       return reply.code(400).send({
@@ -188,21 +212,26 @@ export async function productRoutes(app: FastifyInstance, options: ProductRoutes
       let product = await repo.getProduct(gtin);
       if (!product?.ingredientsImageUrl) {
         product = await lookupOpenFoodFacts(gtin);
+        if (!product) {
+          product = await lookupOpenBeautyFacts(gtin);
+        }
         if (product) await repo.saveProduct(product);
       }
       if (!product?.ingredientsImageUrl) {
         return reply.code(404).send({
           code: "INGREDIENT_IMAGE_MISSING",
-          message: "Open Food Facts does not have an ingredient-label image for this product.",
+          message: "No ingredient-label image was found for this product.",
         });
       }
 
       try {
         const url = new URL(product.ingredientsImageUrl);
-        if (
-          url.protocol !== "https:" ||
-          !(url.hostname === "openfoodfacts.org" || url.hostname.endsWith(".openfoodfacts.org"))
-        ) {
+        const isAllowedHost =
+          url.hostname === "openfoodfacts.org" ||
+          url.hostname.endsWith(".openfoodfacts.org") ||
+          url.hostname === "openbeautyfacts.org" ||
+          url.hostname.endsWith(".openbeautyfacts.org");
+        if (url.protocol !== "https:" || !isAllowedHost) {
           throw new Error("The ingredient image source is not allowed.");
         }
         const imageResponse = await fetch(url, {

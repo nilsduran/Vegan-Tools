@@ -6,6 +6,7 @@ import {
   type ReactNode,
 } from "react";
 import { createClient, type SupabaseClient, type User, type Session } from "@supabase/supabase-js";
+import { normalizeUsername, validateUsername } from "@vegan-tools/domain";
 import { generateSafeUUID } from "./utils/uuid";
 import { tx } from "./i18n";
 
@@ -15,16 +16,10 @@ export interface AuthUser {
   name: string;
   email?: string;
   avatarUrl?: string;
+  usernameChanges?: number[];
 }
 
-export function normalizeUsername(raw: string): string {
-  return raw
-    .trim()
-    .toLowerCase()
-    .replace(/^@+/, "")
-    .replace(/[^a-z0-9_.-]/g, "_")
-    .slice(0, 25);
-}
+export { normalizeUsername, validateUsername };
 
 export interface AuthContextValue {
   user: AuthUser | null;
@@ -40,10 +35,10 @@ export interface AuthContextValue {
     password: string,
     username: string
   ) => Promise<{ error?: string; message?: string }>;
+  requestPasswordReset?: (email: string) => Promise<{ error?: string; message?: string }>;
   signOut: () => Promise<void>;
+  updateUsername: (newUsername: string) => Promise<{ error?: string }>;
   loginWithUsername: (username: string) => void;
-  updateUsername: (newUsername: string) => void;
-  /** @deprecated use loginWithUsername */
   loginAsDemoUser: (name?: string) => void;
 }
 
@@ -65,7 +60,7 @@ function userFromSupabaseUser(user: User, fallbackUsername?: string): AuthUser {
     normalizeUsername(user.email ? user.email.split("@")[0]! : "") ||
     `vegi_${user.id.slice(0, 5)}`;
 
-  const name = `@${cleanUser}`;
+  const name = metadata.full_name?.replace(/^@+/, "") || cleanUser;
   const avatarUrl = metadata.avatar_url || metadata.picture || undefined;
 
   return {
@@ -77,13 +72,51 @@ function userFromSupabaseUser(user: User, fallbackUsername?: string): AuthUser {
   };
 }
 
+interface LocalUserRecord {
+  id: string;
+  email: string;
+  username: string;
+  passwordHash: string;
+  createdAt: string;
+  usernameChanges: number[];
+}
+
+const USERS_STORAGE_KEY = "vegan_tools_users_store";
+const SESSION_STORAGE_KEY = "vegan_tools_auth_session";
+const THIRTY_DAYS_MS = 30 * 24 * 60 * 60 * 1000;
+
+function getStoredUsers(): LocalUserRecord[] {
+  try {
+    const raw = localStorage.getItem(USERS_STORAGE_KEY);
+    return raw ? (JSON.parse(raw) as LocalUserRecord[]) : [];
+  } catch {
+    return [];
+  }
+}
+
+function saveStoredUsers(users: LocalUserRecord[]) {
+  localStorage.setItem(USERS_STORAGE_KEY, JSON.stringify(users));
+}
+
+async function hashPassword(password: string): Promise<string> {
+  if (typeof crypto !== "undefined" && crypto.subtle) {
+    const encoder = new TextEncoder();
+    const data = encoder.encode(`vtools_salt_${password}`);
+    const hashBuffer = await crypto.subtle.digest("SHA-256", data);
+    return Array.from(new Uint8Array(hashBuffer))
+      .map((b) => b.toString(16).padStart(2, "0"))
+      .join("");
+  }
+  return btoa(password);
+}
+
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<AuthUser | null>(null);
   const [session, setSession] = useState<Session | null>(null);
   const [token, setToken] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
 
-  // Initialize Supabase session or restore demo session from localStorage
+  // Initialize Supabase session or restore persistent user session from localStorage
   useEffect(() => {
     if (supabase) {
       void supabase.auth.getSession().then(({ data: { session: currentSession } }) => {
@@ -91,6 +124,19 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           setSession(currentSession);
           setToken(currentSession.access_token);
           setUser(userFromSupabaseUser(currentSession.user));
+        } else {
+          const stored = localStorage.getItem(SESSION_STORAGE_KEY);
+          if (stored) {
+            try {
+              const parsed = JSON.parse(stored) as { user: AuthUser; token: string };
+              if (parsed.user && parsed.user.username) {
+                setUser(parsed.user);
+                setToken(parsed.token || "authenticated_token");
+              }
+            } catch {
+              // Ignore invalid JSON
+            }
+          }
         }
         setLoading(false);
       });
@@ -100,7 +146,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           if (newSession?.user) {
             setSession(newSession);
             setToken(newSession.access_token);
-            setUser(userFromSupabaseUser(newSession.user));
+            const authUser = userFromSupabaseUser(newSession.user);
+            setUser(authUser);
+            const isBrandNew = Math.abs(Date.now() - new Date(newSession.user.created_at).getTime()) < 20000;
+            if (!isBrandNew) {
+              localStorage.setItem(`vegan_tools_onboarding_done_${authUser.id}`, "true");
+              localStorage.removeItem(`vegan_tools_new_signup_${authUser.id}`);
+            }
           } else {
             setSession(null);
             setToken(null);
@@ -114,92 +166,26 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         authListener.subscription.unsubscribe();
       };
     } else {
-      // Local/offline public user fallback (restored by username)
-      const stored =
-        localStorage.getItem("vegan_tools_public_user") ||
-        localStorage.getItem("vegan_tools_demo_user");
+      // Local persistent session restore
+      const stored = localStorage.getItem(SESSION_STORAGE_KEY);
       if (stored) {
         try {
           const parsed = JSON.parse(stored) as { user: AuthUser; token: string };
-          if (parsed.user) {
-            const rawUser = parsed.user;
-            const cleanUser =
-              rawUser.username ||
-              normalizeUsername(rawUser.name || "") ||
-              "usuari_vegi";
-            const sanitizedUser: AuthUser = {
-              id: rawUser.id || `user-${generateSafeUUID()}`,
-              username: cleanUser,
-              name: `@${cleanUser}`,
-              avatarUrl: rawUser.avatarUrl,
-            };
-            setUser(sanitizedUser);
-            setToken(parsed.token || "public_token");
+          if (parsed.user && parsed.user.username) {
+            setUser(parsed.user);
+            setToken(parsed.token || "authenticated_token");
           }
         } catch {
-          // Ignore parse errors
+          // Ignore invalid JSON
         }
       }
       setLoading(false);
     }
   }, []);
 
-  const loginWithUsername = (chosenUsername: string) => {
-    const clean =
-      normalizeUsername(chosenUsername) ||
-      `vegi_${Math.floor(1000 + Math.random() * 9000)}`;
-    const userId = `user-${generateSafeUUID()}`;
-    const newUser: AuthUser = {
-      id: userId,
-      username: clean,
-      name: `@${clean}`,
-    };
-
-    const header = btoa(JSON.stringify({ alg: "HS256", typ: "JWT" }));
-    const payload = btoa(
-      JSON.stringify({
-        sub: userId,
-        username: clean,
-        user_metadata: { full_name: `@${clean}`, username: clean },
-      })
-    );
-    const generatedToken = `${header}.${payload}.sig`;
-
-    localStorage.setItem(
-      "vegan_tools_public_user",
-      JSON.stringify({ user: newUser, token: generatedToken })
-    );
-    localStorage.setItem("vegan_tools_public_username", clean);
-    localStorage.removeItem("vegan_tools_demo_user");
-    setUser(newUser);
-    setToken(generatedToken);
-  };
-
-  const updateUsername = (newUsername: string) => {
-    const clean = normalizeUsername(newUsername);
-    if (!clean) return;
-
-    setUser((prev) => {
-      if (!prev) return null;
-      const updated: AuthUser = {
-        ...prev,
-        username: clean,
-        name: `@${clean}`,
-      };
-      const currentToken = token || "public_token";
-      localStorage.setItem(
-        "vegan_tools_public_user",
-        JSON.stringify({ user: updated, token: currentToken })
-      );
-      localStorage.setItem("vegan_tools_public_username", clean);
-      return updated;
-    });
-  };
-
-  const signInWithGoogle = async (chosenUsername?: string): Promise<{ error?: string }> => {
+  const signInWithGoogle = async (): Promise<{ error?: string }> => {
     if (!supabase) {
-      loginWithUsername(chosenUsername || "usuari_comunitat");
-      return {};
+      return { error: tx("Social login is unavailable without Supabase credentials.") };
     }
     const { error } = await supabase.auth.signInWithOAuth({
       provider: "google",
@@ -210,10 +196,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     return error ? { error: error.message } : {};
   };
 
-  const signInWithApple = async (chosenUsername?: string): Promise<{ error?: string }> => {
+  const signInWithApple = async (): Promise<{ error?: string }> => {
     if (!supabase) {
-      loginWithUsername(chosenUsername || "usuari_comunitat");
-      return {};
+      return { error: tx("Social login is unavailable without Supabase credentials.") };
     }
     const { error } = await supabase.auth.signInWithOAuth({
       provider: "apple",
@@ -226,11 +211,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const signInWithMagicLink = async (
     email: string,
-    chosenUsername?: string
   ): Promise<{ error?: string; message?: string }> => {
     if (!supabase) {
-      loginWithUsername(chosenUsername || email.split("@")[0] || "usuari_comunitat");
-      return { message: tx("Session started.") };
+      return requestPasswordReset(email);
     }
     const { error } = await supabase.auth.signInWithOtp({
       email: email.trim(),
@@ -246,15 +229,67 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     email: string,
     password: string
   ): Promise<{ error?: string }> => {
+    const cleanEmail = email.trim().toLowerCase();
+    if (!cleanEmail || !password) {
+      return { error: tx("Invalid email or password.") };
+    }
+
     if (!supabase) {
-      loginWithUsername(email.split("@")[0] || "usuari_comunitat");
+      const users = getStoredUsers();
+      const existing = users.find((u) => u.email.toLowerCase() === cleanEmail);
+      if (!existing) {
+        return { error: tx("Invalid email or password.") };
+      }
+
+      const inputHash = await hashPassword(password);
+      if (existing.passwordHash !== inputHash) {
+        return { error: tx("Invalid email or password.") };
+      }
+
+      const authenticatedUser: AuthUser = {
+        id: existing.id,
+        email: existing.email,
+        username: existing.username,
+        name: existing.username,
+        usernameChanges: existing.usernameChanges,
+      };
+
+      const header = btoa(JSON.stringify({ alg: "HS256", typ: "JWT" }));
+      const payload = btoa(
+        JSON.stringify({
+          sub: existing.id,
+          email: existing.email,
+          user_metadata: { full_name: existing.username, username: existing.username },
+        })
+      );
+      const generatedToken = `${header}.${payload}.sig`;
+
+      localStorage.setItem(
+        SESSION_STORAGE_KEY,
+        JSON.stringify({ user: authenticatedUser, token: generatedToken })
+      );
+      localStorage.setItem(`vegan_tools_onboarding_done_${authenticatedUser.id}`, "true");
+      localStorage.removeItem(`vegan_tools_new_signup_${authenticatedUser.id}`);
+      setUser(authenticatedUser);
+      setToken(generatedToken);
       return {};
     }
-    const { error } = await supabase.auth.signInWithPassword({
-      email: email.trim(),
+
+    const { data, error } = await supabase.auth.signInWithPassword({
+      email: cleanEmail,
       password,
     });
-    return error ? { error: error.message } : {};
+
+    if (error) return { error: error.message };
+    if (data.user) {
+      const authUser = userFromSupabaseUser(data.user);
+      localStorage.setItem(`vegan_tools_onboarding_done_${authUser.id}`, "true");
+      localStorage.removeItem(`vegan_tools_new_signup_${authUser.id}`);
+      setUser(authUser);
+      setSession(data.session);
+      setToken(data.session?.access_token || null);
+    }
+    return {};
   };
 
   const signUpWithPassword = async (
@@ -262,25 +297,189 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     password: string,
     username: string
   ): Promise<{ error?: string; message?: string }> => {
-    const cleanUser = normalizeUsername(username) || email.split("@")[0] || "usuari";
-    if (!supabase) {
-      loginWithUsername(cleanUser);
-      return { message: "Compte creat correctament." };
+    const cleanEmail = email.trim().toLowerCase();
+    if (!cleanEmail || !password || !username.trim()) {
+      return { error: tx("Please fill in all fields.") };
     }
+
+    const validation = validateUsername(username);
+    if (!validation.valid) {
+      return { error: validation.error || tx("Invalid username.") };
+    }
+
+    const cleanUser = normalizeUsername(username);
+
+    if (!supabase) {
+      const users = getStoredUsers();
+      if (users.some((u) => u.email.toLowerCase() === cleanEmail)) {
+        return { error: tx("An account with this email already exists.") };
+      }
+      if (users.some((u) => u.username.toLowerCase() === cleanUser.toLowerCase())) {
+        return { error: tx("This username is already taken.") };
+      }
+
+      const inputHash = await hashPassword(password);
+      const newUser: LocalUserRecord = {
+        id: `user-${generateSafeUUID()}`,
+        email: cleanEmail,
+        username: cleanUser,
+        passwordHash: inputHash,
+        createdAt: new Date().toISOString(),
+        usernameChanges: [],
+      };
+
+      users.push(newUser);
+      saveStoredUsers(users);
+
+      const authenticatedUser: AuthUser = {
+        id: newUser.id,
+        email: newUser.email,
+        username: newUser.username,
+        name: newUser.username,
+        usernameChanges: [],
+      };
+
+      const header = btoa(JSON.stringify({ alg: "HS256", typ: "JWT" }));
+      const payload = btoa(
+        JSON.stringify({
+          sub: newUser.id,
+          email: newUser.email,
+          user_metadata: { full_name: newUser.username, username: newUser.username },
+        })
+      );
+      const generatedToken = `${header}.${payload}.sig`;
+
+      localStorage.setItem(
+        SESSION_STORAGE_KEY,
+        JSON.stringify({ user: authenticatedUser, token: generatedToken })
+      );
+      localStorage.setItem(`vegan_tools_new_signup_${newUser.id}`, "true");
+      setUser(authenticatedUser);
+      setToken(generatedToken);
+
+      return { message: tx("Account created successfully!") };
+    }
+
     const { data, error } = await supabase.auth.signUp({
-      email: email.trim(),
+      email: cleanEmail,
       password,
       options: {
         data: {
           username: cleanUser,
-          full_name: `@${cleanUser}`,
+          full_name: cleanUser,
         },
       },
     });
+
     if (error) return { error: error.message };
-    if (!data.session) {
-      return { message: "Revisa el teu correu electrònic per confirmar el teu compte." };
+    if (data.user) {
+      localStorage.setItem(`vegan_tools_new_signup_${data.user.id}`, "true");
     }
+    if (!data.session) {
+      return { message: tx("We sent an access link to your email.") };
+    }
+    return {};
+  };
+
+  const requestPasswordReset = async (
+    email: string
+  ): Promise<{ error?: string; message?: string }> => {
+    const cleanEmail = email.trim().toLowerCase();
+    if (!cleanEmail || !cleanEmail.includes("@")) {
+      return { error: tx("Invalid email format.") };
+    }
+
+    if (supabase) {
+      const { error } = await supabase.auth.resetPasswordForEmail(cleanEmail, {
+        redirectTo: window.location.href,
+      });
+      if (error) return { error: error.message };
+      return {
+        message: tx("If the account exists, we have sent instructions to reset your password."),
+      };
+    }
+
+    // Local mode: acknowledge without leaking account existence
+    return {
+      message: tx("If the account exists, we have sent instructions to reset your password."),
+    };
+  };
+
+  const updateUsername = async (newUsername: string): Promise<{ error?: string }> => {
+    if (!user) return { error: "Not logged in" };
+
+    const validation = validateUsername(newUsername);
+    if (!validation.valid) {
+      return { error: tx(validation.error || "Username must be at least 3 characters.") };
+    }
+    const cleanUser = normalizeUsername(newUsername);
+
+    if (user.username.toLowerCase() === cleanUser.toLowerCase()) {
+      return {};
+    }
+
+    // Check rate limit: max 2 changes per 30 days
+    const now = Date.now();
+    const cutoff = now - THIRTY_DAYS_MS;
+    const pastChanges = (user.usernameChanges || []).filter((ts) => ts > cutoff);
+
+    if (pastChanges.length >= 2) {
+      return { error: tx("Rate limit exceeded: maximum 2 username changes per month.") };
+    }
+
+    if (!supabase) {
+      const users = getStoredUsers();
+      if (
+        users.some(
+          (u) => u.id !== user.id && u.username.toLowerCase() === cleanUser.toLowerCase()
+        )
+      ) {
+        return { error: tx("Username is already taken.") };
+      }
+
+      const updatedHistory = [...pastChanges, now];
+      const updatedUsers = users.map((u) =>
+        u.id === user.id
+          ? { ...u, username: cleanUser, usernameChanges: updatedHistory }
+          : u
+      );
+      saveStoredUsers(updatedUsers);
+
+      const updatedUser: AuthUser = {
+        ...user,
+        username: cleanUser,
+        name: cleanUser,
+        usernameChanges: updatedHistory,
+      };
+
+      const currentToken = token || "authenticated_token";
+      localStorage.setItem(
+        SESSION_STORAGE_KEY,
+        JSON.stringify({ user: updatedUser, token: currentToken })
+      );
+      setUser(updatedUser);
+      return {};
+    }
+
+    const { error } = await supabase.auth.updateUser({
+      data: {
+        username: cleanUser,
+        full_name: cleanUser,
+      },
+    });
+
+    if (error) return { error: error.message };
+
+    setUser((prev) =>
+      prev
+        ? {
+            ...prev,
+            username: cleanUser,
+            name: cleanUser,
+            usernameChanges: [...pastChanges, now],
+          }
+        : null
+    );
     return {};
   };
 
@@ -288,12 +487,43 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     if (supabase) {
       await supabase.auth.signOut();
     }
+    localStorage.removeItem(SESSION_STORAGE_KEY);
     localStorage.removeItem("vegan_tools_public_user");
     localStorage.removeItem("vegan_tools_public_username");
     localStorage.removeItem("vegan_tools_demo_user");
     setUser(null);
     setSession(null);
     setToken(null);
+  };
+
+  // Compatibility helpers & Local Dev Login
+  const loginWithUsername = (chosenUsername: string) => {
+    const clean = normalizeUsername(chosenUsername) || "nils";
+    const userId = `user-dev-${generateSafeUUID()}`;
+    const newUser: AuthUser = {
+      id: userId,
+      username: clean,
+      name: clean,
+      email: `${clean}@localhost.local`,
+      usernameChanges: [],
+    };
+    const header = btoa(JSON.stringify({ alg: "HS256", typ: "JWT" }));
+    const payload = btoa(
+      JSON.stringify({
+        sub: userId,
+        email: newUser.email,
+        user_metadata: { full_name: clean, username: clean },
+      })
+    );
+    const devToken = `${header}.${payload}.sig`;
+    localStorage.setItem(
+      SESSION_STORAGE_KEY,
+      JSON.stringify({ user: newUser, token: devToken })
+    );
+    localStorage.setItem(`vegan_tools_onboarding_done_${newUser.id}`, "true");
+    localStorage.removeItem(`vegan_tools_new_signup_${newUser.id}`);
+    setUser(newUser);
+    setToken(devToken);
   };
 
   const loginAsDemoUser = (name = "usuari_comunitat") => {
@@ -312,9 +542,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         signInWithMagicLink,
         signInWithPassword,
         signUpWithPassword,
+        requestPasswordReset,
         signOut,
-        loginWithUsername,
         updateUsername,
+        loginWithUsername,
         loginAsDemoUser,
       }}
     >
@@ -333,9 +564,10 @@ const defaultAuthValue: AuthContextValue = {
   signInWithMagicLink: async () => ({}),
   signInWithPassword: async () => ({}),
   signUpWithPassword: async () => ({}),
+  requestPasswordReset: async () => ({}),
   signOut: async () => {},
+  updateUsername: async () => ({}),
   loginWithUsername: () => {},
-  updateUsername: () => {},
   loginAsDemoUser: () => {},
 };
 

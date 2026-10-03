@@ -364,4 +364,29 @@ describe("Universal Restaurant Search across multiple cities", () => {
       expect(results.some((r) => r.name.toLowerCase().includes("desoriente"))).toBe(true);
     });
   });
+
+  describe("Universal Restaurant ID lookup (/v1/restaurants/:id)", () => {
+    it("returns curated restaurant by ID immediately", async () => {
+      const app = await getApp();
+      const res = await app.inject({
+        method: "GET",
+        url: "/v1/restaurants/roots-bcn",
+      });
+      expect(res.statusCode).toBe(200);
+      const data = res.json() as { id: string; name: string; isVegan: boolean };
+      expect(data.id).toBe("roots-bcn");
+      expect(data.name).toBe("Roots Vegan");
+      expect(data.isVegan).toBe(true);
+    });
+
+    it("returns 404 for unknown restaurant ID", async () => {
+      const app = await getApp();
+      const res = await app.inject({
+        method: "GET",
+        url: "/v1/restaurants/non-existent-restaurant-xyz",
+      });
+      expect(res.statusCode).toBe(404);
+      expect(res.json()).toHaveProperty("code", "RESTAURANT_NOT_FOUND");
+    });
+  });
 });

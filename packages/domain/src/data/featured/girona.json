@@ -1,6 +1,6 @@
 [
   {
-    "id": "featured-gir-bionectar",
+    "id": "gir-bionectar",
     "name": "Bionèctar Organic Living Food",
     "address": "Carrer Francesc Ciurana, 22, 17001 Girona",
     "latitude": 41.9796,
@@ -17,7 +17,7 @@
     "imageUrl": "https://images.unsplash.com/photo-1512621776951-a57141f2eefd?auto=format&fit=crop&w=800&q=80"
   },
   {
-    "id": "featured-gir-greta",
+    "id": "gir-greta",
     "name": "Greta",
     "address": "Carrer de la Cort Reial, 26, 17004 Girona",
     "latitude": 41.9863,

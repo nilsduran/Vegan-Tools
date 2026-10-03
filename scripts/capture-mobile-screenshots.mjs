@@ -1,10 +1,15 @@
-﻿import http from 'node:http';
+import http from 'node:http';
 import fs from 'node:fs';
 import path from 'node:path';
 import { chromium } from 'playwright';
 
 const distDir = path.resolve('apps/web/dist');
-const outputDir = 'C:/Users/nils/.gemini/antigravity/brain/83f4bf08-b62e-403b-a669-c97b86260c02/mobile_screenshots';
+const outputDir = process.env.SCREENSHOT_DIR || 'C:/Users/nils/.gemini/antigravity/brain/c5a7cb2d-76c1-4e81-8281-1f4386805a4a/mobile_screenshots';
+if (!fs.existsSync(outputDir)) {
+  fs.mkdirSync(outputDir, { recursive: true });
+}
+
+const targetFilter = process.argv[2]?.toLowerCase();
 
 // Simple static file server
 const mimeTypes = {
@@ -45,62 +50,98 @@ server.listen(4173, async () => {
   console.log('Preview server running on http://localhost:4173');
   try {
     const browser = await chromium.launch({ headless: true });
-    const context = await browser.newContext({
-      viewport: { width: 390, height: 844 }, // iPhone 14 / standard mobile
-      userAgent: 'Mozilla/5.0 (iPhone; CPU iPhone OS 17_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.0 Mobile/15E148 Safari/604.1',
-      deviceScaleFactor: 2,
-      isMobile: true,
-      hasTouch: true,
-    });
+    const isDesktop = process.argv[3] === 'desktop' || targetFilter === 'desktop';
+    const context = await browser.newContext(
+      isDesktop
+        ? { viewport: { width: 1280, height: 850 } }
+        : {
+            viewport: { width: 390, height: 844 },
+            userAgent: 'Mozilla/5.0 (iPhone; CPU iPhone OS 17_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.0 Mobile/15E148 Safari/604.1',
+            deviceScaleFactor: 2,
+            isMobile: true,
+            hasTouch: true,
+          }
+    );
 
     const page = await context.newPage();
 
     // 1. Home page
-    console.log('Capturing Home Page...');
-    await page.goto('http://localhost:4173/', { waitUntil: 'networkidle' });
-    await page.waitForTimeout(1000);
-    await page.screenshot({ path: path.join(outputDir, '01_home_mobile.png'), fullPage: true });
-
-    // 2. Map Page - default collapsed / pins loaded
-    console.log('Capturing Map Page (initial)...');
-    await page.goto('http://localhost:4173/map', { waitUntil: 'networkidle' });
-    await page.waitForTimeout(2500);
-    await page.screenshot({ path: path.join(outputDir, '02_map_initial_mobile.png') });
-
-    // 3. Map Page - open search list
-    console.log('Capturing Map Page (search list)...');
-    const searchInput = page.locator('input[type=\"text\"][placeholder*=\"Cerca\"], input[type=\"text\"][placeholder*=\"Search\"]');
-    if (await searchInput.isVisible()) {
-      await searchInput.fill('pizza');
+    if (!targetFilter || targetFilter === 'home') {
+      console.log('Capturing Home Page...');
+      await page.goto('http://localhost:4173/', { waitUntil: 'domcontentloaded' });
       await page.waitForTimeout(1000);
-      await page.screenshot({ path: path.join(outputDir, '03_map_search_mobile.png') });
+      await page.screenshot({ path: path.join(outputDir, '01_home_mobile.png'), fullPage: true });
     }
 
-    // 4. Map Page - Restaurant Detail Pane (place=featured-asante-bcn)
-    console.log('Capturing Map Detail Pane...');
-    await page.goto('http://localhost:4173/map?place=featured-asante-bcn', { waitUntil: 'networkidle' });
-    await page.waitForTimeout(2000);
-    await page.screenshot({ path: path.join(outputDir, '04_map_detail_mobile.png') });
+    // 2. Map Page - default collapsed / pins loaded
+    if (!targetFilter || targetFilter === 'map') {
+      console.log('Capturing Map Page (initial)...');
+      await page.goto('http://localhost:4173/map', { waitUntil: 'domcontentloaded' });
+      await page.waitForTimeout(2000);
+      await page.screenshot({ path: path.join(outputDir, '02_map_initial_mobile.png') });
+
+      console.log('Capturing Map Page (search list)...');
+      const searchInput = page.locator('input[type="text"][placeholder*="Cerca"], input[type="text"][placeholder*="Search"]');
+      if (await searchInput.isVisible()) {
+        await searchInput.fill('pizza');
+        await page.waitForTimeout(1000);
+        await page.screenshot({ path: path.join(outputDir, '03_map_search_mobile.png') });
+      }
+
+      console.log('Capturing Map Pane...');
+      await page.goto('http://localhost:4173/map?place=asante-bcn', { waitUntil: 'domcontentloaded' });
+      await page.waitForTimeout(2000);
+      await page.screenshot({ path: path.join(outputDir, '04_map_detail_mobile.png') });
+    }
 
     // 5. Scanner Page
-    console.log('Capturing Scanner Page...');
-    await page.goto('http://localhost:4173/scanner', { waitUntil: 'networkidle' });
-    await page.waitForTimeout(1000);
-    await page.screenshot({ path: path.join(outputDir, '05_scanner_mobile.png'), fullPage: true });
+    if (!targetFilter || targetFilter === 'scanner') {
+      console.log('Capturing Scanner Page...');
+      await page.goto('http://localhost:4173/scanner', { waitUntil: 'domcontentloaded' });
+      await page.waitForTimeout(1000);
+      await page.screenshot({ path: path.join(outputDir, '05_scanner_mobile.png'), fullPage: true });
+    }
 
     // 6. Recipes Page
-    console.log('Capturing Recipes Page...');
-    await page.goto('http://localhost:4173/recipes', { waitUntil: 'networkidle' });
-    await page.waitForTimeout(1000);
-    await page.screenshot({ path: path.join(outputDir, '06_recipes_mobile.png'), fullPage: true });
+    if (!targetFilter || targetFilter === 'recipes') {
+      console.log('Capturing Recipes Page...');
+      await page.goto('http://localhost:4173/recipes', { waitUntil: 'domcontentloaded' });
+      await page.waitForTimeout(1000);
+      await page.screenshot({ path: path.join(outputDir, '06_recipes_mobile.png'), fullPage: true });
+    }
 
     // 7. Profile Page
-    console.log('Capturing Profile Page...');
-    await page.goto('http://localhost:4173/profile', { waitUntil: 'networkidle' });
-    await page.waitForTimeout(1000);
-    await page.screenshot({ path: path.join(outputDir, '07_profile_mobile.png'), fullPage: true });
+    if (!targetFilter || targetFilter === 'profile') {
+      console.log('Capturing Profile Page...');
+      await page.goto('http://localhost:4173/profile', { waitUntil: 'domcontentloaded' });
+      await page.waitForTimeout(1000);
+      await page.screenshot({ path: path.join(outputDir, '07_profile_mobile.png'), fullPage: true });
+    }
 
-    console.log('All screenshots captured successfully!');
+    // 8. Resources Page
+    if (!targetFilter || targetFilter === 'resources') {
+      console.log('Capturing Resources Page...');
+      await page.goto('http://localhost:4173/resources', { waitUntil: 'networkidle' });
+      await page.evaluate(async () => {
+        document.querySelectorAll('img[loading="lazy"]').forEach((img) => {
+          img.loading = 'eager';
+        });
+        await Promise.all(
+          Array.from(document.images)
+            .filter((img) => !img.complete)
+            .map(
+              (img) =>
+                new Promise((resolve) => {
+                  img.onload = img.onerror = resolve;
+                })
+            )
+        );
+      });
+      await page.waitForTimeout(1000);
+      await page.screenshot({ path: path.join(outputDir, '08_resources_mobile.png'), fullPage: true });
+    }
+
+    console.log('Screenshots captured successfully!');
     await browser.close();
   } catch (err) {
     console.error('Error capturing screenshots:', err);

@@ -1,4 +1,4 @@
-import { useEffect, useState, type FormEvent } from "react";
+import { useEffect, useState } from "react";
 import type {
   RestaurantCandidate,
   RestaurantReview,
@@ -8,19 +8,23 @@ import {
   Check,
   Edit2,
   Loader2,
-  MessageSquarePlus,
   Trash2,
 } from "lucide-react";
-import { deleteRestaurantReview, getRestaurantReviews, submitRestaurantReview } from "../api";
+import { deleteRestaurantReview, getRestaurantReviews } from "../api";
 import { useAuth } from "../auth";
 import { tx, useLanguage } from "../i18n";
 import { AuthDialog } from "./AuthDialog";
+import { LeafRating } from "./LeafRating";
+import { LogVisitModal } from "./LogVisitModal";
+import { CATEGORY_FILTERS } from "./FilterPills";
 
 interface RestaurantReviewsProps {
   restaurant: RestaurantCandidate;
+  onOpenLogModal?: () => void;
+  reviewUpdateTrigger?: number;
 }
 
-export function RestaurantReviews({ restaurant }: RestaurantReviewsProps) {
+export function RestaurantReviews({ restaurant, onOpenLogModal, reviewUpdateTrigger }: RestaurantReviewsProps) {
   const language = useLanguage();
   const { user, token } = useAuth();
 
@@ -33,15 +37,6 @@ export function RestaurantReviews({ restaurant }: RestaurantReviewsProps) {
   const [loading, setLoading] = useState(true);
   const [showAuthModal, setShowAuthModal] = useState(false);
   const [isFormOpen, setIsFormOpen] = useState(false);
-
-  // Form state
-  const [hoverScore, setHoverScore] = useState<number | null>(null);
-  const [leavesScore, setLeavesScore] = useState<number>(5);
-  const [comment, setComment] = useState("");
-  const [customName, setCustomName] = useState("");
-  const [submitting, setSubmitting] = useState(false);
-  const [formError, setFormError] = useState<string | null>(null);
-  const [formSuccess, setFormSuccess] = useState(false);
 
   const fetchReviews = async () => {
     try {
@@ -58,264 +53,112 @@ export function RestaurantReviews({ restaurant }: RestaurantReviewsProps) {
 
   useEffect(() => {
     void fetchReviews();
-  }, [restaurant.id]);
+  }, [restaurant.id, reviewUpdateTrigger]);
 
-  // Find user's existing review if any
   const myReview = user ? reviews.find((r) => r.userId === user.id) : undefined;
-
-  useEffect(() => {
-    if (myReview) {
-      setLeavesScore(myReview.leavesScore);
-      setComment(myReview.comment);
-      setCustomName(myReview.userName);
-    } else if (user) {
-      setCustomName(user.name || "");
-    }
-  }, [myReview, user]);
 
   const handleOpenReviewForm = () => {
     if (!user || !token) {
       setShowAuthModal(true);
+    } else if (onOpenLogModal) {
+      onOpenLogModal();
     } else {
       setIsFormOpen(true);
     }
   };
 
-  const handleSubmitReview = async (e: FormEvent) => {
-    e.preventDefault();
-    if (!user || !token) {
-      setShowAuthModal(true);
-      return;
-    }
-
-    setFormError(null);
-    setSubmitting(true);
-    try {
-      const displayName = customName.trim() || (user.username ? `@${user.username}` : user.name);
-      const res = await submitRestaurantReview(
-        restaurant.id,
-        {
-          leavesScore,
-          comment: comment.trim(),
-          userName: displayName,
-        },
-        token
-      );
-      setStats(res.stats);
-      setFormSuccess(true);
-      setIsFormOpen(false);
-      void fetchReviews();
-      setTimeout(() => setFormSuccess(false), 3000);
-    } catch (err) {
-      setFormError(err instanceof Error ? err.message : tx("Failed to save review"));
-    } finally {
-      setSubmitting(false);
-    }
-  };
-
   const handleDeleteReview = async () => {
-    if (!user || !token || !confirm(tx("Are you sure you want to delete your review?"))) return;
+    if (!token || !myReview) return;
+    if (!confirm(tx("Are you sure you want to delete your review?"))) return;
     try {
-      setSubmitting(true);
-      const res = await deleteRestaurantReview(restaurant.id, token);
-      setStats(res.stats);
+      await deleteRestaurantReview(restaurant.id, token);
       void fetchReviews();
-      setIsFormOpen(false);
-      setComment("");
-    } catch (err) {
-      alert(err instanceof Error ? err.message : tx("Failed to delete review"));
-    } finally {
-      setSubmitting(false);
+    } catch {
+      alert(tx("Failed to delete review"));
     }
   };
-
-  const displayedScore = hoverScore || leavesScore;
 
   return (
-    <section className="restaurant-reviews-section" aria-label={tx("Community reviews")}>
-      <header className="reviews-section-header">
-        <div className="reviews-summary-badge">
-          <div className="reviews-score-large">
-            <span className="leaf-icon">🍃</span>
-            <strong>{stats.totalReviews > 0 ? stats.averageLeaves.toFixed(1) : "-"}</strong>
-            <span className="max-score">/5</span>
-          </div>
-          <div className="reviews-count-label">
-            {stats.totalReviews === 0
-              ? tx("No ratings yet")
-              : stats.totalReviews === 1
-              ? tx("1 community review")
-              : `${stats.totalReviews} ${tx("community reviews")}`}
-          </div>
-        </div>
-
-        {!isFormOpen && (
-          <button
-            type="button"
-            className="add-review-trigger-btn"
-            onClick={handleOpenReviewForm}
-          >
-            {myReview ? (
-              <>
-                <Edit2 aria-hidden="true" />
-                <span>{tx("Edit my review")}</span>
-              </>
-            ) : (
-              <>
-                <MessageSquarePlus aria-hidden="true" />
-                <span>{tx("Rate with leaves")}</span>
-              </>
-            )}
-          </button>
-        )}
-      </header>
-
-      {/* Success notification */}
-      {formSuccess && (
-        <div className="reviews-success-banner" role="status">
-          <Check aria-hidden="true" />
-          <span>{tx("Thank you! Your review has been published.")}</span>
-        </div>
-      )}
-
-      {/* Review Submission Form */}
-      {isFormOpen && (
-        <form onSubmit={(e) => void handleSubmitReview(e)} className="review-composer-card">
-          <div className="composer-header">
-            <h4>
-              {myReview ? tx("Edit your review") : tx("Rate the vegan experience")}
-            </h4>
-            <span className="composer-user-hint">
-              {tx("As")} <strong>{user?.username ? `@${user.username}` : user?.name}</strong>
+    <section className="restaurant-reviews-widget">
+      <header className="restaurant-reviews-header">
+        <div className="reviews-summary-left">
+          <div className="reviews-leaves-large">
+            <span className="leaves-score-number" style={{ fontSize: "1.75rem", fontWeight: 800 }}>
+              {stats.averageLeaves > 0 ? stats.averageLeaves.toFixed(1) : "—"}
+            </span>
+            <span className="leaves-score-max" style={{ fontSize: "0.95rem", color: "var(--text-secondary)" }}>
+              / 5.0
             </span>
           </div>
-
-          {formError && <div className="composer-error">{formError}</div>}
-
-          {/* Interactive Decimal Leaf Selector */}
-          <div className="leaves-interactive-selector" role="radiogroup" aria-label={tx("Leaf rating")}>
-            <div className="leaves-row" style={{ display: "flex", alignItems: "center", gap: "0.4rem", justifyContent: "center", margin: "0.5rem 0" }}>
-              {[1, 2, 3, 4, 5].map((leafNum) => {
-                const fillRatio = Math.max(0, Math.min(1, displayedScore - (leafNum - 1)));
-                return (
-                  <button
-                    key={leafNum}
-                    type="button"
-                    className="leaf-btn"
-                    style={{
-                      background: "none",
-                      border: "none",
-                      fontSize: "1.75rem",
-                      cursor: "pointer",
-                      padding: "0.15rem",
-                      position: "relative",
-                      display: "inline-flex",
-                      filter: fillRatio === 0 ? "grayscale(100%) opacity(35%)" : "none",
-                      transition: "transform 0.15s ease, filter 0.15s ease",
-                    }}
-                    onClick={() => {
-                      // Click cycles between whole number and .5 increment
-                      if (leavesScore === leafNum) {
-                        setLeavesScore(Math.max(1, leafNum - 0.5));
-                      } else {
-                        setLeavesScore(leafNum);
-                      }
-                    }}
-                    aria-label={`${leafNum} ${leafNum === 1 ? tx("Leaf") : tx("Leaves")}`}
-                  >
-                    🍃
-                  </button>
-                );
-              })}
-            </div>
-
-            {/* Decimal Precision Slider (1.0 to 5.0 in 0.1 increments) */}
-            <div className="decimal-slider-wrap" style={{ display: "flex", alignItems: "center", gap: "0.75rem", padding: "0 0.5rem", maxWidth: "320px", margin: "0 auto" }}>
-              <input
-                type="range"
-                min="1.0"
-                max="5.0"
-                step="0.1"
-                value={leavesScore}
-                onChange={(e) => setLeavesScore(parseFloat(e.target.value))}
-                aria-label={tx("Leaf rating")}
-                style={{ flex: 1, accentColor: "#059669", cursor: "pointer" }}
-              />
-              <span className="decimal-score-tag" style={{ fontWeight: 700, fontSize: "1.1rem", color: "#047857", minWidth: "4.5rem", textAlign: "right" }}>
-                {leavesScore.toFixed(1)} / 5
+          <div className="reviews-meta-info" style={{ display: "flex", flexDirection: "column" }}>
+            {stats.averageLeaves > 0 ? (
+              <span className="reviews-display-leaves">
+                <LeafRating value={stats.averageLeaves} size={18} />
               </span>
-            </div>
-
-            {/* Quick preset buttons */}
-            <div className="preset-buttons-row" style={{ display: "flex", gap: "0.35rem", justifyContent: "center", marginTop: "0.6rem" }}>
-              {[1.0, 2.0, 3.0, 4.0, 4.5, 4.8, 5.0].map((preset) => (
-                <button
-                  key={preset}
-                  type="button"
-                  onClick={() => setLeavesScore(preset)}
-                  style={{
-                    fontSize: "0.76rem",
-                    padding: "0.2rem 0.45rem",
-                    borderRadius: "0.375rem",
-                    border: leavesScore === preset ? "1.5px solid #059669" : "1px solid #e2e8f0",
-                    background: leavesScore === preset ? "#ecfdf5" : "#ffffff",
-                    color: leavesScore === preset ? "#047857" : "#475569",
-                    fontWeight: leavesScore === preset ? 700 : 500,
-                    cursor: "pointer",
-                  }}
-                >
-                  {preset.toFixed(1)}
-                </button>
-              ))}
-            </div>
+            ) : null}
+            <span className="reviews-count-label" style={{ fontSize: "0.82rem", color: "var(--text-secondary)", fontWeight: 600 }}>
+              {stats.totalReviews === 0
+                ? tx("No ratings yet")
+                : stats.totalReviews === 1
+                ? tx("1 community review")
+                : `${stats.totalReviews} ${tx("community reviews")}`}
+            </span>
           </div>
+        </div>
+      </header>
 
-          <div className="composer-field">
-            <label htmlFor="review-comment">{tx("Comment or tips about the menu (optional)")}</label>
-            <textarea
-              id="review-comment"
-              value={comment}
-              onChange={(e) => setComment(e.target.value)}
-              placeholder={tx("Comment or tips about the menu (optional)")}
-              maxLength={500}
-              rows={3}
-            />
-            <div className="char-counter">{comment.length}/500</div>
-          </div>
+      {/* Centered Rating Trigger Card */}
+      <div
+        className="reviews-rate-center-card"
+        style={{
+          display: "flex",
+          flexDirection: "column",
+          alignItems: "center",
+          justifyContent: "center",
+          padding: "1.25rem 1rem",
+          background: "var(--bg-card, #ffffff)",
+          borderRadius: "1rem",
+          border: "1px solid var(--line, #e2e8f0)",
+          margin: "1rem 0",
+          gap: "0.85rem",
+          textAlign: "center",
+        }}
+      >
+        <div className="reviews-center-leaves" style={{ display: "flex", justifyContent: "center" }}>
+          <LeafRating
+            value={myReview ? myReview.leavesScore : 0}
+            interactive
+            onChange={() => handleOpenReviewForm()}
+            size={26}
+            ariaLabel={tx("Leaf rating")}
+          />
+        </div>
 
-          <div className="composer-actions">
+        <div style={{ display: "flex", alignItems: "center", gap: "0.5rem" }}>
+          <button
+            type="button"
+            className="add-review-trigger-btn secondary-button"
+            onClick={handleOpenReviewForm}
+            aria-label={myReview ? tx("Edit my review") : tx("Rate with leaves")}
+            style={{ display: "inline-flex", alignItems: "center", gap: "0.45rem", padding: "0.5rem 1.1rem", fontSize: "0.88rem", fontWeight: 700 }}
+          >
+            <Edit2 size={15} aria-hidden="true" />
+            <span>{myReview ? tx("Edit review & visit log") : tx("Write review or log visit")}</span>
+          </button>
+
+          {myReview && (
             <button
               type="button"
-              className="cancel-btn"
-              disabled={submitting}
-              onClick={() => setIsFormOpen(false)}
+              className="icon-button"
+              onClick={() => void handleDeleteReview()}
+              title={tx("Delete review")}
+              style={{ color: "#ef4444" }}
             >
-              {tx("Cancel")}
+              <Trash2 size={16} />
             </button>
-
-            {myReview && (
-              <button
-                type="button"
-                className="delete-review-btn"
-                disabled={submitting}
-                onClick={() => void handleDeleteReview()}
-                title={tx("Delete review")}
-              >
-                <Trash2 aria-hidden="true" />
-                <span>{tx("Delete")}</span>
-              </button>
-            )}
-
-            <button type="submit" className="submit-review-btn" disabled={submitting}>
-              {submitting ? (
-                <Loader2 className="animate-spin" aria-hidden="true" />
-              ) : (
-                <span>{myReview ? tx("Update") : tx("Publish")}</span>
-              )}
-            </button>
-          </div>
-        </form>
-      )}
+          )}
+        </div>
+      </div>
 
       {/* Community Reviews List */}
       <div className="reviews-list-container">
@@ -342,7 +185,7 @@ export function RestaurantReviews({ restaurant }: RestaurantReviewsProps) {
               const isMine = user && rev.userId === user.id;
               const dateFormatted = new Date(rev.createdAt).toLocaleDateString(
                 language === "ca" ? "ca-ES" : "en-US",
-                { month: "short", day: "numeric", year: "numeric" }
+                { month: "short", day: "numeric", year: "numeric" },
               );
 
               return (
@@ -362,18 +205,84 @@ export function RestaurantReviews({ restaurant }: RestaurantReviewsProps) {
                     </div>
 
                     <div className="review-leaves-badge">
-                      <span aria-hidden="true">🍃</span>
-                      <span className="score-num">{rev.leavesScore.toFixed(1)}/5</span>
+                      <LeafRating value={rev.leavesScore} size={15} showScore />
                     </div>
                   </header>
 
                   {rev.comment && <p className="review-comment-text">{rev.comment}</p>}
+
+                  {rev.photos && rev.photos.length > 0 && (
+                    <div style={{ display: "flex", flexWrap: "wrap", gap: "0.45rem", marginTop: "0.6rem" }}>
+                      {rev.photos.map((src, photoIdx) => (
+                        <a
+                          key={photoIdx}
+                          href={src}
+                          target="_blank"
+                          rel="noreferrer"
+                          style={{
+                            display: "block",
+                            width: "72px",
+                            height: "72px",
+                            borderRadius: "8px",
+                            overflow: "hidden",
+                            border: "1px solid var(--line, #cbd5e1)",
+                          }}
+                        >
+                          <img
+                            src={src}
+                            alt={`${rev.userName} review photo ${photoIdx + 1}`}
+                            style={{ width: "100%", height: "100%", objectFit: "cover" }}
+                          />
+                        </a>
+                      ))}
+                    </div>
+                  )}
+
+                  {rev.tags && rev.tags.length > 0 && (
+                    <div style={{ display: "flex", flexWrap: "wrap", gap: "0.3rem", marginTop: "0.5rem" }}>
+                      {rev.tags.map((tagId) => {
+                        const def = CATEGORY_FILTERS.find((f) => f.id === tagId);
+                        return (
+                          <span
+                            key={tagId}
+                            style={{
+                              fontSize: "0.75rem",
+                              fontWeight: 600,
+                              padding: "0.15rem 0.5rem",
+                              borderRadius: "999px",
+                              background: "var(--bg-subtle, #f1f5f9)",
+                              color: "var(--text-muted, #64748b)",
+                              display: "inline-flex",
+                              alignItems: "center",
+                              gap: "0.25rem",
+                            }}
+                          >
+                            {def?.icon && <span aria-hidden="true">{def.icon}</span>}
+                            <span>{def ? tx(def.labelKey) : `#${tagId}`}</span>
+                          </span>
+                        );
+                      })}
+                    </div>
+                  )}
                 </li>
               );
             })}
           </ul>
         )}
       </div>
+
+      {/* Internal LogVisitModal fallback if not managed by parent */}
+      {isFormOpen && (
+        <LogVisitModal
+          restaurant={restaurant}
+          isOpen={isFormOpen}
+          onClose={() => setIsFormOpen(false)}
+          onSaved={() => {
+            setIsFormOpen(false);
+            void fetchReviews();
+          }}
+        />
+      )}
 
       {/* Auth Modal when unauthenticated user tries to rate */}
       <AuthDialog

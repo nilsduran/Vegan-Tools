@@ -13,6 +13,7 @@ import type { RestaurantCandidate } from "@vegan-tools/domain";
 import { getApproximateLocation } from "../api";
 import { clusterPoints } from "../utils/cluster";
 import { tx, useLanguage } from "../i18n";
+import { useTheme } from "../theme";
 
 function distanceInMeters(left: L.LatLng, right: L.LatLng): number {
   const earthRadius = 6_371_000;
@@ -298,8 +299,8 @@ export function getCuisineIcon(restaurant: RestaurantCandidate): string {
     return "🥟";
   }
 
-  // Fallback for unclassified venues: cutlery (🍽️)
-  return "🍽️";
+  // Fallback for unclassified venues: cutlery without plate (🍴)
+  return "🍴";
 }
 
 export function getCuisineIcons(restaurant: RestaurantCandidate): string[] {
@@ -314,14 +315,14 @@ function createRestaurantIcon(
 ) {
   const isFeatured = Boolean(restaurant.isFeatured);
 
-  // Palette: Gold (Featured) / Forest Green (100% Vegan) / Amber (Vegetarian) / Cobalt Blue (Vegan Options)
+  // Palette: Gold (Featured) / Forest Green (100% Vegan) / Amber (Vegetarian) / Metallic Slate (Veg-friendly)
   const pinColor = isFeatured
     ? "#ca8a04" // Gold for Top Picks
     : restaurant.isVegan
       ? "#047857" // Forest emerald for 100% Vegan
       : restaurant.isVegetarian
         ? "#d97706" // Amber for Vegetarian
-        : "#2563eb"; // Cobalt Blue for Vegan Options
+        : "#64748b"; // Metallic slate for Veg-friendly
 
   const strokeColor = isSelected ? "#fef08a" : isHovered ? "#ffffff" : "#ffffff";
   const icon = getCuisineIcon(restaurant);
@@ -410,6 +411,7 @@ export function RestaurantMap({
   restaurants,
   selectedRestaurant,
   hoveredRestaurantId,
+  mapCenterTarget,
   onSelectRestaurant,
   onOpenMenu,
   onSearchArea,
@@ -419,17 +421,24 @@ export function RestaurantMap({
   restaurants: RestaurantCandidate[];
   selectedRestaurant?: RestaurantCandidate;
   hoveredRestaurantId?: string;
+  mapCenterTarget?: { lat: number; lng: number; zoom?: number } | null;
   onSelectRestaurant: (restaurant: RestaurantCandidate) => void;
   onOpenMenu: (restaurant: RestaurantCandidate) => void;
-  onSearchArea?: (center: { lat: number; lng: number }, radius: number) => void;
-  onUserCoordsChange?: (coords: { lat: number; lng: number }) => void;
+  onSearchArea?: (
+    center: { lat: number; lng: number },
+    radius: number,
+    bbox?: [number, number, number, number],
+  ) => void;
+  onUserCoordsChange?: (coords: { lat: number; lng: number }, isRealGps?: boolean) => void;
   onMapClick?: () => void;
 }) {
   const language = useLanguage();
+  const { effectiveTheme } = useTheme();
   const onMapClickRef = useRef(onMapClick);
   onMapClickRef.current = onMapClick;
   const mapContainerRef = useRef<HTMLDivElement>(null);
   const mapInstanceRef = useRef<L.Map | null>(null);
+  const tileLayerRef = useRef<L.TileLayer | null>(null);
   const markersGroupRef = useRef<L.LayerGroup | null>(null);
   const userMarkerRef = useRef<L.Marker | null>(null);
   const [userCoords, setUserCoords] = useState<{ lat: number; lng: number }>();
@@ -554,29 +563,55 @@ export function RestaurantMap({
       zoom: selectedRestaurant ? 16 : 14,
       zoomControl: false,
       attributionControl: true,
+      preferCanvas: true,
     });
 
-    // Basemap: Geoapify osm-bright-smooth (soft pastel green nature, calm blue water, clean subtle roads) if key provided, otherwise OpenStreetMap
-    const geoapifyKey = (import.meta.env.VITE_GEOAPIFY_API_KEY as string | undefined)?.trim();
+    // Basemap: Geoapify if key is provided, Carto if Carto key is provided, otherwise official OpenStreetMap.
+    // Includes an automatic fallback to standard OpenStreetMap so that if an adblocker or network blocks Geoapify/Carto,
+    // the map never renders blank or grey.
+    const isDark = effectiveTheme === "dark";
+    const cartoKey = (import.meta.env.VITE_CARTO_API_KEY as string | undefined)?.trim();
+    const keyParam = cartoKey ? `?key=${encodeURIComponent(cartoKey)}` : "";
 
-    let tileUrl = "https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png";
-    let attribution =
-      '&copy; <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noreferrer">OpenStreetMap</a> contributors';
-    let subdomains: string | string[] = "abc";
+    const basemapConfig = {
+      url: isDark
+        ? `https://{s}.basemaps.cartocdn.com/rastertiles/dark_all/{z}/{x}/{y}{r}.png${keyParam}`
+        : `https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png${keyParam}`,
+      attribution:
+        '&copy; <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noreferrer">OpenStreetMap</a> contributors &copy; <a href="https://carto.com/attributions" target="_blank" rel="noreferrer">CARTO</a>',
+      subdomains: "abcd",
+    };
 
-    if (geoapifyKey) {
-      tileUrl = `https://maps.geoapify.com/v1/tile/osm-bright-smooth/{z}/{x}/{y}.png?apiKey=${geoapifyKey}`;
-      attribution =
-        'Powered by <a href="https://www.geoapify.com/" target="_blank">Geoapify</a> | &copy; <a href="https://www.openstreetmap.org/copyright" target="_blank">OpenStreetMap</a> contributors';
-      subdomains = "abcd";
-    }
-
-    L.tileLayer(tileUrl, {
-      attribution,
-      subdomains,
+    const tileLayer = L.tileLayer(basemapConfig.url, {
+      attribution: basemapConfig.attribution,
+      subdomains: basemapConfig.subdomains,
       maxNativeZoom: 19,
       maxZoom: 20,
+      keepBuffer: 12,
+      updateWhenIdle: true,
+      updateInterval: 150,
     }).addTo(map);
+    tileLayerRef.current = tileLayer;
+
+    console.info(
+      `[RestaurantMap] Basemap active: CARTO (${isDark ? "dark_all" : "voyager"})`,
+    );
+
+    let hasFallenBackToOsm = false;
+
+    // Resilient fallback: If Geoapify or Carto fails (e.g. adblocker, quota, network), fallback instantly to OpenStreetMap
+    tileLayer.on("tileerror", () => {
+      if (!hasFallenBackToOsm && tileLayerRef.current) {
+        hasFallenBackToOsm = true;
+        console.warn("[RestaurantMap] Provider tile error detected (adblocker/network/quota). Seamlessly falling back to OpenStreetMap.");
+        tileLayerRef.current.setUrl("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png");
+      }
+    });
+
+    // Ensure map container calculates correct dimensions immediately after rendering
+    requestAnimationFrame(() => {
+      map.invalidateSize();
+    });
 
     L.control
       .zoom({
@@ -603,7 +638,6 @@ export function RestaurantMap({
     };
     map.on("zoomend", updateZoomClass);
     map.on("zoomend", () => renderClustersRef.current());
-    map.on("moveend", () => renderClustersRef.current());
     updateZoomClass();
 
     // Detect user tap/click on the empty map canvas to collapse bottom sheet
@@ -633,6 +667,19 @@ export function RestaurantMap({
       mapInstanceRef.current = null;
     };
   }, []);
+
+  // Update map tile theme reactively
+  useEffect(() => {
+    if (!tileLayerRef.current) return;
+    const isDark = effectiveTheme === "dark";
+    const cartoKey = (import.meta.env.VITE_CARTO_API_KEY as string | undefined)?.trim();
+    const keyParam = cartoKey ? `?key=${encodeURIComponent(cartoKey)}` : "";
+
+    const newUrl = isDark
+      ? `https://{s}.basemaps.cartocdn.com/rastertiles/dark_all/{z}/{x}/{y}{r}.png${keyParam}`
+      : `https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png${keyParam}`;
+    tileLayerRef.current.setUrl(newUrl);
+  }, [effectiveTheme]);
 
   const initialLocatedRef = useRef(false);
 
@@ -714,6 +761,15 @@ export function RestaurantMap({
     }
   }, [selectedRestaurant]);
 
+  // If mapCenterTarget changes (e.g. user selected a city or area), immediately fly the map there
+  useEffect(() => {
+    const map = mapInstanceRef.current;
+    if (!map || !mapCenterTarget) return;
+    map.flyTo([mapCenterTarget.lat, mapCenterTarget.lng], mapCenterTarget.zoom ?? 14, {
+      duration: 0.8,
+    });
+  }, [mapCenterTarget]);
+
   // Handle user geolocation strictly on demand
   const handleLocateMe = () => {
     if (!navigator.geolocation) return;
@@ -724,7 +780,7 @@ export function RestaurantMap({
         setIsLocating(false);
         const { latitude, longitude } = position.coords;
         setUserCoords({ lat: latitude, lng: longitude });
-        onUserCoordsChange?.({ lat: latitude, lng: longitude });
+        onUserCoordsChange?.({ lat: latitude, lng: longitude }, true);
 
         const map = mapInstanceRef.current;
         if (!map) return;
@@ -788,8 +844,14 @@ export function RestaurantMap({
                   ),
                 ),
               );
+              const bbox: [number, number, number, number] = [
+                bounds.getWest(),
+                bounds.getSouth(),
+                bounds.getEast(),
+                bounds.getNorth(),
+              ];
               setShowSearchAreaBtn(false);
-              onSearchArea({ lat: center.lat, lng: center.lng }, radius);
+              onSearchArea({ lat: center.lat, lng: center.lng }, radius, bbox);
             }}
           >
             <Search aria-hidden="true" />

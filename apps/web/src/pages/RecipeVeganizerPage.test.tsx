@@ -2,6 +2,7 @@
 import { describe, expect, it, vi, beforeEach, afterEach } from "vitest";
 import { cleanup, render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
+import { MemoryRouter } from "react-router-dom";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { RecipeVeganizerPage } from "./RecipeVeganizerPage.js";
 import * as api from "../api.js";
@@ -11,7 +12,7 @@ vi.mock("../api.js", () => ({
   veganizeRecipe: vi.fn(),
 }));
 
-function renderVeganizer() {
+function renderVeganizer(initialEntries = ["/recipes?tab=veganizer"]) {
   const queryClient = new QueryClient({
     defaultOptions: {
       queries: { retry: false },
@@ -20,9 +21,11 @@ function renderVeganizer() {
   });
 
   return render(
-    <QueryClientProvider client={queryClient}>
-      <RecipeVeganizerPage />
-    </QueryClientProvider>,
+    <MemoryRouter initialEntries={initialEntries}>
+      <QueryClientProvider client={queryClient}>
+        <RecipeVeganizerPage />
+      </QueryClientProvider>
+    </MemoryRouter>,
   );
 }
 
@@ -39,7 +42,7 @@ describe("RecipeVeganizerPage Form UI", () => {
     const user = userEvent.setup();
     renderVeganizer();
 
-    const textarea = screen.getByLabelText(/recipe/i);
+    const textarea = screen.getByRole("textbox", { name: /^recipe$/i });
     expect((textarea as HTMLTextAreaElement).value).toBe("");
 
     const exampleButton = screen.getByRole("button", { name: /use an example/i });
@@ -85,7 +88,7 @@ describe("RecipeVeganizerPage Form UI", () => {
 
     renderVeganizer();
 
-    const textarea = screen.getByLabelText(/recipe/i);
+    const textarea = screen.getByRole("textbox", { name: /^recipe$/i });
     await user.type(textarea, "Pancakes with 2 eggs and milk");
 
     const submitButton = screen.getByRole("button", { name: /veganize recipe/i });
@@ -113,7 +116,7 @@ describe("RecipeVeganizerPage Form UI", () => {
 
     renderVeganizer();
 
-    const textarea = screen.getByLabelText(/recipe/i);
+    const textarea = screen.getByRole("textbox", { name: /^recipe$/i });
     await user.type(textarea, "Cake recipe");
 
     const submitButton = screen.getByRole("button", { name: /veganize recipe/i });
@@ -129,7 +132,7 @@ describe("RecipeVeganizerPage Form UI", () => {
     const canneloniPill = screen.getByRole("button", { name: /cannelloni|canelons/i });
     await user.click(canneloniPill);
 
-    const textarea = screen.getByLabelText(/recipe/i) as HTMLTextAreaElement;
+    const textarea = screen.getByRole("textbox", { name: /^recipe$/i }) as HTMLTextAreaElement;
     expect(textarea.value).toContain("Cannelloni");
     expect(textarea.value).toContain("minced");
   });
@@ -159,7 +162,7 @@ describe("RecipeVeganizerPage Form UI", () => {
 
     renderVeganizer();
 
-    const textarea = screen.getByLabelText(/recipe/i);
+    const textarea = screen.getByRole("textbox", { name: /^recipe$/i });
     await user.type(textarea, "Pancakes");
 
     const submitButton = screen.getByRole("button", { name: /veganize recipe/i });
@@ -176,3 +179,93 @@ describe("RecipeVeganizerPage Form UI", () => {
     expect(await screen.findByText(/copied!|copiat!/i)).toBeDefined();
   });
 });
+
+describe("Cookbook Catalog & Subfeature UI", () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
+
+  afterEach(() => {
+    cleanup();
+  });
+
+  it("renders Cookbook catalog as the primary default view at /recipes", () => {
+    renderVeganizer(["/recipes"]);
+
+    // Both tabs exist, and Cookbook is active
+    const cookbookTab = screen.getByRole("button", { name: /^cookbook|^receptari/i });
+    const veganizerTab = screen.getByRole("button", { name: /^recipe veganizer|^veganitzador/i });
+    expect(cookbookTab).toBeDefined();
+    expect(veganizerTab).toBeDefined();
+    expect(cookbookTab.getAttribute("aria-pressed")).toBe("true");
+
+    // Curated catalog cards are rendered
+    expect(screen.getByRole("heading", { name: /Cannelloni|Canelons/i })).toBeDefined();
+    expect(screen.getByRole("heading", { name: /Crema Catalana/i })).toBeDefined();
+  });
+
+  it("filters recipes by search query", async () => {
+    const user = userEvent.setup();
+    renderVeganizer(["/recipes"]);
+
+    const searchInput = screen.getByRole("searchbox");
+    await user.type(searchInput, "Pancakes");
+
+    // Pancakes should remain
+    expect(screen.getByRole("heading", { name: /Pancakes/i })).toBeDefined();
+
+    // Others should be filtered out
+    expect(screen.queryByRole("heading", { name: /Cannelloni|Canelons/i })).toBeNull();
+  });
+
+  it("filters recipes by category pill", async () => {
+    const user = userEvent.setup();
+    renderVeganizer(["/recipes"]);
+
+    // Click Baking category
+    const bakingPill = screen.getByRole("button", { name: /baking & desserts|rebosteria i postres/i });
+    await user.click(bakingPill);
+
+    // Baking recipes should be visible
+    expect(screen.getByRole("heading", { name: /Pancakes/i })).toBeDefined();
+
+    // Traditional savory dishes like Canelons or Fricandó should not be visible
+    expect(screen.queryByRole("heading", { name: /Fricandó|Fricando/i })).toBeNull();
+  });
+
+  it("renders recipe cards with links to dedicated recipe pages", () => {
+    renderVeganizer(["/recipes"]);
+
+    const canelonsCard = screen.getByRole("button", { name: /Cannelloni|Canelons/i });
+    expect(canelonsCard).toBeDefined();
+    expect(canelonsCard.getAttribute("tabindex")).toBe("0");
+  });
+
+  it("switches to the veganizer subfeature when clicking the veganizer tab", async () => {
+    const user = userEvent.setup();
+    renderVeganizer(["/recipes"]);
+
+    const veganizerTab = screen.getByRole("button", {
+      name: /^recipe veganizer|^veganitzador/i,
+    });
+    await user.click(veganizerTab);
+
+    // The veganizer form should now be visible
+    expect(screen.getByRole("textbox", { name: /^recipe$/i })).toBeDefined();
+    expect(screen.getByRole("button", { name: /veganize recipe|veganitza recepta/i })).toBeDefined();
+  });
+
+  it("filters recipes by difficulty and cost subfilters", async () => {
+    const user = userEvent.setup();
+    renderVeganizer(["/recipes"]);
+
+    // Filter by Hard difficulty (Parker House Rolls)
+    const hardPill = screen.getByRole("button", { name: /avançada|hard/i });
+    await user.click(hardPill);
+
+    expect(screen.getByRole("heading", { name: /Eleven Madison Park|Parker House Rolls/i })).toBeDefined();
+    // Quick easy recipes like Dahl or Guacamole should be filtered out
+    expect(screen.queryByRole("heading", { name: /Guacamole/i })).toBeNull();
+  });
+});
+

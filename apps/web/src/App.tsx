@@ -5,12 +5,14 @@
  * and authentication context.
  */
 
-import { lazy, Suspense } from "react";
+import { lazy, Suspense, useEffect, useState } from "react";
 import { Capacitor } from "@capacitor/core";
-import { CookingPot, Home, Leaf, MapPin, ScanBarcode, User } from "lucide-react";
-import { NavLink, Route, Routes } from "react-router-dom";
-import { setLanguage, t, tx, useLanguage } from "./i18n";
-import { AuthProvider } from "./auth";
+import { CookingPot, Home, Leaf, MapPin, ScanBarcode, Settings, User } from "lucide-react";
+import { NavLink, Navigate, Route, Routes, useLocation } from "react-router-dom";
+import { t, tx, useLanguage } from "./i18n";
+import { AuthProvider, useAuth } from "./auth";
+import { useTheme } from "./theme";
+import { OnboardingModal } from "./components/OnboardingModal";
 
 const HomePage = lazy(() => import("./pages/HomePage").then((m) => ({ default: m.HomePage })));
 const MenuReaderPage = lazy(() => import("./pages/MenuReaderPage").then((m) => ({ default: m.MenuReaderPage })));
@@ -19,6 +21,14 @@ const PublicMenuPage = lazy(() => import("./pages/PublicMenuPage").then((m) => (
 const RecipeVeganizerPage = lazy(() => import("./pages/RecipeVeganizerPage").then((m) => ({ default: m.RecipeVeganizerPage })));
 const ProfilePage = lazy(() => import("./pages/ProfilePage").then((m) => ({ default: m.ProfilePage })));
 const RestaurantDetailPage = lazy(() => import("./pages/RestaurantDetailPage").then((m) => ({ default: m.RestaurantDetailPage })));
+const RestaurantMenuPage = lazy(() => import("./pages/RestaurantMenuPage").then((m) => ({ default: m.RestaurantMenuPage })));
+const ValuesPage = lazy(() => import("./pages/ValuesPage").then((m) => ({ default: m.ValuesPage })));
+const ResourcesPage = lazy(() => import("./pages/ResourcesPage").then((m) => ({ default: m.ResourcesPage })));
+const RecipeDetailPage = lazy(() => import("./pages/RecipeDetailPage").then((m) => ({ default: m.RecipeDetailPage })));
+const AboutPage = lazy(() => import("./pages/AboutPage").then((m) => ({ default: m.AboutPage })));
+const PrivacyPage = lazy(() => import("./pages/PrivacyPage").then((m) => ({ default: m.PrivacyPage })));
+const TermsPage = lazy(() => import("./pages/TermsPage").then((m) => ({ default: m.TermsPage })));
+const SettingsPage = lazy(() => import("./pages/SettingsPage").then((m) => ({ default: m.SettingsPage })));
 
 function PageLoader() {
   return (
@@ -29,33 +39,54 @@ function PageLoader() {
   );
 }
 
-function FlagUK() {
-  return (
-    <svg viewBox="0 0 60 40" width="100%" height="100%" preserveAspectRatio="none" aria-hidden="true" className="flag-icon">
-      <rect width="60" height="40" fill="#012169" />
-      <path d="M0 0L60 40M60 0L0 40" stroke="#ffffff" strokeWidth="6.5" />
-      <path d="M0 0L60 40M60 0L0 40" stroke="#C8102E" strokeWidth="3.5" />
-      <path d="M30 0v40M0 20h60" stroke="#ffffff" strokeWidth="11" />
-      <path d="M30 0v40M0 20h60" stroke="#C8102E" strokeWidth="6.5" />
-    </svg>
-  );
+function ScrollToTop() {
+  const { pathname } = useLocation();
+
+  useEffect(() => {
+    window.scrollTo({ top: 0, left: 0, behavior: "instant" });
+  }, [pathname]);
+
+  return null;
 }
 
-function FlagCatalonia() {
+function OnboardingGate() {
+  const { user } = useAuth();
+  const [showModal, setShowModal] = useState(false);
+
+  useEffect(() => {
+    if (!user) {
+      setShowModal(false);
+      return;
+    }
+    const isDone = localStorage.getItem(`vegan_tools_onboarding_done_${user.id}`);
+    const isNew = localStorage.getItem(`vegan_tools_new_signup_${user.id}`);
+    if (isNew && !isDone) {
+      setShowModal(true);
+    } else {
+      setShowModal(false);
+    }
+  }, [user]);
+
+  if (!user || !showModal) return null;
+
+  const handleDismiss = () => {
+    localStorage.setItem(`vegan_tools_onboarding_done_${user.id}`, "true");
+    localStorage.removeItem(`vegan_tools_new_signup_${user.id}`);
+    setShowModal(false);
+  };
+
   return (
-    <svg viewBox="0 0 90 60" width="100%" height="100%" preserveAspectRatio="none" aria-hidden="true" className="flag-icon">
-      <rect width="90" height="60" fill="#FCD116" />
-      <rect y="6.667" width="90" height="6.667" fill="#D7141A" />
-      <rect y="20" width="90" height="6.667" fill="#D7141A" />
-      <rect y="33.333" width="90" height="6.667" fill="#D7141A" />
-      <rect y="46.667" width="90" height="6.667" fill="#D7141A" />
-    </svg>
+    <OnboardingModal
+      user={user}
+      isOpen={showModal}
+      onClose={handleDismiss}
+      onComplete={handleDismiss}
+    />
   );
 }
 
 export function App() {
   const native = Capacitor.isNativePlatform();
-  const language = useLanguage();
   const links = [
     { to: "/", label: t("home"), icon: Home },
     { to: "/scanner", label: t("scanner"), icon: ScanBarcode },
@@ -65,6 +96,8 @@ export function App() {
   ];
   return (
     <AuthProvider>
+      <ScrollToTop />
+      <OnboardingGate />
       <div className={`app-shell${native ? " native-app" : ""}`}>
         <header className="site-header">
           <NavLink to="/" className="brand">
@@ -73,35 +106,13 @@ export function App() {
           </NavLink>
           {!native && (
             <nav className="desktop-nav" aria-label={tx("Primary navigation")}>
-              {links.slice(1).map(({ to, label }) => (
-                <NavLink key={to} to={to}>{label}</NavLink>
-              ))}
+              <NavLink to="/scanner">{t("scanner")}</NavLink>
+              <NavLink to="/map">{t("map")}</NavLink>
+              <NavLink to="/recipes">{t("recipes")}</NavLink>
+              <NavLink to="/resources">{tx("Resources")}</NavLink>
+              <NavLink to="/profile">{tx("Profile")}</NavLink>
             </nav>
           )}
-          <div className="language-switcher" aria-label={language === "ca" ? "Idioma" : "Language"}>
-            <button
-              type="button"
-              className={language === "en" ? "active" : ""}
-              aria-pressed={language === "en"}
-              onClick={() => setLanguage("en")}
-              title="English"
-              aria-label="English"
-            >
-              <FlagUK />
-              <span className="sr-only">English</span>
-            </button>
-            <button
-              type="button"
-              className={language === "ca" ? "active" : ""}
-              aria-pressed={language === "ca"}
-              onClick={() => setLanguage("ca")}
-              title="Català"
-              aria-label="Català"
-            >
-              <FlagCatalonia />
-              <span className="sr-only">Català</span>
-            </button>
-          </div>
         </header>
 
         <main>
@@ -113,8 +124,21 @@ export function App() {
               <Route path="/scanner" element={<ProductScannerPage />} />
               <Route path="/product/:gtin" element={<ProductScannerPage />} />
               <Route path="/recipes" element={<RecipeVeganizerPage />} />
+              <Route path="/recipes/:slug" element={<RecipeDetailPage />} />
+              <Route path="/receptes/:slug" element={<RecipeDetailPage />} />
               <Route path="/profile" element={<ProfilePage />} />
+              <Route path="/settings" element={<SettingsPage />} />
+              <Route path="/configuracio" element={<SettingsPage />} />
               <Route path="/restaurant/:id" element={<RestaurantDetailPage />} />
+              <Route path="/restaurant/:id/menu" element={<RestaurantMenuPage />} />
+              <Route path="/menu/:id" element={<RestaurantMenuPage />} />
+              <Route path="/resources" element={<ResourcesPage />} />
+              <Route path="/about" element={<AboutPage />} />
+              <Route path="/sobre" element={<AboutPage />} />
+              <Route path="/privacy" element={<PrivacyPage />} />
+              <Route path="/privacitat" element={<PrivacyPage />} />
+              <Route path="/terms" element={<TermsPage />} />
+              <Route path="/condicions" element={<TermsPage />} />
               <Route path="/m/:slug" element={<PublicMenuPage />} />
             </Routes>
           </Suspense>
@@ -131,9 +155,28 @@ export function App() {
         </nav>
 
         <footer className="site-footer">
-          <a href="https://nilsduran.github.io" target="_blank" rel="noreferrer">
-            © 2026 Nils Duran
-          </a>
+          <div className="site-footer-content">
+            <div className="site-footer-links">
+              <NavLink to="/resources" className="site-footer-link">
+                {tx("Resources")}
+              </NavLink>
+              <span className="site-footer-dot" aria-hidden="true">•</span>
+              <NavLink to="/about" className="site-footer-link">
+                {tx("About")}
+              </NavLink>
+              <span className="site-footer-dot" aria-hidden="true">•</span>
+              <NavLink to="/privacy" className="site-footer-link">
+                {tx("Privacy")}
+              </NavLink>
+              <span className="site-footer-dot" aria-hidden="true">•</span>
+              <NavLink to="/terms" className="site-footer-link">
+                {tx("Terms")}
+              </NavLink>
+            </div>
+            <a href="https://nilsduran.github.io" target="_blank" rel="noreferrer" className="site-footer-copy">
+              © 2026 Nils Duran
+            </a>
+          </div>
         </footer>
       </div>
     </AuthProvider>

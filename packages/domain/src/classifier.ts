@@ -12,7 +12,7 @@ import type {
   IngredientFinding,
 } from "./schemas.js";
 
-export const CLASSIFIER_VERSION = "2026.07.3";
+export const CLASSIFIER_VERSION = "2026.07.4";
 
 function normalizeText(value: string): string {
   return value
@@ -56,10 +56,14 @@ export function getIngredientDefinition(id: string): IngredientDefinition | unde
 
 export function splitTraces(text: string): { ingredients: string; traces: string[] } {
   const tracePattern =
-    /(?:may (?:also )?contain|traces? of|manufactured in a facility[^.:;]*|pot contenir|traces? de|puede contener|trazas? de)\s*:?\s*([^.;]*)/gi;
+    /(?:may (?:also )?contain(?: traces of)?|traces? of|manufactured (?:in a facility|on equipment)[^.:;]*|packed in a facility[^.:;]*|pot contenir(?: traces de)?|traces? de|elaborat en una (?:fàbrica|línia|instal·lació)[^.:;]*|puede contener(?: trazas de)?|trazas? (?:de|posibles)|posibles trazas de|fabricado en[^.:;]*|kann (?:produktionsbedingt )?spuren (?:enthalten )?von|spuren von|hergestellt in einem betrieb[^.:;]*|peut contenir(?: des traces d[e'])?|traces? (?:d[e']|éventuelles d[e'])|fabriqué dans un atelier[^.:;]*|pu[oò] contenere(?: tracce di)?|tracce di)\s*:?\s*([^.;)]*?)(?:\s+enthalten)?(?=[.;)]|$)/gi;
   const traces: string[] = [];
   const ingredients = text.replace(tracePattern, (full, captured: string) => {
-    const value = (captured || full).trim().replace(/^[:\s]+/, "");
+    const value = (captured || full)
+      .trim()
+      .replace(/^[:\s]+/, "")
+      .replace(/\s+enthalten$/i, "")
+      .trim();
     if (value) traces.push(value);
     return " ";
   });
@@ -109,7 +113,7 @@ export function classifyIngredients(
   const assurance = options.assurance ?? "unverified";
   const trusted = ["certified", "manufacturer", "label_based"].includes(assurance);
   const meaningfulText = ingredients
-    .replace(/ingredients?|ingredientes?|ingredients?|composici[oó]|[:\s,.;()[\]{}-]/gi, "")
+    .replace(/ingredients?|ingredientes?|zutaten|ingr[eé]dients?|ingredienti|composici[oó]|[:\s,.;()[\]{}-]/gi, "")
     .trim();
 
   if (meaningfulText.length < 2) {

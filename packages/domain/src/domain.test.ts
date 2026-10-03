@@ -51,6 +51,48 @@ describe("deterministic ingredient classification", () => {
     expect(result.traces).toEqual(["milk and egg"]);
   });
 
+  it("preserves vegan status despite multilingual allergen traces (German, French, Italian, Catalan, Spanish)", () => {
+    // German (Kann Spuren von Milch enthalten)
+    const deResult = classifyIngredients(
+      "Zutaten: Soja, Wasser, Salz. Kann Spuren von Milch und Eiern enthalten.",
+      { assurance: "external" },
+    );
+    expect(deResult.verdict).toBe("vegan");
+    expect(deResult.traces).toEqual(["Milch und Eiern"]);
+
+    // French (Peut contenir des traces de lait)
+    const frResult = classifyIngredients(
+      "Ingrédients: Cacao, sucre, lécithine de soja. Peut contenir des traces de lait.",
+      { assurance: "external" },
+    );
+    expect(frResult.verdict).toBe("vegan");
+    expect(frResult.traces).toEqual(["lait"]);
+
+    // Italian (Può contenere tracce di latte)
+    const itResult = classifyIngredients(
+      "Ingredienti: Pomodoro, basilico, sale. Può contenere tracce di latte e uova.",
+      { assurance: "external" },
+    );
+    expect(itResult.verdict).toBe("vegan");
+    expect(itResult.traces).toEqual(["latte e uova"]);
+
+    // Catalan (Pot contenir traces de llet)
+    const caResult = classifyIngredients(
+      "Ingredients: Oli d'oliva, farina, sucre. Pot contenir traces de llet.",
+      { assurance: "external" },
+    );
+    expect(caResult.verdict).toBe("vegan");
+    expect(caResult.traces).toEqual(["llet"]);
+
+    // Spanish (Puede contener trazas de leche)
+    const esResult = classifyIngredients(
+      "Ingredientes: Harina de trigo, agua, sal. Puede contener trazas de leche.",
+      { assurance: "external" },
+    );
+    expect(esResult.verdict).toBe("vegan");
+    expect(esResult.traces).toEqual(["leche"]);
+  });
+
   it("classifies gelatin as not vegetarian", () => {
     expect(classifyIngredients("Sugar, gelatin", { assurance: "label_based" }).verdict)
       .toBe("non_vegetarian");

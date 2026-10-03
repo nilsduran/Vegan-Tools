@@ -36,6 +36,8 @@ import { isPresentableMenuSource } from "../menu-source";
 import { DishCorrectionDialog } from "./DishCorrectionDialog";
 import { RestaurantNotesDialog } from "./RestaurantNotesDialog";
 
+import { useLifestyle } from "../lifestyle";
+
 type DietFilter = "vegan" | "vegetarian" | "non_vegan";
 type Modification = { target: "vegan" | "vegetarian"; note: string; noteCa?: string };
 
@@ -140,9 +142,13 @@ export function MenuView({
   onEditSources?: () => void;
 }) {
   const language = useLanguage();
-  const [selectedDiets, setSelectedDiets] = useState<Set<DietFilter>>(
-    new Set(["vegan"]),
-  );
+  const { lifestyle } = useLifestyle();
+  const [selectedDiets, setSelectedDiets] = useState<Set<DietFilter>>(() => {
+    if (lifestyle === "vegetarian") {
+      return new Set(["vegan", "vegetarian"]);
+    }
+    return new Set(["vegan"]);
+  });
   const [allSelected, setAllSelected] = useState(false);
   const [showAdaptable, setShowAdaptable] = useState(true);
   const [openReasons, setOpenReasons] = useState<Set<string>>(new Set());

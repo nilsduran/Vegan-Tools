@@ -4,26 +4,39 @@
  * Allows users to pin their 4 absolute favorite dining spots to the top of their profile.
  */
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
-import { Edit2, Plus, Sparkles, X } from "lucide-react";
+import { Edit2, LoaderCircle, Plus, Star, X } from "lucide-react";
 import { FEATURED_RESTAURANTS, type RestaurantCandidate } from "@vegan-tools/domain";
 import { getDiaryLogs, useUserTop4 } from "../utils/diary";
+import {
+  getCachedRestaurant,
+  getCachedRestaurantsMap,
+  saveCachedRestaurant,
+  saveCachedRestaurants,
+} from "../utils/restaurantCache";
+import { searchRestaurants } from "../api";
 import { useAuth } from "../auth";
 import { tx } from "../i18n";
 import { getCuisineIcon } from "./RestaurantMap";
 
 export function Top4Restaurants() {
-  const { user } = useAuth();
-  const { top4, updateTop4 } = useUserTop4(user?.id);
+  const { user, token } = useAuth();
+  const { top4, updateTop4 } = useUserTop4(user?.id, token || undefined);
   const [isEditing, setIsEditing] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
+  const [remoteCandidates, setRemoteCandidates] = useState<RestaurantCandidate[]>([]);
+  const [isSearching, setIsSearching] = useState(false);
 
-  // Gather all known restaurants (curated + any logged in diary for this user)
+  // Gather all known restaurants (cached + curated + any logged in diary for this user)
   const diaryLogs = getDiaryLogs(user?.id);
-  const allCandidates: RestaurantCandidate[] = [...FEATURED_RESTAURANTS];
+  const cachedMap = getCachedRestaurantsMap();
+  const allCandidates: RestaurantCandidate[] = [
+    ...Object.values(cachedMap),
+    ...FEATURED_RESTAURANTS,
+  ];
 
-  // Add any diary places not already in curated
+  // Add any diary places not already in allCandidates
   for (const log of diaryLogs) {
     if (!allCandidates.some((c) => c.id === log.restaurantId)) {
       allCandidates.push({
@@ -43,32 +56,77 @@ export function Top4Restaurants() {
 
   // Find candidate by id
   const getPlace = (id: string): RestaurantCandidate | undefined => {
-    return allCandidates.find((c) => c.id === id);
+    return getCachedRestaurant(id) || allCandidates.find((c) => c.id === id);
   };
+
+  // Debounced dynamic search calling universal restaurant search API
+  useEffect(() => {
+    const q = searchQuery.trim();
+    if (q.length < 2) {
+      setRemoteCandidates([]);
+      setIsSearching(false);
+      return;
+    }
+
+    setIsSearching(true);
+    const controller = new AbortController();
+    const timer = setTimeout(() => {
+      searchRestaurants(q, { signal: controller.signal })
+        .then((results) => {
+          setRemoteCandidates(results);
+          saveCachedRestaurants(results);
+        })
+        .catch(() => {
+          // Keep whatever local results we have on network failure
+        })
+        .finally(() => {
+          setIsSearching(false);
+        });
+    }, 300);
+
+    return () => {
+      clearTimeout(timer);
+      controller.abort();
+    };
+  }, [searchQuery]);
 
   const handleRemove = (idToRemove: string) => {
-    updateTop4(top4.filter((id) => id !== idToRemove));
+    const nextIds = top4.filter((id) => id !== idToRemove);
+    updateTop4(nextIds, nextIds.map(getPlace).filter(Boolean) as RestaurantCandidate[]);
   };
 
-  const handleAdd = (idToAdd: string) => {
-    if (top4.includes(idToAdd)) return;
-    if (top4.length >= 4) {
-      updateTop4([...top4.slice(0, 3), idToAdd]);
-    } else {
-      updateTop4([...top4, idToAdd]);
-    }
+  const handleAdd = (cand: RestaurantCandidate) => {
+    if (top4.includes(cand.id)) return;
+    saveCachedRestaurant(cand);
+    const nextIds = top4.length >= 4 ? [...top4.slice(0, 3), cand.id] : [...top4, cand.id];
+    const nextCandidates = nextIds
+      .map((id) => (id === cand.id ? cand : getPlace(id)))
+      .filter(Boolean) as RestaurantCandidate[];
+    saveCachedRestaurants(nextCandidates);
+    updateTop4(nextIds, nextCandidates);
     setSearchQuery("");
   };
 
-  const filteredCandidates = allCandidates
+  // Combine remote search results with matching local candidates
+  const qLower = searchQuery.trim().toLowerCase();
+  const matchingLocal = qLower.length >= 2
+    ? allCandidates.filter(
+        (c) =>
+          c.name.toLowerCase().includes(qLower) ||
+          c.address.toLowerCase().includes(qLower),
+      )
+    : allCandidates;
+
+  const combinedCandidates = qLower.length >= 2
+    ? [...remoteCandidates, ...matchingLocal]
+    : matchingLocal;
+
+  const filteredCandidates = combinedCandidates
     .filter(
-      (c) =>
-        !top4.includes(c.id) &&
-        (searchQuery.trim() === "" ||
-          c.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-          c.address.toLowerCase().includes(searchQuery.toLowerCase())),
+      (c, index, self) =>
+        !top4.includes(c.id) && self.findIndex((x) => x.id === c.id) === index,
     )
-    .slice(0, 8);
+    .slice(0, 10);
 
   const slots = [0, 1, 2, 3];
 
@@ -76,14 +134,14 @@ export function Top4Restaurants() {
     <div className="top4-card" aria-label={tx("Favorite restaurants")}>
       <div className="top4-header">
         <div className="top4-title-wrap">
-          <Sparkles size={18} className="top4-sparkle-icon" aria-hidden="true" />
-          <h3 className="top4-title">{tx("Top 4 Restaurants")}</h3>
+          <Star size={18} className="top4-star-icon" fill="currentColor" aria-hidden="true" />
+          <h3 className="top4-title">{tx("Favourite restaurants")}</h3>
         </div>
         <button
           type="button"
           className="top4-edit-toggle-btn"
           onClick={() => setIsEditing(!isEditing)}
-          aria-label={isEditing ? tx("Done") : tx("Edit Top 4")}
+          aria-label={isEditing ? tx("Done") : tx("Edit favourites")}
         >
           <Edit2 size={14} aria-hidden="true" />
           <span>{isEditing ? tx("Done") : tx("Edit")}</span>
@@ -157,18 +215,25 @@ export function Top4Restaurants() {
         <div className="top4-picker-drawer">
           <div className="top4-picker-header">
             <h4>{tx("Choose a restaurant")} ({top4.length}/4)</h4>
-            <input
-              type="text"
-              className="top4-search-input"
-              placeholder={tx("Search restaurant name…")}
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              autoFocus
-            />
+            <div className="top4-search-input-wrap">
+              <input
+                type="text"
+                className="top4-search-input"
+                placeholder={tx("Search restaurant name…")}
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                autoFocus
+              />
+              {isSearching && (
+                <LoaderCircle size={16} className="top4-search-spinner" aria-hidden="true" />
+              )}
+            </div>
           </div>
 
           <div className="top4-candidates-list">
-            {filteredCandidates.length === 0 ? (
+            {isSearching && filteredCandidates.length === 0 ? (
+              <p className="top4-empty-search">{tx("Searching restaurants…")}</p>
+            ) : filteredCandidates.length === 0 ? (
               <p className="top4-empty-search">{tx("No restaurants found.")}</p>
             ) : (
               filteredCandidates.map((cand) => (
@@ -176,7 +241,7 @@ export function Top4Restaurants() {
                   key={cand.id}
                   type="button"
                   className="top4-candidate-item"
-                  onClick={() => handleAdd(cand.id)}
+                  onClick={() => handleAdd(cand)}
                 >
                   <div className="top4-cand-icon">
                     {getCuisineIcon(cand)}

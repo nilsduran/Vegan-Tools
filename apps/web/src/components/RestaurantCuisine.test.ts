@@ -59,7 +59,7 @@ describe("Restaurant Cuisine and Badges Classification", () => {
     expect(getCuisineIcon(r)).toBe("🥐");
   });
 
-  it("returns cutlery (🍽️) for venues without specific cuisine classification", () => {
+  it("returns cutlery without plate (🍴) for venues without specific cuisine classification", () => {
     const r: RestaurantCandidate = {
       ...baseRestaurant,
       id: "test-unclassified",
@@ -67,10 +67,10 @@ describe("Restaurant Cuisine and Badges Classification", () => {
       address: "Carrer General 5",
       tags: [],
     };
-    expect(getCuisineIcon(r)).toBe("🍽️");
+    expect(getCuisineIcon(r)).toBe("🍴");
   });
 
-  it("separates Brunch and Cafeteria into distinct tags in RestaurantDetailPane", () => {
+  it("separates Brunch and Café into distinct tags in RestaurantDetailPane", () => {
     const r: RestaurantCandidate = {
       ...baseRestaurant,
       id: "test-brunch-cafe",
@@ -82,7 +82,7 @@ describe("Restaurant Cuisine and Badges Classification", () => {
     expect(tags).toEqual(
       expect.arrayContaining([
         { icon: "🥪", label: "Brunch" },
-        { icon: "☕", label: "Cafeteria" },
+        { icon: "☕", label: "Café" },
       ]),
     );
   });
@@ -144,4 +144,17 @@ describe("Restaurant Cuisine and Badges Classification", () => {
     };
     expect(getCuisineIcon(r)).toBe("🥗");
   });
+
+  it("does not return generic 'Dining' / 'Restauració' badge for unclassified venues", () => {
+    const r: RestaurantCandidate = {
+      ...baseRestaurant,
+      id: "test-generic",
+      name: "Bar Pepe",
+      address: "Carrer 11",
+      tags: [],
+    };
+    const tags = getCuisineTags(r);
+    expect(tags.some((t) => t.label === "Dining")).toBe(false);
+  });
 });
+

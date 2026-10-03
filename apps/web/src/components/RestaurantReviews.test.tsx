@@ -115,7 +115,6 @@ describe("RestaurantReviews Component", () => {
     // Modal should now be open in Catalan
     expect(screen.getByRole("dialog", { name: /Inicia sessió per valorar/i })).toBeDefined();
     expect(screen.getByRole("button", { name: /Continua amb Google/i })).toBeDefined();
-    expect(screen.getByRole("button", { name: /Continua amb Apple/i })).toBeDefined();
   });
 
   it("renders in English when language is switched to en", async () => {
@@ -145,6 +144,5 @@ describe("RestaurantReviews Component", () => {
     fireEvent.click(screen.getByRole("button", { name: "Rate with leaves" }));
     expect(screen.getByRole("dialog", { name: "Sign in to rate" })).toBeDefined();
     expect(screen.getByRole("button", { name: "Continue with Google" })).toBeDefined();
-    expect(screen.getByRole("button", { name: "Continue with Apple" })).toBeDefined();
   });
 });
