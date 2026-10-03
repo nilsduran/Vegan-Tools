@@ -1,0 +1,35 @@
+[
+  {
+    "id": "featured-tgn-el-vergel",
+    "name": "El Vergel Veggie Restaurant",
+    "address": "Carrer Major, 11, 43003 Tarragona",
+    "latitude": 41.1172,
+    "longitude": 1.2573,
+    "websiteUrl": "https://www.el-vergel.com",
+    "mapUrl": "https://www.openstreetmap.org/?mlat=41.1172&mlon=1.2573#map=17/41.1172/1.2573",
+    "provider": "curated",
+    "cuisine": "mediterranean",
+    "tags": ["vegan", "mediterranean", "fine_dining", "featured"],
+    "isVegan": true,
+    "isFeatured": true,
+    "rating": 4.8,
+    "openingHours": "Tu-Su 13:00-16:00, 20:30-23:30",
+    "imageUrl": "https://images.unsplash.com/photo-1555396273-367ea4eb4db5?auto=format&fit=crop&w=800&q=80"
+  },
+  {
+    "id": "featured-tgn-veggiesseria",
+    "name": "La Veggiesseria",
+    "address": "Carrer de Fortuny, 23, 43001 Tarragona",
+    "latitude": 41.1137,
+    "longitude": 1.2514,
+    "mapUrl": "https://www.openstreetmap.org/?mlat=41.1137&mlon=1.2514#map=17/41.1137/1.2514",
+    "provider": "curated",
+    "cuisine": "cafe_bakery",
+    "tags": ["vegan", "cafe_bakery", "pastry", "artisanal", "featured"],
+    "isVegan": true,
+    "isFeatured": true,
+    "rating": 4.9,
+    "openingHours": "Tu-Sa 09:00-14:00, 17:00-20:00",
+    "imageUrl": "https://images.unsplash.com/photo-1509440159596-0249088772ff?auto=format&fit=crop&w=800&q=80"
+  }
+]

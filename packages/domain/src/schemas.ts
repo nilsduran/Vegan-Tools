@@ -247,6 +247,7 @@ export const restaurantReviewSchema = z.object({
   userId: z.string(),
   userName: z.string(),
   userAvatarUrl: z.string().url().optional(),
+  userLifestyle: z.enum(["vegan", "vegetarian", "non-veg", "non_veg"]).optional(),
   leavesScore: z.number().min(1).max(5),
   comment: z.string().max(500).default(""),
   tags: z.array(z.string()).optional(),
@@ -273,6 +274,7 @@ export const createReviewRequestSchema = z.object({
   leavesScore: z.number().min(1).max(5),
   comment: z.string().max(500).optional().default(""),
   userName: z.string().min(1).max(60).optional(),
+  userLifestyle: z.enum(["vegan", "vegetarian", "non-veg", "non_veg"]).optional(),
   tags: z.array(z.string()).optional(),
   photos: z.array(z.string()).optional(),
 });

@@ -413,6 +413,15 @@ export function ProfilePage() {
                             <span>{tx("Restaurant on map")}</span>
                             <ExternalLink size={14} aria-hidden="true" />
                           </Link>
+                          {rev.userLifestyle && (
+                            <span className={`review-lifestyle-badge lifestyle-${rev.userLifestyle}`}>
+                              {rev.userLifestyle === "vegan"
+                                ? tx("Vegan")
+                                : rev.userLifestyle === "vegetarian"
+                                ? tx("Vegetarian")
+                                : tx("Non-veg")}
+                            </span>
+                          )}
                           <span className="profile-review-date">• {dateFormatted}</span>
                         </div>
 

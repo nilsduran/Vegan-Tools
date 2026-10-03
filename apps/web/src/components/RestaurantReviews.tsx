@@ -196,10 +196,21 @@ export function RestaurantReviews({ restaurant, onOpenLogModal, reviewUpdateTrig
                         {rev.userName.charAt(0).toUpperCase()}
                       </div>
                       <div className="user-meta">
-                        <strong className="user-name">
-                          {rev.userName}
+                        <div style={{ display: "flex", alignItems: "center", gap: "0.35rem", flexWrap: "wrap" }}>
+                          <strong className="user-name">
+                            {rev.userName}
+                          </strong>
                           {isMine && <span className="mine-pill">{tx("You")}</span>}
-                        </strong>
+                          {rev.userLifestyle && (
+                            <span className={`review-lifestyle-badge lifestyle-${rev.userLifestyle}`}>
+                              {rev.userLifestyle === "vegan"
+                                ? tx("Vegan")
+                                : rev.userLifestyle === "vegetarian"
+                                ? tx("Vegetarian")
+                                : tx("Non-veg")}
+                            </span>
+                          )}
+                        </div>
                         <span className="review-date">{dateFormatted}</span>
                       </div>
                     </div>

@@ -259,6 +259,8 @@ export function SettingsPage() {
                     boxSizing: "border-box",
                     fontSize: "0.95rem",
                     marginBottom: "0.4rem",
+                    background: "var(--bg-card)",
+                    color: "var(--text-primary)",
                   }}
                 />
                 <p style={{ margin: "0 0 0.8rem 0", fontSize: "0.76rem", color: "var(--muted)" }}>
@@ -573,20 +575,8 @@ export function SettingsPage() {
           {user && (
             <button
               type="button"
+              className="settings-delete-btn"
               onClick={handleDeleteAccount}
-              style={{
-                display: "inline-flex",
-                alignItems: "center",
-                gap: "0.45rem",
-                padding: "0.6rem 0.95rem",
-                borderRadius: "8px",
-                fontSize: "0.88rem",
-                fontWeight: 600,
-                cursor: "pointer",
-                border: "1px solid #fecaca",
-                background: "#fff1f2",
-                color: "#dc2626",
-              }}
             >
               <Trash2 size={16} />
               <span>{tx("Delete account and data")}</span>

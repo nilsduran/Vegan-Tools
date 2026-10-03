@@ -7,8 +7,7 @@ playwright-report/
 test-results/
 data/menu-sources/
 apps/api/data/menu-sources/
-data/dataset/raw/
-data/
+/data/
 checkpoints/
 notebooks/
 __pycache__/

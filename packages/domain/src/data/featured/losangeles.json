@@ -1,0 +1,53 @@
+[
+  {
+    "id": "la-crossroads",
+    "name": "Crossroads Kitchen",
+    "address": "8284 Melrose Ave, Los Angeles, CA 90046",
+    "latitude": 34.0837,
+    "longitude": -118.3703,
+    "websiteUrl": "https://www.crossroadskitchen.com",
+    "mapUrl": "https://www.openstreetmap.org/?mlat=34.0837&mlon=-118.3703#map=17/34.0837/-118.3703",
+    "provider": "curated",
+    "cuisine": "mediterranean",
+    "tags": ["vegan", "mediterranean", "fine_dining", "pasta", "featured"],
+    "isVegan": true,
+    "isFeatured": true,
+    "rating": 4.9,
+    "openingHours": "Mo-Su 11:00-15:00, 17:00-23:00",
+    "imageUrl": "https://images.unsplash.com/photo-1540420773420-3366772f4999?auto=format&fit=crop&w=800&q=80"
+  },
+  {
+    "id": "la-montys",
+    "name": "Monty's Good Burger",
+    "address": "516 S Western Ave, Los Angeles, CA 90020",
+    "latitude": 34.0645,
+    "longitude": -118.3090,
+    "websiteUrl": "https://montysgoodburger.com",
+    "mapUrl": "https://www.openstreetmap.org/?mlat=34.0645&mlon=-118.3090#map=17/34.0645/-118.3090",
+    "provider": "curated",
+    "cuisine": "burger",
+    "tags": ["vegan", "burger", "shakes", "comfort_food", "featured"],
+    "isVegan": true,
+    "isFeatured": true,
+    "rating": 4.8,
+    "openingHours": "Mo-Su 11:00-23:00",
+    "imageUrl": "https://images.unsplash.com/photo-1550547660-d9450f859349?auto=format&fit=crop&w=800&q=80"
+  },
+  {
+    "id": "la-shojin",
+    "name": "Shojin Downtown",
+    "address": "333 S Alameda St #310, Los Angeles, CA 90013",
+    "latitude": 34.0475,
+    "longitude": -118.2392,
+    "websiteUrl": "https://www.theshojin.com",
+    "mapUrl": "https://www.openstreetmap.org/?mlat=34.0475&mlon=-118.2392#map=17/34.0475/-118.2392",
+    "provider": "curated",
+    "cuisine": "asian",
+    "tags": ["vegan", "sushi", "japanese", "organic", "gluten_free", "featured"],
+    "isVegan": true,
+    "isFeatured": true,
+    "rating": 4.9,
+    "openingHours": "We-Su 17:00-21:30",
+    "imageUrl": "https://images.unsplash.com/photo-1579871494447-9811cf80d66c?auto=format&fit=crop&w=800&q=80"
+  }
+]

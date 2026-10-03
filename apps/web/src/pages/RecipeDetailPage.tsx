@@ -557,7 +557,7 @@ export function RecipeDetailPage() {
             <LeafRating
               value={userRating}
               interactive={true}
-              size={52}
+              size={26}
               onChange={handleRateRecipe}
             />
             {ratingMessage && (

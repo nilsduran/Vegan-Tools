@@ -1,0 +1,35 @@
+[
+  {
+    "id": "bj-kings-joy",
+    "name": "King's Joy (京兆尹)",
+    "address": "2 Wudaoying Hutong, Dongcheng District, Beijing 100007",
+    "latitude": 39.9482,
+    "longitude": 116.4173,
+    "websiteUrl": "http://www.kingsjoybeijing.com",
+    "mapUrl": "https://www.openstreetmap.org/?mlat=39.9482&mlon=116.4173#map=17/39.9482/116.4173",
+    "provider": "curated",
+    "cuisine": "asian",
+    "tags": ["vegan", "chinese", "michelin_starred", "fine_dining", "featured"],
+    "isVegan": true,
+    "isFeatured": true,
+    "rating": 4.9,
+    "openingHours": "Mo-Su 11:00-14:00, 17:00-21:30",
+    "imageUrl": "https://images.unsplash.com/photo-1540420773420-3366772f4999?auto=format&fit=crop&w=800&q=80"
+  },
+  {
+    "id": "bj-pure-lotus",
+    "name": "Pure Lotus (净心莲)",
+    "address": "10 Nongzhanguan S Rd, Chaoyang District, Beijing 100026",
+    "latitude": 39.9328,
+    "longitude": 116.4679,
+    "mapUrl": "https://www.openstreetmap.org/?mlat=39.9328&mlon=116.4679#map=17/39.9328/116.4679",
+    "provider": "curated",
+    "cuisine": "asian",
+    "tags": ["vegan", "chinese", "tea_house", "buddhist", "featured"],
+    "isVegan": true,
+    "isFeatured": true,
+    "rating": 4.8,
+    "openingHours": "Mo-Su 11:00-14:00, 17:00-21:30",
+    "imageUrl": "https://images.unsplash.com/photo-1569718212165-3a8278d5f624?auto=format&fit=crop&w=800&q=80"
+  }
+]

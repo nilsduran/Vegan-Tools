@@ -1,0 +1,53 @@
+[
+  {
+    "id": "tor-planta",
+    "name": "Planta Yorkville",
+    "address": "1221 Bay St, Toronto, ON M5R 3P5",
+    "latitude": 43.6702,
+    "longitude": -79.3900,
+    "websiteUrl": "https://www.plantarestaurants.com",
+    "mapUrl": "https://www.openstreetmap.org/?mlat=43.6702&mlon=-79.3900#map=17/43.6702/-79.3900",
+    "provider": "curated",
+    "cuisine": "contemporary",
+    "tags": ["vegan", "contemporary", "pizza", "cocktails", "featured"],
+    "isVegan": true,
+    "isFeatured": true,
+    "rating": 4.8,
+    "openingHours": "Mo-Su 11:30-22:00",
+    "imageUrl": "https://images.unsplash.com/photo-1512621776951-a57141f2eefd?auto=format&fit=crop&w=800&q=80"
+  },
+  {
+    "id": "tor-avelo",
+    "name": "Avelo Restaurant",
+    "address": "51 St Nicholas St, Toronto, ON M4Y 1W6",
+    "latitude": 43.6668,
+    "longitude": -79.3871,
+    "websiteUrl": "https://www.avelorestaurant.com",
+    "mapUrl": "https://www.openstreetmap.org/?mlat=43.6668&mlon=-79.3871#map=17/43.6668/-79.3871",
+    "provider": "curated",
+    "cuisine": "fine_dining",
+    "tags": ["vegan", "fine_dining", "tasting_menu", "organic", "featured"],
+    "isVegan": true,
+    "isFeatured": true,
+    "rating": 4.9,
+    "openingHours": "We-Su 17:00-22:30",
+    "imageUrl": "https://images.unsplash.com/photo-1540420773420-3366772f4999?auto=format&fit=crop&w=800&q=80"
+  },
+  {
+    "id": "tor-bloomers",
+    "name": "Bloomer's",
+    "address": "873 Bloor St W, Toronto, ON M6G 1M4",
+    "latitude": 43.6619,
+    "longitude": -79.4261,
+    "websiteUrl": "https://www.bloomers.ca",
+    "mapUrl": "https://www.openstreetmap.org/?mlat=43.6619&mlon=-79.4261#map=17/43.6619/-79.4261",
+    "provider": "curated",
+    "cuisine": "cafe_bakery",
+    "tags": ["vegan", "cafe_bakery", "donuts", "brunch", "featured"],
+    "isVegan": true,
+    "isFeatured": true,
+    "rating": 4.8,
+    "openingHours": "Mo-Su 08:30-19:00",
+    "imageUrl": "https://images.unsplash.com/photo-1509440159596-0249088772ff?auto=format&fit=crop&w=800&q=80"
+  }
+]

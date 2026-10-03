@@ -7,25 +7,46 @@
 import type { RestaurantCandidate } from "./schemas.js";
 import barcelonaData from "./data/featured/barcelona.json" with { type: "json" };
 import gironaData from "./data/featured/girona.json" with { type: "json" };
+import tarragonaData from "./data/featured/tarragona.json" with { type: "json" };
+import vicData from "./data/featured/vic.json" with { type: "json" };
+import manresaData from "./data/featured/manresa.json" with { type: "json" };
 import londonData from "./data/featured/london.json" with { type: "json" };
 import berlinData from "./data/featured/berlin.json" with { type: "json" };
 import parisData from "./data/featured/paris.json" with { type: "json" };
 import newYorkData from "./data/featured/newyork.json" with { type: "json" };
+import losAngelesData from "./data/featured/losangeles.json" with { type: "json" };
+import tokyoData from "./data/featured/tokyo.json" with { type: "json" };
+import torontoData from "./data/featured/toronto.json" with { type: "json" };
+import beijingData from "./data/featured/beijing.json" with { type: "json" };
 
 export const FEATURED_RESTAURANTS_BARCELONA = barcelonaData as RestaurantCandidate[];
 export const FEATURED_RESTAURANTS_GIRONA = gironaData as RestaurantCandidate[];
+export const FEATURED_RESTAURANTS_TARRAGONA = tarragonaData as RestaurantCandidate[];
+export const FEATURED_RESTAURANTS_VIC = vicData as RestaurantCandidate[];
+export const FEATURED_RESTAURANTS_MANRESA = manresaData as RestaurantCandidate[];
 export const FEATURED_RESTAURANTS_LONDON = londonData as RestaurantCandidate[];
 export const FEATURED_RESTAURANTS_BERLIN = berlinData as RestaurantCandidate[];
 export const FEATURED_RESTAURANTS_PARIS = parisData as RestaurantCandidate[];
 export const FEATURED_RESTAURANTS_NEWYORK = newYorkData as RestaurantCandidate[];
+export const FEATURED_RESTAURANTS_LOSANGELES = losAngelesData as RestaurantCandidate[];
+export const FEATURED_RESTAURANTS_TOKYO = tokyoData as RestaurantCandidate[];
+export const FEATURED_RESTAURANTS_TORONTO = torontoData as RestaurantCandidate[];
+export const FEATURED_RESTAURANTS_BEIJING = beijingData as RestaurantCandidate[];
 
 export const FEATURED_RESTAURANTS: RestaurantCandidate[] = [
   ...FEATURED_RESTAURANTS_BARCELONA,
   ...FEATURED_RESTAURANTS_GIRONA,
+  ...FEATURED_RESTAURANTS_TARRAGONA,
+  ...FEATURED_RESTAURANTS_VIC,
+  ...FEATURED_RESTAURANTS_MANRESA,
   ...FEATURED_RESTAURANTS_LONDON,
   ...FEATURED_RESTAURANTS_BERLIN,
   ...FEATURED_RESTAURANTS_PARIS,
   ...FEATURED_RESTAURANTS_NEWYORK,
+  ...FEATURED_RESTAURANTS_LOSANGELES,
+  ...FEATURED_RESTAURANTS_TOKYO,
+  ...FEATURED_RESTAURANTS_TORONTO,
+  ...FEATURED_RESTAURANTS_BEIJING,
 ];
 
 export interface FeaturedCityHub {
@@ -50,6 +71,27 @@ export const FEATURED_CITY_HUBS: FeaturedCityHub[] = [
     latitude: 41.9794,
     longitude: 2.8214,
     restaurants: FEATURED_RESTAURANTS_GIRONA,
+  },
+  {
+    id: "tarragona",
+    name: "Tarragona",
+    latitude: 41.1189,
+    longitude: 1.2445,
+    restaurants: FEATURED_RESTAURANTS_TARRAGONA,
+  },
+  {
+    id: "vic",
+    name: "Vic",
+    latitude: 41.9304,
+    longitude: 2.2547,
+    restaurants: FEATURED_RESTAURANTS_VIC,
+  },
+  {
+    id: "manresa",
+    name: "Manresa",
+    latitude: 41.7282,
+    longitude: 1.8268,
+    restaurants: FEATURED_RESTAURANTS_MANRESA,
   },
   {
     id: "london",
@@ -78,6 +120,34 @@ export const FEATURED_CITY_HUBS: FeaturedCityHub[] = [
     latitude: 40.7128,
     longitude: -74.0060,
     restaurants: FEATURED_RESTAURANTS_NEWYORK,
+  },
+  {
+    id: "losangeles",
+    name: "Los Angeles",
+    latitude: 34.0522,
+    longitude: -118.2437,
+    restaurants: FEATURED_RESTAURANTS_LOSANGELES,
+  },
+  {
+    id: "tokyo",
+    name: "Tokyo",
+    latitude: 35.6762,
+    longitude: 139.6503,
+    restaurants: FEATURED_RESTAURANTS_TOKYO,
+  },
+  {
+    id: "toronto",
+    name: "Toronto",
+    latitude: 43.6532,
+    longitude: -79.3832,
+    restaurants: FEATURED_RESTAURANTS_TORONTO,
+  },
+  {
+    id: "beijing",
+    name: "Beijing",
+    latitude: 39.9042,
+    longitude: 116.4074,
+    restaurants: FEATURED_RESTAURANTS_BEIJING,
   },
 ];
 

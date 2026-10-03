@@ -16,6 +16,7 @@ interface AuthUser {
   id: string;
   name: string;
   avatarUrl?: string;
+  lifestyle?: "vegan" | "vegetarian" | "non-veg" | "non_veg";
 }
 
 export function extractUserFromAuthHeader(authHeader?: string): AuthUser | undefined {
@@ -42,10 +43,17 @@ export function extractUserFromAuthHeader(authHeader?: string): AuthUser | undef
       payload.user_metadata?.picture ||
       undefined;
 
+    const rawLifestyle = payload.user_metadata?.lifestyle || payload.user_metadata?.diet;
+    const lifestyle =
+      rawLifestyle === "vegan" || rawLifestyle === "vegetarian" || rawLifestyle === "non-veg" || rawLifestyle === "non_veg"
+        ? rawLifestyle
+        : undefined;
+
     return {
       id: String(payload.sub),
       name: String(name),
       avatarUrl: avatarUrl ? String(avatarUrl) : undefined,
+      lifestyle,
     };
   } catch {
     return undefined;
@@ -105,7 +113,7 @@ export async function reviewRoutes(app: FastifyInstance, options: ReviewRoutesOp
         });
       }
 
-      const { leavesScore, comment, userName, tags, photos } = parsed.data;
+      const { leavesScore, comment, userName, tags, photos, userLifestyle } = parsed.data;
       const now = new Date().toISOString();
 
       const review: RestaurantReview = {
@@ -114,6 +122,7 @@ export async function reviewRoutes(app: FastifyInstance, options: ReviewRoutesOp
         userId: user.id,
         userName: userName?.trim() || user.name,
         userAvatarUrl: user.avatarUrl,
+        userLifestyle: userLifestyle || user.lifestyle,
         leavesScore,
         comment: comment?.trim() || "",
         tags: tags || [],

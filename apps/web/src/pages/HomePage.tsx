@@ -180,10 +180,10 @@ export function HomePage() {
               className="home-location-badge home-location-btn"
               onClick={() => setIsCityPickerOpen(true)}
               title={tx("Change city")}
-              aria-label={`${tx("Change city")}: ${userCity}`}
+              aria-label={`${tx("Change city")}: ${tx(userCity)}`}
             >
               <MapPin size={15} aria-hidden="true" />
-              <span>{userCity}</span>
+              <span>{tx(userCity)}</span>
               <ChevronDown size={14} aria-hidden="true" style={{ opacity: 0.7 }} />
             </button>
           </div>

@@ -1,0 +1,53 @@
+[
+  {
+    "id": "tok-saido",
+    "name": "Saido (菜道)",
+    "address": "2-15-10 Jiyugaoka, Meguro-ku, Tokyo 152-0035",
+    "latitude": 35.6083,
+    "longitude": 139.6675,
+    "websiteUrl": "https://saido.tokyo",
+    "mapUrl": "https://www.openstreetmap.org/?mlat=35.6083&mlon=139.6675#map=17/35.6083/139.6675",
+    "provider": "curated",
+    "cuisine": "asian",
+    "tags": ["vegan", "japanese", "ramen", "yakitori", "featured"],
+    "isVegan": true,
+    "isFeatured": true,
+    "rating": 5.0,
+    "openingHours": "Th-Tu 11:30-15:00, 17:30-22:00",
+    "imageUrl": "https://images.unsplash.com/photo-1569718212165-3a8278d5f624?auto=format&fit=crop&w=800&q=80"
+  },
+  {
+    "id": "tok-ts-tantan",
+    "name": "T's Tantan Tokyo Station",
+    "address": "1-9-1 Marunouchi, Chiyoda-ku, Tokyo 100-0005",
+    "latitude": 35.6812,
+    "longitude": 139.7671,
+    "websiteUrl": "https://ts-restaurant.jp/tantan",
+    "mapUrl": "https://www.openstreetmap.org/?mlat=35.6812&mlon=139.7671#map=17/35.6812/139.7671",
+    "provider": "curated",
+    "cuisine": "asian",
+    "tags": ["vegan", "ramen", "tantanmen", "gyoza", "featured"],
+    "isVegan": true,
+    "isFeatured": true,
+    "rating": 4.8,
+    "openingHours": "Mo-Su 10:00-22:00",
+    "imageUrl": "https://images.unsplash.com/photo-1552611052-33e04de081de?auto=format&fit=crop&w=800&q=80"
+  },
+  {
+    "id": "tok-ain-soph",
+    "name": "Ain Soph. Soar",
+    "address": "3-5-7 Higashiikebukuro, Toshima-ku, Tokyo 170-0013",
+    "latitude": 35.7303,
+    "longitude": 139.7188,
+    "websiteUrl": "https://www.ain-soph.jp",
+    "mapUrl": "https://www.openstreetmap.org/?mlat=35.7303&mlon=139.7188#map=17/35.7303/139.7188",
+    "provider": "curated",
+    "cuisine": "asian",
+    "tags": ["vegan", "pancakes", "japanese", "parfait", "featured"],
+    "isVegan": true,
+    "isFeatured": true,
+    "rating": 4.8,
+    "openingHours": "Mo-Su 11:30-16:00, 17:30-21:00",
+    "imageUrl": "https://images.unsplash.com/photo-1527515637462-cff94eecc1ac?auto=format&fit=crop&w=800&q=80"
+  }
+]

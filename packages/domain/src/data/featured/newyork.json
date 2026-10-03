@@ -1,0 +1,94 @@
+[
+  {
+    "id": "nyc-cadence",
+    "name": "Cadence",
+    "address": "111 E 7th St, New York, NY 10009",
+    "latitude": 40.7265,
+    "longitude": -73.9845,
+    "websiteUrl": "https://www.overthrowhospitality.com/cadence",
+    "mapUrl": "https://www.openstreetmap.org/?mlat=40.7265&mlon=-73.9845#map=17/40.7265/-73.9845",
+    "provider": "curated",
+    "cuisine": "soul_food",
+    "tags": [
+      "vegan",
+      "soul_food",
+      "southern",
+      "fine_dining",
+      "featured"
+    ],
+    "isVegan": true,
+    "isFeatured": true,
+    "rating": 4.9,
+    "openingHours": "Tu-Su 17:00-23:00",
+    "imageUrl": "https://images.unsplash.com/photo-1540420773420-3366772f4999?auto=format&fit=crop&w=800&q=80"
+  },
+  {
+    "id": "nyc-spicy-moon",
+    "name": "Spicy Moon East Village",
+    "address": "328 E 6th St, New York, NY 10003",
+    "latitude": 40.7267,
+    "longitude": -73.9872,
+    "websiteUrl": "https://www.spicymoonnyc.com",
+    "mapUrl": "https://www.openstreetmap.org/?mlat=40.7267&mlon=-73.9872#map=17/40.7267/-73.9872",
+    "provider": "curated",
+    "cuisine": "szechuan",
+    "tags": [
+      "vegan",
+      "szechuan",
+      "asian",
+      "noodles",
+      "featured"
+    ],
+    "isVegan": true,
+    "isFeatured": true,
+    "rating": 4.9,
+    "openingHours": "Mo-Su 11:30-22:00",
+    "imageUrl": "https://images.unsplash.com/photo-1569718212165-3a8278d5f624?auto=format&fit=crop&w=800&q=80"
+  },
+  {
+    "id": "nyc-avant-garden",
+    "name": "Avant Garden",
+    "address": "130 E 7th St, New York, NY 10009",
+    "latitude": 40.7261,
+    "longitude": -73.984,
+    "websiteUrl": "https://www.avantgardennyc.com",
+    "mapUrl": "https://www.openstreetmap.org/?mlat=40.7261&mlon=-73.9840#map=17/40.7261/-73.9840",
+    "provider": "curated",
+    "cuisine": "contemporary",
+    "tags": [
+      "vegan",
+      "contemporary",
+      "wine_bar",
+      "fine_dining",
+      "featured"
+    ],
+    "isVegan": true,
+    "isFeatured": true,
+    "rating": 4.8,
+    "openingHours": "Mo-Su 17:00-23:00",
+    "imageUrl": "https://images.unsplash.com/photo-1512621776951-a57141f2eefd?auto=format&fit=crop&w=800&q=80"
+  },
+  {
+    "id": "nyc-le-botaniste",
+    "name": "Le Botaniste",
+    "address": "833 Lexington Ave, New York, NY 10065",
+    "latitude": 40.765,
+    "longitude": -73.966,
+    "websiteUrl": "https://lebotaniste.us",
+    "mapUrl": "https://www.openstreetmap.org/?mlat=40.7650&mlon=-73.9660#map=17/40.7650/-73.9660",
+    "provider": "curated",
+    "cuisine": "bowls",
+    "tags": [
+      "vegan",
+      "organic",
+      "gluten_free",
+      "wine_bar",
+      "featured"
+    ],
+    "isVegan": true,
+    "isFeatured": true,
+    "rating": 4.8,
+    "openingHours": "Mo-Su 11:00-21:00",
+    "imageUrl": "https://images.unsplash.com/photo-1546069901-ba9599a7e63c?auto=format&fit=crop&w=800&q=80"
+  }
+]

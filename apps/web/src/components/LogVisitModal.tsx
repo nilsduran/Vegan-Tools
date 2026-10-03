@@ -11,6 +11,7 @@ import { deleteVisitLog, saveVisitLog, type RestaurantVisitLog } from "../utils/
 import { submitRestaurantReview } from "../api";
 import { useAuth } from "../auth";
 import { tx, useLanguage } from "../i18n";
+import { useLifestyle } from "../lifestyle";
 import { LeafRating } from "./LeafRating";
 import { CATEGORY_FILTERS } from "./FilterPills";
 
@@ -46,6 +47,7 @@ export function LogVisitModal({
   menuDishes,
 }: LogVisitModalProps) {
   const { user, token } = useAuth();
+  const { lifestyle } = useLifestyle();
   const language = useLanguage();
   const todayStr = new Date().toISOString().slice(0, 10);
 
@@ -172,6 +174,7 @@ export function LogVisitModal({
           leavesScore: rating,
           comment: notes.trim(),
           userName: user.username || user.name || "Usuari",
+          userLifestyle: lifestyle,
           tags: selectedTags,
           photos,
         },
