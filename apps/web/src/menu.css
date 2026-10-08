@@ -649,7 +649,7 @@
   width: 100%;
   display: flex;
   flex-direction: column;
-  background: #f8faf8;
+  background: var(--bg-page);
 }
 
 .map-view-hero {
@@ -3061,8 +3061,8 @@
 .menu-url-section-card {
   margin-top: 1.25rem;
   padding: 1rem 1.15rem;
-  background: #f8fafc;
-  border: 1px dashed #cbd5e1;
+  background: var(--bg-card);
+  border: 1px dashed var(--line);
   border-radius: 0.75rem;
   display: flex;
   flex-direction: column;
@@ -3073,20 +3073,20 @@
   display: flex;
   align-items: center;
   gap: 0.45rem;
-  color: #475569;
+  color: var(--text-secondary);
 }
 
 .menu-url-header svg {
   width: 16px;
   height: 16px;
-  color: var(--green-dark, #065f46);
+  color: var(--green);
 }
 
 .menu-url-header h3 {
   font-size: 0.88rem;
   font-weight: 700;
   margin: 0;
-  color: #334155;
+  color: var(--text-primary);
 }
 
 .menu-url-form {
@@ -3098,16 +3098,17 @@
 .menu-url-form input {
   flex: 1;
   padding: 0.55rem 0.8rem;
-  border: 1px solid #cbd5e1;
+  border: 1px solid var(--line);
   border-radius: 0.5rem;
   font-size: 0.85rem;
-  background: #ffffff;
+  background: var(--bg-card);
+  color: var(--text-primary);
   min-width: 0;
 }
 
 .menu-url-form input:focus {
   outline: none;
-  border-color: #10b981;
+  border-color: var(--green);
   box-shadow: 0 0 0 3px rgba(16, 185, 129, 0.12);
 }
 
@@ -3137,8 +3138,8 @@
   /* Natural map rendering without artificial desaturation */
 }
 
-[data-theme="dark"] .map-fullscreen-canvas .leaflet-tile-pane {
-  /* Carto rastertiles/dark_all natively renders crisp dark tiles without destructive CSS filters */
+[data-theme="dark"] .map-tiles-osm .leaflet-tile-pane {
+  filter: brightness(0.65) invert(1) contrast(1.2) hue-rotate(180deg) saturate(0.4);
 }
 
 /* ==========================================================================

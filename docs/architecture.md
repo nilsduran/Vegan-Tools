@@ -220,7 +220,10 @@ flowchart LR
 - **Root Directory**: `/`
 - **Build Command**: `npm run build -w @vegan-tools/domain && npm run build -w @vegan-tools/web`
 - **Publish Directory**: `apps/web/dist`
-- **Environment**: `VITE_API_URL=https://vegan-tools-api.onrender.com`
+- **Environment Variables**:
+  - `VITE_API_URL=https://vegan-tools-api.onrender.com`
+  - `VITE_SUPABASE_URL=https://ictqmbgzaxmixhkazdce.supabase.co`
+  - `VITE_SUPABASE_ANON_KEY=<clau anon/publicable de Supabase>`
 - **SPA Rewrite**: `/*` → `/index.html`
 
 ### Backend (Render Web Service)

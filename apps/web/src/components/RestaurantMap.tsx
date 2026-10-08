@@ -407,6 +407,44 @@ function createUserLocationIcon() {
   });
 }
 
+function getBasemapConfig(isDark: boolean) {
+  const cartoKey = (import.meta.env.VITE_CARTO_API_KEY as string | undefined)?.trim();
+  const geoapifyKey = (import.meta.env.VITE_GEOAPIFY_API_KEY as string | undefined)?.trim();
+
+  if (cartoKey) {
+    return {
+      type: "carto",
+      url: isDark
+        ? `https://{s}.basemaps.cartocdn.com/rastertiles/dark_all/{z}/{x}/{y}{r}.png?api_key=${encodeURIComponent(cartoKey)}`
+        : `https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png?api_key=${encodeURIComponent(cartoKey)}`,
+      attribution:
+        '&copy; <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noreferrer">OpenStreetMap</a> contributors &copy; <a href="https://carto.com/attributions" target="_blank" rel="noreferrer">CARTO</a>',
+      subdomains: "abcd",
+    };
+  }
+
+  if (geoapifyKey) {
+    return {
+      type: "geoapify",
+      url: isDark
+        ? `https://maps.geoapify.com/v1/tile/dark-matter-dark-purple/{z}/{x}/{y}.png?apiKey=${encodeURIComponent(geoapifyKey)}`
+        : `https://maps.geoapify.com/v1/tile/osm-bright-smooth/{z}/{x}/{y}.png?apiKey=${encodeURIComponent(geoapifyKey)}`,
+      attribution:
+        'Powered by <a href="https://www.geoapify.com/" target="_blank">Geoapify</a> | &copy; <a href="https://www.openstreetmap.org/copyright" target="_blank">OpenStreetMap</a> contributors',
+      subdomains: "abcd",
+    };
+  }
+
+  // Official OpenStreetMap standard basemap (100% free, no API key required, zero watermarks)
+  return {
+    type: "osm",
+    url: "https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png",
+    attribution:
+      '&copy; <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noreferrer">OpenStreetMap</a> contributors',
+    subdomains: "abc",
+  };
+}
+
 export function RestaurantMap({
   restaurants,
   selectedRestaurant,
@@ -566,21 +604,17 @@ export function RestaurantMap({
       preferCanvas: true,
     });
 
-    // Basemap: Geoapify if key is provided, Carto if Carto key is provided, otherwise official OpenStreetMap.
-    // Includes an automatic fallback to standard OpenStreetMap so that if an adblocker or network blocks Geoapify/Carto,
-    // the map never renders blank or grey.
+    // Basemap: Carto if key is provided, Geoapify if key is provided, otherwise official OpenStreetMap (100% free, zero watermark).
     const isDark = effectiveTheme === "dark";
-    const cartoKey = (import.meta.env.VITE_CARTO_API_KEY as string | undefined)?.trim();
-    const keyParam = cartoKey ? `?key=${encodeURIComponent(cartoKey)}` : "";
+    const basemapConfig = getBasemapConfig(isDark);
 
-    const basemapConfig = {
-      url: isDark
-        ? `https://{s}.basemaps.cartocdn.com/rastertiles/dark_all/{z}/{x}/{y}{r}.png${keyParam}`
-        : `https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png${keyParam}`,
-      attribution:
-        '&copy; <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noreferrer">OpenStreetMap</a> contributors &copy; <a href="https://carto.com/attributions" target="_blank" rel="noreferrer">CARTO</a>',
-      subdomains: "abcd",
-    };
+    if (mapContainerRef.current) {
+      if (basemapConfig.type === "osm") {
+        mapContainerRef.current.classList.add("map-tiles-osm");
+      } else {
+        mapContainerRef.current.classList.remove("map-tiles-osm");
+      }
+    }
 
     const tileLayer = L.tileLayer(basemapConfig.url, {
       attribution: basemapConfig.attribution,
@@ -594,7 +628,7 @@ export function RestaurantMap({
     tileLayerRef.current = tileLayer;
 
     console.info(
-      `[RestaurantMap] Basemap active: CARTO (${isDark ? "dark_all" : "voyager"})`,
+      `[RestaurantMap] Basemap active: ${basemapConfig.type} (${isDark ? "dark" : "light"})`,
     );
 
     let hasFallenBackToOsm = false;
@@ -605,6 +639,7 @@ export function RestaurantMap({
         hasFallenBackToOsm = true;
         console.warn("[RestaurantMap] Provider tile error detected (adblocker/network/quota). Seamlessly falling back to OpenStreetMap.");
         tileLayerRef.current.setUrl("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png");
+        mapContainerRef.current?.classList.add("map-tiles-osm");
       }
     });
 
@@ -672,13 +707,16 @@ export function RestaurantMap({
   useEffect(() => {
     if (!tileLayerRef.current) return;
     const isDark = effectiveTheme === "dark";
-    const cartoKey = (import.meta.env.VITE_CARTO_API_KEY as string | undefined)?.trim();
-    const keyParam = cartoKey ? `?key=${encodeURIComponent(cartoKey)}` : "";
+    const basemapConfig = getBasemapConfig(isDark);
+    tileLayerRef.current.setUrl(basemapConfig.url);
 
-    const newUrl = isDark
-      ? `https://{s}.basemaps.cartocdn.com/rastertiles/dark_all/{z}/{x}/{y}{r}.png${keyParam}`
-      : `https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png${keyParam}`;
-    tileLayerRef.current.setUrl(newUrl);
+    if (mapContainerRef.current) {
+      if (basemapConfig.type === "osm") {
+        mapContainerRef.current.classList.add("map-tiles-osm");
+      } else {
+        mapContainerRef.current.classList.remove("map-tiles-osm");
+      }
+    }
   }, [effectiveTheme]);
 
   const initialLocatedRef = useRef(false);

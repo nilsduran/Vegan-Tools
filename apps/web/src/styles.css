@@ -4562,6 +4562,21 @@ button:disabled { cursor: not-allowed; opacity: .55; }
   color: var(--text-secondary) !important;
 }
 
+[data-theme="dark"] .menu-url-section-card {
+  background: var(--bg-card) !important;
+  border-color: var(--line) !important;
+}
+
+[data-theme="dark"] .menu-url-header h3 {
+  color: var(--text-primary) !important;
+}
+
+[data-theme="dark"] .menu-url-form input {
+  background: var(--bg-card) !important;
+  border-color: var(--line) !important;
+  color: var(--text-primary) !important;
+}
+
 [data-theme="dark"] .restaurant-search {
   background: var(--bg-card) !important;
   border-color: var(--line) !important;

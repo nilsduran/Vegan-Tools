@@ -9,6 +9,7 @@ import { createClient, type SupabaseClient, type User, type Session } from "@sup
 import { normalizeUsername, validateUsername } from "@vegan-tools/domain";
 import { generateSafeUUID } from "./utils/uuid";
 import { tx } from "./i18n";
+import { refreshTheme } from "./theme";
 
 export interface AuthUser {
   id: string;
@@ -44,7 +45,10 @@ export interface AuthContextValue {
 
 const AuthContext = createContext<AuthContextValue | null>(null);
 
-const supabaseUrl = (import.meta.env.VITE_SUPABASE_URL as string | undefined)?.trim();
+const supabaseUrl = (
+  (import.meta.env.VITE_SUPABASE_URL as string | undefined)?.trim() ||
+  "https://ictqmbgzaxmixhkazdce.supabase.co"
+);
 const supabaseKey = (
   (import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY as string | undefined) ||
   (import.meta.env.VITE_SUPABASE_ANON_KEY as string | undefined)
@@ -120,6 +124,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [session, setSession] = useState<Session | null>(null);
   const [token, setToken] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
+
+  // Synchronize visual theme when authentication state changes
+  useEffect(() => {
+    refreshTheme();
+  }, [user]);
 
   // Initialize Supabase session or restore persistent user session from localStorage
   useEffect(() => {

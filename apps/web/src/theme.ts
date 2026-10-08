@@ -21,23 +21,53 @@ function getSystemTheme(): EffectiveTheme {
   }
 }
 
+export function hasUserProfile(): boolean {
+  if (typeof localStorage === "undefined") return false;
+  try {
+    const session = localStorage.getItem("vegan_tools_auth_session");
+    if (session) {
+      const parsed = JSON.parse(session);
+      if (parsed?.user?.id) return true;
+    }
+    for (let i = 0; i < localStorage.length; i++) {
+      const key = localStorage.key(i);
+      if (key && key.startsWith("sb-") && key.endsWith("-auth-token")) {
+        const val = localStorage.getItem(key);
+        if (val) {
+          const parsed = JSON.parse(val);
+          if (parsed?.user?.id || parsed?.access_token) return true;
+        }
+      }
+    }
+  } catch {
+    return false;
+  }
+  return false;
+}
+
 function getStoredTheme(): ThemeMode {
-  if (typeof localStorage === "undefined") return "system";
+  if (typeof localStorage === "undefined") return "light";
   try {
     const stored = localStorage.getItem(THEME_STORAGE_KEY);
     if (stored === "light" || stored === "dark" || stored === "system") {
       return stored;
     }
   } catch {
-    return "system";
+    return "light";
   }
-  return "system";
+  return "light";
 }
 
 let currentTheme: ThemeMode = getStoredTheme();
 const themeListeners = new Set<() => void>();
 
 export function getEffectiveTheme(theme: ThemeMode = currentTheme): EffectiveTheme {
+  // Without a user profile, default strictly to light mode and never infer dark mode from OS
+  if (!hasUserProfile()) {
+    if (theme === "dark") return "dark";
+    return "light";
+  }
+
   if (theme === "system") {
     return getSystemTheme();
   }
@@ -51,6 +81,11 @@ function applyThemeToDocument(theme: ThemeMode) {
   if (document.documentElement.style) {
     document.documentElement.style.colorScheme = effective;
   }
+}
+
+export function refreshTheme() {
+  applyThemeToDocument(currentTheme);
+  themeListeners.forEach((listener) => listener());
 }
 
 // Initial application
