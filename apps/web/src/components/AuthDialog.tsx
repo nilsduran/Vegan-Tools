@@ -218,12 +218,12 @@ export function AuthDialog({
                   type="button"
                   className="auth-localhost-btn"
                   onClick={() => {
-                    loginWithUsername("nils");
+                    loginWithUsername("tester_local");
                     onSuccess?.();
                     onClose();
                   }}
                 >
-                  ⚡ {tx("Log in as")} <strong>nils</strong>
+                  ⚡ {tx("Log in as")} <strong>tester_local</strong>
                 </button>
                 <button
                   type="button"
@@ -289,7 +289,7 @@ export function AuthDialog({
                 required
                 value={username}
                 onChange={(e) => setUsername(e.target.value.toLowerCase().replace(/[^a-z0-9_.-]/g, ""))}
-                placeholder="nom_usuari (ex: carla_vegan)"
+                placeholder={tx("username (e.g. carla_vegan)")}
                 minLength={3}
                 maxLength={25}
               />
@@ -307,7 +307,7 @@ export function AuthDialog({
               required
               value={email}
               onChange={(e) => setEmail(e.target.value)}
-              placeholder="tu@exemple.cat"
+              placeholder={tx("you@example.com")}
             />
           </div>
 

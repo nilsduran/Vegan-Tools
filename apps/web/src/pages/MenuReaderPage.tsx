@@ -26,6 +26,7 @@ import {
   LoaderCircle,
   MapPin,
   Navigation,
+  PlusCircle,
   Search,
   Upload,
   Utensils,
@@ -43,6 +44,7 @@ import {
   resolveRestaurant,
   searchRestaurants,
 } from "../api";
+import { AddRestaurantModal } from "../components/AddRestaurantModal";
 import { MenuEditor } from "../components/MenuEditor";
 import { RestaurantDetailPane } from "../components/RestaurantDetailPane";
 import { RestaurantMap, getCuisineIcon } from "../components/RestaurantMap";
@@ -53,6 +55,7 @@ import { t, tx, useLanguage } from "../i18n";
 import { useDocumentHead } from "../utils/seo";
 import { getDirectionsUrl } from "../utils/navigation";
 import { formatDistance } from "../utils/distance";
+import { getCustomRestaurants } from "../utils/restaurantCache";
 import { generateSafeUUID } from "../utils/uuid";
 
 function newSearchSessionToken() {
@@ -113,6 +116,7 @@ export function MenuReaderPage() {
   const [websiteUrlInput, setWebsiteUrlInput] = useState("");
   const [submittingUrl, setSubmittingUrl] = useState(false);
   const [fileLimitWarning, setFileLimitWarning] = useState(false);
+  const [isAddRestaurantOpen, setIsAddRestaurantOpen] = useState(false);
 
   const draftId = draft?.id;
   const editToken = draft?.editToken;
@@ -328,11 +332,16 @@ export function MenuReaderPage() {
           signal: controller.signal,
         });
         if (!controller.signal.aborted) {
+          const customMatches = getCustomRestaurants().filter((c) =>
+            c.name.toLowerCase().includes(query.toLowerCase()) ||
+            (c.address && c.address.toLowerCase().includes(query.toLowerCase())),
+          );
           const safe = Array.isArray(results) ? results : [];
-          setRestaurantResults(safe);
-          if (safe.length === 0) {
+          const merged = [...customMatches.filter((cm) => !safe.some((s) => s.id === cm.id)), ...safe];
+          setRestaurantResults(merged);
+          if (merged.length === 0) {
             setRestaurantError(tx("No matching restaurant was found. Try adding a city or area."));
-            setSheetSnapPoint("collapsed");
+            setSheetSnapPoint("half");
           } else {
             setRestaurantError("");
             setSheetSnapPoint("half");
@@ -340,7 +349,17 @@ export function MenuReaderPage() {
         }
       } catch {
         if (!controller.signal.aborted) {
-          setRestaurantResults([]);
+          const customMatches = getCustomRestaurants().filter((c) =>
+            c.name.toLowerCase().includes(query.toLowerCase()) ||
+            (c.address && c.address.toLowerCase().includes(query.toLowerCase())),
+          );
+          setRestaurantResults(customMatches);
+          if (customMatches.length === 0) {
+            setRestaurantError(tx("No matching restaurant was found. Try adding a city or area."));
+          } else {
+            setRestaurantError("");
+          }
+          setSheetSnapPoint("half");
         }
       } finally {
         if (!controller.signal.aborted) {
@@ -370,19 +389,32 @@ export function MenuReaderPage() {
         latitude: userCoords?.lat ?? approximateLocation?.latitude,
         longitude: userCoords?.lng ?? approximateLocation?.longitude,
       });
+      const customMatches = getCustomRestaurants().filter((c) =>
+        c.name.toLowerCase().includes(query.toLowerCase()) ||
+        (c.address && c.address.toLowerCase().includes(query.toLowerCase())),
+      );
       const safe = Array.isArray(results) ? results : [];
-      setRestaurantResults(safe);
-      if (safe.length === 0) {
+      const merged = [...customMatches.filter((cm) => !safe.some((s) => s.id === cm.id)), ...safe];
+      setRestaurantResults(merged);
+      if (merged.length === 0) {
         setRestaurantError(tx("No matching restaurant was found. Try adding a city or area."));
-        setSheetSnapPoint("collapsed");
+        setSheetSnapPoint("half");
       } else {
         setRestaurantError("");
         setSheetSnapPoint("half");
       }
     } catch {
-      setRestaurantResults([]);
-      setRestaurantError(tx("Restaurant search failed."));
-      setSheetSnapPoint("collapsed");
+      const customMatches = getCustomRestaurants().filter((c) =>
+        c.name.toLowerCase().includes(query.toLowerCase()) ||
+        (c.address && c.address.toLowerCase().includes(query.toLowerCase())),
+      );
+      setRestaurantResults(customMatches);
+      if (customMatches.length === 0) {
+        setRestaurantError(tx("Restaurant search failed."));
+      } else {
+        setRestaurantError("");
+      }
+      setSheetSnapPoint("half");
     } finally {
       setSearchingRestaurants(false);
     }
@@ -432,7 +464,7 @@ export function MenuReaderPage() {
   useEffect(() => {
     if (!draftId || !editToken || !draftStatus || draftStatus !== "processing") return;
     let pollCount = 0;
-    const maxPolls = 20; // Max 40 seconds before transitioning to manual upload fallback
+    const maxPolls = 45; // Max 90 seconds before transitioning to manual upload fallback
 
     const interval = window.setInterval(async () => {
       pollCount++;
@@ -595,20 +627,23 @@ export function MenuReaderPage() {
             <form
               onSubmit={async (e) => {
                 e.preventDefault();
-                const url = websiteUrlInput.trim();
-                if (!url) return;
+                const raw = websiteUrlInput.trim();
+                if (!raw) return;
+                const url = !/^https?:\/\//i.test(raw) ? `https://${raw}` : raw;
                 setSubmittingUrl(true);
                 setError("");
                 try {
                   const res = await discoverMenuByUrl(url, selectedRestaurant?.name);
-                  if (res && res.sections && res.sections.length > 0) {
-                    setLoadedFromCache(false);
+                  if (res && (res.status === "processing" || (res.sections && res.sections.length > 0))) {
+                    setLoadedFromCache(res.status === "ready");
                     setDraft(res);
                   } else {
                     setError(
-                      tx(
-                        "The website menu was found, but no dishes could be extracted. Upload the PDF or menu photos instead.",
-                      ),
+                      res?.error
+                        ? tx(res.error)
+                        : tx(
+                            "The website menu was found, but no dishes could be extracted. Upload the PDF or menu photos instead.",
+                          ),
                     );
                   }
                 } catch (urlErr) {
@@ -624,10 +659,14 @@ export function MenuReaderPage() {
               style={{ display: "flex", gap: "0.5rem" }}
             >
               <input
-                type="url"
+                type="text"
+                inputMode="url"
+                autoCapitalize="none"
+                autoCorrect="off"
+                spellCheck={false}
                 value={websiteUrlInput}
                 onChange={(e) => setWebsiteUrlInput(e.target.value)}
-                placeholder="https://..."
+                placeholder="restaurant.com / https://..."
                 required
                 style={{
                   flex: 1,
@@ -736,14 +775,20 @@ export function MenuReaderPage() {
     setSubmittingUrl(true);
     try {
       const discoveredDraft = await discoverMenuByUrl(urlToFetch, selectedRestaurant?.name);
-      if (discoveredDraft && discoveredDraft.sections && discoveredDraft.sections.length > 0) {
-        setLoadedFromCache(false);
+      if (
+        discoveredDraft &&
+        (discoveredDraft.status === "processing" ||
+          (discoveredDraft.sections && discoveredDraft.sections.length > 0))
+      ) {
+        setLoadedFromCache(discoveredDraft.status === "ready");
         setDraft(discoveredDraft);
       } else {
         setError(
-          tx(
-            "The website menu was found, but no dishes could be extracted. Upload the PDF or menu photos instead.",
-          ),
+          discoveredDraft?.error
+            ? tx(discoveredDraft.error)
+            : tx(
+                "The website menu was found, but no dishes could be extracted. Upload the PDF or menu photos instead.",
+              ),
         );
       }
     } catch (err) {
@@ -757,6 +802,8 @@ export function MenuReaderPage() {
     }
   };
 
+  const customPins = getCustomRestaurants();
+  const filteredCustom = filterRestaurants(customPins, activeFilters);
   const filteredResults = filterRestaurants(restaurantResults, activeFilters);
   const filteredCurated = filterRestaurants(curatedPins, activeFilters);
   const baseDisplayedRestaurants =
@@ -766,8 +813,12 @@ export function MenuReaderPage() {
           ...filteredCurated.filter(
             (c) => c.isFeatured && !filteredResults.some((r) => r.id === c.id),
           ),
+          ...filteredCustom.filter((c) => !filteredResults.some((r) => r.id === c.id)),
         ]
-      : filteredCurated;
+      : [
+          ...filteredCustom,
+          ...filteredCurated.filter((c) => !filteredCustom.some((fc) => fc.id === c.id)),
+        ];
   const displayedMapRestaurants =
     selectedRestaurant && !baseDisplayedRestaurants.some((r) => r.id === selectedRestaurant.id)
       ? [selectedRestaurant, ...baseDisplayedRestaurants]
@@ -786,8 +837,8 @@ export function MenuReaderPage() {
         <BottomSheet
           snapPoint={sheetSnapPoint}
           onSnapChange={setSheetSnapPoint}
-          isCompact={!selectedRestaurant && filteredResults.length === 0}
-          allowDrag={Boolean(selectedRestaurant || filteredResults.length > 0 || searchingRestaurants || searchSubmitted)}
+          isCompact={!selectedRestaurant && filteredResults.length === 0 && !restaurantQuery.trim() && !searchSubmitted}
+          allowDrag={Boolean(selectedRestaurant || filteredResults.length > 0 || searchingRestaurants || searchSubmitted || restaurantQuery.trim().length >= 2)}
           className={selectedRestaurant && filteredResults.length > 0 ? "has-split-pane" : ""}
           ariaLabel={tx("Search restaurants")}
           header={
@@ -843,13 +894,37 @@ export function MenuReaderPage() {
                 }}
               />
 
-              {restaurantError && <div className="sidebar-error error-banner">{tx(restaurantError)}</div>}
+              {restaurantError && filteredResults.length > 0 && (
+                <div className="sidebar-error error-banner">{tx(restaurantError)}</div>
+              )}
             </div>
           }
         >
           {(() => {
             const resultsListSource = filteredResults;
             if (!selectedRestaurant && resultsListSource.length === 0) {
+              if (restaurantQuery.trim().length >= 2 || searchSubmitted) {
+                return (
+                  <div className="sidebar-empty-state" style={{ padding: "1.75rem 1rem", textAlign: "center" }}>
+                    <div style={{ fontSize: "2rem", marginBottom: "0.5rem" }}>🍽️</div>
+                    <p style={{ fontWeight: 600, margin: "0 0 0.35rem", fontSize: "1rem", color: "var(--text)" }}>
+                      {tx("No matching restaurant was found. Try adding a city or area.")}
+                    </p>
+                    <p style={{ color: "var(--muted)", fontSize: "0.88rem", margin: "0 0 1.25rem" }}>
+                      {tx("Can't find your restaurant? Add it")}
+                    </p>
+                    <button
+                      type="button"
+                      className="primary-button"
+                      onClick={() => setIsAddRestaurantOpen(true)}
+                      style={{ margin: "0 auto", fontSize: "0.92rem", padding: "0.6rem 1.2rem", display: "inline-flex", alignItems: "center", gap: "0.5rem" }}
+                    >
+                      <PlusCircle size={16} aria-hidden="true" />
+                      <span>{tx("Add restaurant manually")}</span>
+                    </button>
+                  </div>
+                );
+              }
               return null;
             }
 
@@ -938,6 +1013,27 @@ export function MenuReaderPage() {
                         </li>
                       );
                     })}
+                    <li
+                      className="clickable add-restaurant-prompt-item"
+                      onClick={() => setIsAddRestaurantOpen(true)}
+                      style={{
+                        borderTop: "1px dashed var(--line, #cbd5e1)",
+                        marginTop: "0.75rem",
+                        padding: "0.85rem 0.5rem",
+                        textAlign: "center",
+                        color: "var(--green, #047857)",
+                        fontWeight: 600,
+                        fontSize: "0.88rem",
+                        display: "flex",
+                        alignItems: "center",
+                        justifyContent: "center",
+                        gap: "0.45rem",
+                        background: "transparent",
+                      }}
+                    >
+                      <PlusCircle size={16} aria-hidden="true" />
+                      <span>{tx("Don't see what you're looking for? Add restaurant manually")}</span>
+                    </li>
                   </ul>
                 ) : null}
               </div>
@@ -1149,6 +1245,34 @@ export function MenuReaderPage() {
       </section>
 
       {(error || draft?.error) && <div className="error-banner">{error || draft?.error}</div>}
+
+      <AddRestaurantModal
+        isOpen={isAddRestaurantOpen}
+        onClose={() => setIsAddRestaurantOpen(false)}
+        initialName={restaurantQuery.trim()}
+        userCoords={
+          userCoords ||
+          (approximateLocation
+            ? { lat: approximateLocation.latitude, lng: approximateLocation.longitude }
+            : undefined)
+        }
+        onRestaurantCreated={(newRestaurant) => {
+          setRestaurantResults((prev) => [
+            newRestaurant,
+            ...prev.filter((r) => r.id !== newRestaurant.id),
+          ]);
+          handleSelectRestaurant(newRestaurant);
+          setMapCenterTarget({
+            lat: newRestaurant.latitude,
+            lng: newRestaurant.longitude,
+            zoom: 16,
+          });
+          setSheetSnapPoint("half");
+          if (newRestaurant.websiteUrl) {
+            void selectRestaurant(newRestaurant);
+          }
+        }}
+      />
     </div>
   );
 }

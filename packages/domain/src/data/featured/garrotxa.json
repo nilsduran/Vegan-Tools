@@ -1,0 +1,19 @@
+[
+  {
+    "id": "featured-garrotxa-madonna-vegan-besalu",
+    "name": "Madonna Vegan Besalú",
+    "address": "Carrer del Pont Vell, 13, 17850 Besalú",
+    "latitude": 42.1993,
+    "longitude": 2.6998,
+    "websiteUrl": "https://madonnavegan.com",
+    "mapUrl": "https://www.openstreetmap.org/?mlat=42.1993&mlon=2.6998#map=17/42.1993/2.6998",
+    "provider": "curated",
+    "cuisine": "ice_cream",
+    "tags": ["vegan", "ice_cream", "desserts", "gluten_free", "artisan_gelato", "featured"],
+    "isVegan": true,
+    "isFeatured": true,
+    "rating": 4.8,
+    "openingHours": "Tu-Su 11:30-20:30",
+    "imageUrl": "https://images.unsplash.com/photo-1560008511-11c63416e52d?auto=format&fit=crop&w=800&q=80"
+  }
+]

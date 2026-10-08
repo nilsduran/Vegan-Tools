@@ -1,0 +1,19 @@
+[
+  {
+    "id": "featured-maresme-madonna-vegan",
+    "name": "Madonna Vegan Mataró",
+    "address": "Carrer de la Rambla, 28, 08302 Mataró",
+    "latitude": 41.5385,
+    "longitude": 2.4445,
+    "websiteUrl": "https://madonnavegan.com",
+    "mapUrl": "https://www.openstreetmap.org/?mlat=41.5385&mlon=2.4445#map=17/41.5385/2.4445",
+    "provider": "curated",
+    "cuisine": "ice_cream",
+    "tags": ["vegan", "ice_cream", "desserts", "gluten_free", "artisan_gelato", "featured"],
+    "isVegan": true,
+    "isFeatured": true,
+    "rating": 4.8,
+    "openingHours": "Tu-Su 13:00-21:00",
+    "imageUrl": "https://images.unsplash.com/photo-1501443762994-82bd5dace89a?auto=format&fit=crop&w=800&q=80"
+  }
+]

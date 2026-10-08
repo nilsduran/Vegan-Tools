@@ -224,7 +224,7 @@ export function ProductScannerPage() {
         </p>
       </header>
 
-      {!routeGtin && <div className="mode-tabs" role="tablist" aria-label="Product check method">
+      {!routeGtin && <div className="mode-tabs" role="tablist" aria-label={tx("Product check method")}>
         <button
           type="button"
           role="tab"
@@ -246,7 +246,7 @@ export function ProductScannerPage() {
       </div>}
 
       {mode === "barcode" && (
-        <section className="checker-panel" aria-label="Barcode checker">
+        <section className="checker-panel" aria-label={tx("Barcode checker")}>
           {!routeGtin && <BarcodeCamera onDetected={runLookup} />}
 
           {!routeGtin && <form
@@ -516,7 +516,7 @@ export function ProductScannerPage() {
       )}
 
       {mode === "ingredients" && (
-        <section className="checker-panel" aria-label="Ingredient checker">
+        <section className="checker-panel" aria-label={tx("Ingredient checker")}>
           <p className="checker-intro">
             {tx("Take a clear photo of the full ingredient label, then correct the extracted text before checking it.")}
           </p>
@@ -582,7 +582,7 @@ export function ProductScannerPage() {
               id="ingredients-text"
               value={ingredientsText}
               onChange={(event) => setIngredientsText(event.target.value)}
-              placeholder="Ingredients: cocoa mass, sugar, cocoa butter… May contain milk."
+              placeholder={tx("Ingredients: cocoa mass, sugar, cocoa butter… May contain milk.")}
               rows={9}
             />
             <button

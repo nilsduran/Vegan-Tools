@@ -26,7 +26,7 @@ export const safeMenuAgent = new Agent({
           if (valid.length === 0) {
             cb(new Error("The restaurant website does not resolve to a public address."), "", 4);
           } else if (opts.all) {
-            cb(null, valid, 4);
+            cb(null, valid);
           } else {
             const first = valid[0]!;
             cb(null, first.address, first.family);
@@ -55,7 +55,8 @@ export interface MenuDiscoverer {
 
 export class WebsiteMenuDiscoverer implements MenuDiscoverer {
   async discover(websiteUrl: string): Promise<DiscoveredMenu> {
-    const homepage = await downloadPublicUrl(new URL(websiteUrl));
+    const raw = !/^https?:\/\//i.test(websiteUrl.trim()) ? `https://${websiteUrl.trim()}` : websiteUrl.trim();
+    const homepage = await downloadPublicUrl(new URL(raw));
     if (homepage.mimetype === "application/pdf") {
       return pdfUpload(homepage.url, homepage.buffer);
     }
@@ -64,12 +65,32 @@ export class WebsiteMenuDiscoverer implements MenuDiscoverer {
     }
 
     const html = homepage.buffer.toString("utf8");
+    const homepageText = extractVisibleText(html);
+    const homepageScore = scoreMenuText(homepageText);
+
+    // If the initial URL is already a rich menu (score >= 20) or explicit menu page with dishes (score >= 10),
+    // return immediately without crawling dozens of secondary pages.
+    if (
+      homepageScore >= 20 ||
+      (homepage.url.pathname.match(/\b(carta|menu|la-carta|menus|plats|platos)\b/i) && homepageScore >= 10)
+    ) {
+      return {
+        upload: {
+          filename: "restaurant-menu.txt",
+          mimetype: "text/plain",
+          buffer: Buffer.from(`Source: ${homepage.url.toString()}\n\n${homepageText}`, "utf8"),
+        },
+        sourceUrl: homepage.url.toString(),
+        openingHours: extractOpeningHoursFromHtml(html),
+      };
+    }
+
     const pages: DownloadedPage[] = [];
     const discoveredLinks = extractMenuLinks(html, homepage.url);
     const prospectivePaths = [
-      "/menu",
-      "/carta",
       "/la-carta",
+      "/carta",
+      "/menu",
       "/menus",
       "/la-carte",
       "/plats",
@@ -92,6 +113,8 @@ export class WebsiteMenuDiscoverer implements MenuDiscoverer {
       .slice(0, 12)
       .map((url) => ({ url, depth: 1 }));
     const visited = new Set([homepage.url.toString()]);
+    let bestCandidate: { page: DownloadedPage; text: string; score: number } | undefined;
+
     while (queue.length > 0 && visited.size <= 16) {
       const candidate = queue.shift();
       if (!candidate || visited.has(candidate.url.toString())) continue;
@@ -101,12 +124,25 @@ export class WebsiteMenuDiscoverer implements MenuDiscoverer {
         if (page.mimetype === "application/pdf") return pdfUpload(page.url, page.buffer);
         if (page.mimetype.includes("html")) {
           pages.push(page);
+          const pageText = extractVisibleText(page.buffer.toString("utf8"));
+          const pageScore = scoreMenuText(pageText);
+          if (!bestCandidate || pageScore > bestCandidate.score) {
+            bestCandidate = { page, text: pageText, score: pageScore };
+          }
+          // Early exit if candidate page is a rich menu
+          if (
+            pageScore >= 20 ||
+            (candidate.url.pathname.match(/\b(carta|menu|la-carta|menus)\b/i) && pageScore >= 10)
+          ) {
+            break;
+          }
           if (candidate.depth < 2) {
             const nestedLinks = extractMenuLinks(
               page.buffer.toString("utf8"),
               page.url,
             ).slice(0, 8);
-            queue.push(...nestedLinks.map((url) => ({
+            // Prioritize links discovered from real pages over blind prospective guesses
+            queue.unshift(...nestedLinks.map((url) => ({
               url,
               depth: candidate.depth + 1,
             })));
@@ -128,13 +164,11 @@ export class WebsiteMenuDiscoverer implements MenuDiscoverer {
       }
     }
 
-    const best = htmlPages
-      .map((page) => ({
-        page,
-        text: extractVisibleText(page.buffer.toString("utf8")),
-      }))
-      .sort((left, right) => scoreMenuText(right.text) - scoreMenuText(left.text))[0];
-    if (!best || best.text.length < 80 || scoreMenuText(best.text) < 1) {
+    const best = bestCandidate && bestCandidate.score >= homepageScore
+      ? bestCandidate
+      : { page: homepage, text: homepageText, score: homepageScore };
+
+    if (!best || (best.text.length < 80 && best.score < 5) || best.score < 1) {
       throw new Error(
         "No readable menu page or PDF was found on the restaurant website. Upload the menu instead.",
       );
@@ -160,7 +194,7 @@ interface DownloadedPage {
 async function downloadPublicUrl(initialUrl: URL): Promise<DownloadedPage> {
   let url = initialUrl;
   for (let redirects = 0; redirects <= 3; redirects += 1) {
-    await assertPublicUrl(url);
+    url = await assertPublicUrl(url);
     const response = await fetch(url, {
       dispatcher: safeMenuAgent,
       redirect: "manual",
@@ -190,11 +224,11 @@ async function downloadPublicUrl(initialUrl: URL): Promise<DownloadedPage> {
   throw new Error("The restaurant website redirected too many times.");
 }
 
-async function assertPublicUrl(url: URL) {
+async function assertPublicUrl(url: URL): Promise<URL> {
   if (!["http:", "https:"].includes(url.protocol) || url.username || url.password) {
     throw new Error("Only public HTTP or HTTPS restaurant websites are supported.");
   }
-  const hostname = url.hostname.toLowerCase();
+  let hostname = url.hostname.toLowerCase();
   if (hostname === "localhost" || hostname.endsWith(".local")) {
     throw new Error("Local network addresses are not allowed.");
   }
@@ -202,13 +236,23 @@ async function assertPublicUrl(url: URL) {
   try {
     addresses = await lookup(hostname, { all: true });
   } catch {
-    throw new Error(
-      "That website address could not be reached. Try the official website or upload menu photos.",
-    );
+    const toggled = hostname.startsWith("www.") ? hostname.slice(4) : `www.${hostname}`;
+    try {
+      addresses = await lookup(toggled, { all: true });
+      const nextUrl = new URL(url.toString());
+      nextUrl.hostname = toggled;
+      url = nextUrl;
+      hostname = toggled;
+    } catch {
+      throw new Error(
+        "That website address could not be reached. Try the official website or upload menu photos.",
+      );
+    }
   }
   if (addresses.length === 0 || addresses.some(({ address }) => isPrivateAddress(address))) {
     throw new Error("The restaurant website does not resolve to a public address.");
   }
+  return url;
 }
 
 function isPrivateAddress(address: string) {
@@ -283,6 +327,14 @@ function extractMenuLinks(html: string, baseUrl: URL) {
   for (const match of html.matchAll(directPdfPattern)) {
     addLink(match[1] ?? "", "pdf menu", 15);
   }
+
+  // Links inside scripts/JSON (SPAs, modern frameworks)
+  const scriptLinkPattern = /"(?:href|url|path|link|slug)"\s*:\s*"([^"]+)"/gi;
+  for (const match of html.matchAll(scriptLinkPattern)) {
+    const raw = (match[1] ?? "").replace(/\\\//g, "/");
+    addLink(raw, "script link", 5);
+  }
+
   return [...new Map(
     links
       .sort((a, b) => b.score - a.score)
@@ -291,12 +343,58 @@ function extractMenuLinks(html: string, baseUrl: URL) {
 }
 
 function extractVisibleText(html: string) {
-  return decodeEntities(
+  const strippedText = decodeEntities(
     html
       .replace(/<(script|style|svg|noscript|template)\b[\s\S]*?<\/\1>/gi, " ")
       .replace(/<(br|\/p|\/li|\/div|\/h[1-6]|\/tr)>/gi, "\n")
       .replace(/<[^>]+>/g, " "),
-  )
+  );
+
+  // Extract text from embedded scripts (e.g. JSON state in SPAs, Handlebars, Next.js __NEXT_DATA__, Nuxt, schema.org)
+  const scriptRegex = /<script\b[^>]*>([\s\S]*?)<\/script>/gi;
+  const scriptChunks: string[] = [];
+  for (const match of html.matchAll(scriptRegex)) {
+    const content = match[1];
+    if (!content || content.length < 50) continue;
+    if (
+      /(?:menu|carta|plat|food|dish|primer|segund|postre|arroc|paella|tapas|starters|mains|desserts|handlebarOptions|__NEXT_DATA__|__NUXT__|schema\.org)/i.test(
+        content,
+      )
+    ) {
+      const strRegex = /"((?:[^"\\]|\\.)*)"|'((?:[^'\\]|\\.)*)'/g;
+      for (const sm of content.matchAll(strRegex)) {
+        let str = sm[1] ?? sm[2] ?? "";
+        if (str.length < 5) continue;
+        if (str.startsWith("http://") || str.startsWith("https://") || str.startsWith("data:")) {
+          continue;
+        }
+        str = decodeEntities(
+          unescapeUnicode(
+            str
+              .replace(/\\n/g, "\n")
+              .replace(/\\t/g, " ")
+              .replace(/\\"/g, '"')
+              .replace(/\\'/g, "'")
+              .replace(/\\\//g, "/"),
+          ),
+        );
+        if (/<(?:p|li|h[1-6]|div|span|b|strong|u|br)\b/i.test(str)) {
+          const cleanFragment = str
+            .replace(/<(br|\/p|\/li|\/div|\/h[1-6]|\/tr)>/gi, "\n")
+            .replace(/<[^>]+>/g, " ");
+          scriptChunks.push(cleanFragment);
+        } else if (
+          /(?:€|\b\d+[,.]\d{2}\b|arroces|primeros|segundos|postres|paella|bacalao|pulpo|carpaccio|crema|ensalada|tapas)/i.test(
+            str,
+          )
+        ) {
+          scriptChunks.push(str);
+        }
+      }
+    }
+  }
+
+  return (strippedText + "\n" + scriptChunks.join("\n"))
     .replace(/[ \t]+/g, " ")
     .replace(/\n\s*\n+/g, "\n")
     .trim()
@@ -392,4 +490,10 @@ function decodeEntities(value: string) {
     .replace(/&lt;/gi, "<")
     .replace(/&gt;/gi, ">")
     .replace(/&nbsp;/gi, " ");
+}
+
+function unescapeUnicode(str: string): string {
+  return str.replace(/\\u([0-9a-fA-F]{4})/g, (_, hex) =>
+    String.fromCharCode(parseInt(hex, 16)),
+  );
 }

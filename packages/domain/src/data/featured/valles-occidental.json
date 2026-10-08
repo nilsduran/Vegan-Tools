@@ -1,0 +1,35 @@
+[
+  {
+    "id": "valles-vegan-family",
+    "name": "Vegan Famíly",
+    "address": "Carrer de Colom, 341, 08223 Terrassa",
+    "latitude": 41.5540,
+    "longitude": 2.0230,
+    "mapUrl": "https://www.openstreetmap.org/?mlat=41.5540&mlon=2.0230#map=17/41.5540/2.0230",
+    "provider": "curated",
+    "cuisine": "comfort_food",
+    "tags": ["vegan", "comfort_food", "takeaway", "organic", "catalan", "featured"],
+    "isVegan": true,
+    "isFeatured": true,
+    "rating": 4.8,
+    "openingHours": "Tu-Sa 11:30-16:00",
+    "imageUrl": "https://images.unsplash.com/photo-1540420773420-3366772f4999?auto=format&fit=crop&w=800&q=80"
+  },
+  {
+    "id": "valles-greta-sant-cugat",
+    "name": "Greta - Mercantic",
+    "address": "Avinguda de Rius i Taulet, 120, 08173 Sant Cugat del Vallès",
+    "latitude": 41.4745,
+    "longitude": 2.0718,
+    "websiteUrl": "https://www.restaurantgreta.com",
+    "mapUrl": "https://www.openstreetmap.org/?mlat=41.4745&mlon=2.0718#map=17/41.4745/2.0718",
+    "provider": "curated",
+    "cuisine": "mediterranean",
+    "tags": ["vegan", "mediterranean", "gluten_free", "catalan", "featured"],
+    "isVegan": true,
+    "isFeatured": true,
+    "rating": 4.8,
+    "openingHours": "We-Su 13:00-16:00, 20:00-23:30",
+    "imageUrl": "https://images.unsplash.com/photo-1512621776951-a57141f2eefd?auto=format&fit=crop&w=800&q=80"
+  }
+]

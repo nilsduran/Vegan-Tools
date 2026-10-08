@@ -353,7 +353,7 @@ export function RecipeVeganizerPage() {
       </header>
 
       {/* Primary Section Tabs */}
-      <nav className="recipe-tabs" aria-label="Section tabs">
+      <nav className="recipe-tabs" aria-label={tx("Section tabs")}>
         <button
           type="button"
           className={`recipe-tab-btn ${activeTab === "cookbook" ? "active" : ""}`}
@@ -392,14 +392,14 @@ export function RecipeVeganizerPage() {
                   type="button"
                   className="clear-search-btn"
                   onClick={() => setSearchQuery("")}
-                  aria-label="Clear search"
+                  aria-label={tx("Clear search")}
                 >
                   <ClearIcon size={16} aria-hidden="true" />
                 </button>
               )}
             </div>
 
-            <div className="recipe-categories-bar" role="toolbar" aria-label="Categories">
+            <div className="recipe-categories-bar" role="toolbar" aria-label={tx("Categories")}>
               {categories.map((cat) => (
                 <button
                   key={cat.id}

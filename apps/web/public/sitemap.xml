@@ -66,7 +66,67 @@
     <priority>0.7</priority>
   </url>
   <url>
+    <loc>https://vegantools.org/restaurant/ber-cat-tuong</loc>
+    <changefreq>weekly</changefreq>
+    <priority>0.7</priority>
+  </url>
+  <url>
+    <loc>https://vegantools.org/restaurant/ber-chay-viet</loc>
+    <changefreq>weekly</changefreq>
+    <priority>0.7</priority>
+  </url>
+  <url>
+    <loc>https://vegantools.org/restaurant/ber-frea</loc>
+    <changefreq>weekly</changefreq>
+    <priority>0.7</priority>
+  </url>
+  <url>
+    <loc>https://vegantools.org/restaurant/ber-kopps</loc>
+    <changefreq>weekly</changefreq>
+    <priority>0.7</priority>
+  </url>
+  <url>
+    <loc>https://vegantools.org/restaurant/ber-like-thai</loc>
+    <changefreq>weekly</changefreq>
+    <priority>0.7</priority>
+  </url>
+  <url>
+    <loc>https://vegantools.org/restaurant/ber-secret-garden</loc>
+    <changefreq>weekly</changefreq>
+    <priority>0.7</priority>
+  </url>
+  <url>
+    <loc>https://vegantools.org/restaurant/ber-vedang</loc>
+    <changefreq>weekly</changefreq>
+    <priority>0.7</priority>
+  </url>
+  <url>
+    <loc>https://vegantools.org/restaurant/ber-voener</loc>
+    <changefreq>weekly</changefreq>
+    <priority>0.7</priority>
+  </url>
+  <url>
     <loc>https://vegantools.org/restaurant/besneta-bcn</loc>
+    <changefreq>weekly</changefreq>
+    <priority>0.7</priority>
+  </url>
+  <url>
+    <loc>https://vegantools.org/restaurant/bj-blossom</loc>
+    <changefreq>weekly</changefreq>
+    <priority>0.7</priority>
+  </url>
+  <url>
+    <loc>https://vegantools.org/restaurant/bj-chaochao</loc>
+    <changefreq>weekly</changefreq>
+    <priority>0.7</priority>
+  </url>
+  <url>
+    <loc>https://vegantools.org/restaurant/bj-duli</loc>
+    <changefreq>weekly</changefreq>
+    <priority>0.7</priority>
+  </url>
+  <url>
+    <loc>https://vegantools.org/restaurant/bj-gong-de-lin</loc>
     <changefreq>weekly</changefreq>
     <priority>0.7</priority>
   </url>
@@ -81,6 +141,26 @@
     <priority>0.7</priority>
   </url>
   <url>
+    <loc>https://vegantools.org/restaurant/bj-qingchun-perma</loc>
+    <changefreq>weekly</changefreq>
+    <priority>0.7</priority>
+  </url>
+  <url>
+    <loc>https://vegantools.org/restaurant/bj-tianchumiaoxiang</loc>
+    <changefreq>weekly</changefreq>
+    <priority>0.7</priority>
+  </url>
+  <url>
+    <loc>https://vegantools.org/restaurant/bj-vege-tiger</loc>
+    <changefreq>weekly</changefreq>
+    <priority>0.7</priority>
+  </url>
+  <url>
+    <loc>https://vegantools.org/restaurant/bj-veggie-table</loc>
+    <changefreq>weekly</changefreq>
+    <priority>0.7</priority>
+  </url>
+  <url>
     <loc>https://vegantools.org/restaurant/blubar-bcn</loc>
     <changefreq>weekly</changefreq>
     <priority>0.7</priority>
@@ -91,12 +171,62 @@
     <priority>0.7</priority>
   </url>
   <url>
+    <loc>https://vegantools.org/restaurant/chezkessler-bcn</loc>
+    <changefreq>weekly</changefreq>
+    <priority>0.7</priority>
+  </url>
+  <url>
     <loc>https://vegantools.org/restaurant/desoriente-bcn</loc>
     <changefreq>weekly</changefreq>
     <priority>0.7</priority>
   </url>
   <url>
+    <loc>https://vegantools.org/restaurant/featured-alt-penedes-deveggie</loc>
+    <changefreq>weekly</changefreq>
+    <priority>0.7</priority>
+  </url>
+  <url>
+    <loc>https://vegantools.org/restaurant/featured-baix-emporda-madonna-vegan-palamos</loc>
+    <changefreq>weekly</changefreq>
+    <priority>0.7</priority>
+  </url>
+  <url>
+    <loc>https://vegantools.org/restaurant/featured-baix-llobregat-la-luciernaga</loc>
+    <changefreq>weekly</changefreq>
+    <priority>0.7</priority>
+  </url>
+  <url>
+    <loc>https://vegantools.org/restaurant/featured-cambrils-cafe-fadri</loc>
+    <changefreq>weekly</changefreq>
+    <priority>0.7</priority>
+  </url>
+  <url>
+    <loc>https://vegantools.org/restaurant/featured-garrotxa-madonna-vegan-besalu</loc>
+    <changefreq>weekly</changefreq>
+    <priority>0.7</priority>
+  </url>
+  <url>
     <loc>https://vegantools.org/restaurant/featured-manresa-espai-organic</loc>
+    <changefreq>weekly</changefreq>
+    <priority>0.7</priority>
+  </url>
+  <url>
+    <loc>https://vegantools.org/restaurant/featured-maresme-madonna-vegan</loc>
+    <changefreq>weekly</changefreq>
+    <priority>0.7</priority>
+  </url>
+  <url>
+    <loc>https://vegantools.org/restaurant/featured-osona-petit-vega</loc>
+    <changefreq>weekly</changefreq>
+    <priority>0.7</priority>
+  </url>
+  <url>
+    <loc>https://vegantools.org/restaurant/featured-reus-herbivore</loc>
+    <changefreq>weekly</changefreq>
+    <priority>0.7</priority>
+  </url>
+  <url>
+    <loc>https://vegantools.org/restaurant/featured-solsones-casa-albets</loc>
     <changefreq>weekly</changefreq>
     <priority>0.7</priority>
   </url>
@@ -141,6 +271,11 @@
     <priority>0.7</priority>
   </url>
   <url>
+    <loc>https://vegantools.org/restaurant/gir-la-moderneta</loc>
+    <changefreq>weekly</changefreq>
+    <priority>0.7</priority>
+  </url>
+  <url>
     <loc>https://vegantools.org/restaurant/goodshit-bcn</loc>
     <changefreq>weekly</changefreq>
     <priority>0.7</priority>
@@ -151,12 +286,47 @@
     <priority>0.7</priority>
   </url>
   <url>
+    <loc>https://vegantools.org/restaurant/la-burgerlords</loc>
+    <changefreq>weekly</changefreq>
+    <priority>0.7</priority>
+  </url>
+  <url>
     <loc>https://vegantools.org/restaurant/la-crossroads</loc>
     <changefreq>weekly</changefreq>
     <priority>0.7</priority>
   </url>
   <url>
+    <loc>https://vegantools.org/restaurant/la-doomies</loc>
+    <changefreq>weekly</changefreq>
+    <priority>0.7</priority>
+  </url>
+  <url>
+    <loc>https://vegantools.org/restaurant/la-gracias-madre</loc>
+    <changefreq>weekly</changefreq>
+    <priority>0.7</priority>
+  </url>
+  <url>
+    <loc>https://vegantools.org/restaurant/la-just-what-i-kneaded</loc>
+    <changefreq>weekly</changefreq>
+    <priority>0.7</priority>
+  </url>
+  <url>
+    <loc>https://vegantools.org/restaurant/la-maciels-deli</loc>
+    <changefreq>weekly</changefreq>
+    <priority>0.7</priority>
+  </url>
+  <url>
     <loc>https://vegantools.org/restaurant/la-montys</loc>
+    <changefreq>weekly</changefreq>
+    <priority>0.7</priority>
+  </url>
+  <url>
+    <loc>https://vegantools.org/restaurant/la-pura-vita</loc>
+    <changefreq>weekly</changefreq>
+    <priority>0.7</priority>
+  </url>
+  <url>
+    <loc>https://vegantools.org/restaurant/la-satdha</loc>
     <changefreq>weekly</changefreq>
     <priority>0.7</priority>
   </url>
@@ -171,7 +341,27 @@
     <priority>0.7</priority>
   </url>
   <url>
+    <loc>https://vegantools.org/restaurant/lon-en-root</loc>
+    <changefreq>weekly</changefreq>
+    <priority>0.7</priority>
+  </url>
+  <url>
+    <loc>https://vegantools.org/restaurant/lon-gauthier</loc>
+    <changefreq>weekly</changefreq>
+    <priority>0.7</priority>
+  </url>
+  <url>
+    <loc>https://vegantools.org/restaurant/lon-mallow</loc>
+    <changefreq>weekly</changefreq>
+    <priority>0.7</priority>
+  </url>
+  <url>
     <loc>https://vegantools.org/restaurant/lon-mildreds</loc>
+    <changefreq>weekly</changefreq>
+    <priority>0.7</priority>
+  </url>
+  <url>
+    <loc>https://vegantools.org/restaurant/lon-pitta</loc>
     <changefreq>weekly</changefreq>
     <priority>0.7</priority>
   </url>
@@ -181,7 +371,22 @@
     <priority>0.7</priority>
   </url>
   <url>
+    <loc>https://vegantools.org/restaurant/lon-temple</loc>
+    <changefreq>weekly</changefreq>
+    <priority>0.7</priority>
+  </url>
+  <url>
+    <loc>https://vegantools.org/restaurant/lon-tofu-vegan</loc>
+    <changefreq>weekly</changefreq>
+    <priority>0.7</priority>
+  </url>
+  <url>
     <loc>https://vegantools.org/restaurant/lon-unity-diner</loc>
+    <changefreq>weekly</changefreq>
+    <priority>0.7</priority>
+  </url>
+  <url>
+    <loc>https://vegantools.org/restaurant/lon-wave</loc>
     <changefreq>weekly</changefreq>
     <priority>0.7</priority>
   </url>
@@ -206,7 +411,37 @@
     <priority>0.7</priority>
   </url>
   <url>
+    <loc>https://vegantools.org/restaurant/nyc-coletta</loc>
+    <changefreq>weekly</changefreq>
+    <priority>0.7</priority>
+  </url>
+  <url>
+    <loc>https://vegantools.org/restaurant/nyc-dirt-candy</loc>
+    <changefreq>weekly</changefreq>
+    <priority>0.7</priority>
+  </url>
+  <url>
+    <loc>https://vegantools.org/restaurant/nyc-jajaja</loc>
+    <changefreq>weekly</changefreq>
+    <priority>0.7</priority>
+  </url>
+  <url>
     <loc>https://vegantools.org/restaurant/nyc-le-botaniste</loc>
+    <changefreq>weekly</changefreq>
+    <priority>0.7</priority>
+  </url>
+  <url>
+    <loc>https://vegantools.org/restaurant/nyc-orchard-grocer</loc>
+    <changefreq>weekly</changefreq>
+    <priority>0.7</priority>
+  </url>
+  <url>
+    <loc>https://vegantools.org/restaurant/nyc-planta-queen</loc>
+    <changefreq>weekly</changefreq>
+    <priority>0.7</priority>
+  </url>
+  <url>
+    <loc>https://vegantools.org/restaurant/nyc-slutty-vegan</loc>
     <changefreq>weekly</changefreq>
     <priority>0.7</priority>
   </url>
@@ -216,7 +451,42 @@
     <priority>0.7</priority>
   </url>
   <url>
+    <loc>https://vegantools.org/restaurant/par-aujourdhui-demain</loc>
+    <changefreq>weekly</changefreq>
+    <priority>0.7</priority>
+  </url>
+  <url>
+    <loc>https://vegantools.org/restaurant/par-bloom-sushi</loc>
+    <changefreq>weekly</changefreq>
+    <priority>0.7</priority>
+  </url>
+  <url>
+    <loc>https://vegantools.org/restaurant/par-breathe</loc>
+    <changefreq>weekly</changefreq>
+    <priority>0.7</priority>
+  </url>
+  <url>
     <loc>https://vegantools.org/restaurant/par-charlotte</loc>
+    <changefreq>weekly</changefreq>
+    <priority>0.7</priority>
+  </url>
+  <url>
+    <loc>https://vegantools.org/restaurant/par-cloud-cakes</loc>
+    <changefreq>weekly</changefreq>
+    <priority>0.7</priority>
+  </url>
+  <url>
+    <loc>https://vegantools.org/restaurant/par-faubourg-daimant</loc>
+    <changefreq>weekly</changefreq>
+    <priority>0.7</priority>
+  </url>
+  <url>
+    <loc>https://vegantools.org/restaurant/par-hank-burger</loc>
+    <changefreq>weekly</changefreq>
+    <priority>0.7</priority>
+  </url>
+  <url>
+    <loc>https://vegantools.org/restaurant/par-jah-jah</loc>
     <changefreq>weekly</changefreq>
     <priority>0.7</priority>
   </url>
@@ -226,12 +496,12 @@
     <priority>0.7</priority>
   </url>
   <url>
-    <loc>https://vegantools.org/restaurant/quinoa-bcn</loc>
+    <loc>https://vegantools.org/restaurant/par-soya</loc>
     <changefreq>weekly</changefreq>
     <priority>0.7</priority>
   </url>
   <url>
-    <loc>https://vegantools.org/restaurant/rasoterra-bcn</loc>
+    <loc>https://vegantools.org/restaurant/quinoa-bcn</loc>
     <changefreq>weekly</changefreq>
     <priority>0.7</priority>
   </url>
@@ -246,7 +516,37 @@
     <priority>0.7</priority>
   </url>
   <url>
+    <loc>https://vegantools.org/restaurant/tok-2foods</loc>
+    <changefreq>weekly</changefreq>
+    <priority>0.7</priority>
+  </url>
+  <url>
     <loc>https://vegantools.org/restaurant/tok-ain-soph</loc>
+    <changefreq>weekly</changefreq>
+    <priority>0.7</priority>
+  </url>
+  <url>
+    <loc>https://vegantools.org/restaurant/tok-ain-soph-journey</loc>
+    <changefreq>weekly</changefreq>
+    <priority>0.7</priority>
+  </url>
+  <url>
+    <loc>https://vegantools.org/restaurant/tok-brown-rice</loc>
+    <changefreq>weekly</changefreq>
+    <priority>0.7</priority>
+  </url>
+  <url>
+    <loc>https://vegantools.org/restaurant/tok-farm-cafe</loc>
+    <changefreq>weekly</changefreq>
+    <priority>0.7</priority>
+  </url>
+  <url>
+    <loc>https://vegantools.org/restaurant/tok-great-lakes</loc>
+    <changefreq>weekly</changefreq>
+    <priority>0.7</priority>
+  </url>
+  <url>
+    <loc>https://vegantools.org/restaurant/tok-komaki-shokudo</loc>
     <changefreq>weekly</changefreq>
     <priority>0.7</priority>
   </url>
@@ -261,6 +561,11 @@
     <priority>0.7</priority>
   </url>
   <url>
+    <loc>https://vegantools.org/restaurant/tok-uzu-ramen</loc>
+    <changefreq>weekly</changefreq>
+    <priority>0.7</priority>
+  </url>
+  <url>
     <loc>https://vegantools.org/restaurant/tor-avelo</loc>
     <changefreq>weekly</changefreq>
     <priority>0.7</priority>
@@ -271,7 +576,57 @@
     <priority>0.7</priority>
   </url>
   <url>
+    <loc>https://vegantools.org/restaurant/tor-buddhas</loc>
+    <changefreq>weekly</changefreq>
+    <priority>0.7</priority>
+  </url>
+  <url>
+    <loc>https://vegantools.org/restaurant/tor-gia</loc>
+    <changefreq>weekly</changefreq>
+    <priority>0.7</priority>
+  </url>
+  <url>
+    <loc>https://vegantools.org/restaurant/tor-hogtown</loc>
+    <changefreq>weekly</changefreq>
+    <priority>0.7</priority>
+  </url>
+  <url>
+    <loc>https://vegantools.org/restaurant/tor-la-bartola</loc>
+    <changefreq>weekly</changefreq>
+    <priority>0.7</priority>
+  </url>
+  <url>
+    <loc>https://vegantools.org/restaurant/tor-odd-burger</loc>
+    <changefreq>weekly</changefreq>
+    <priority>0.7</priority>
+  </url>
+  <url>
+    <loc>https://vegantools.org/restaurant/tor-parka</loc>
+    <changefreq>weekly</changefreq>
+    <priority>0.7</priority>
+  </url>
+  <url>
     <loc>https://vegantools.org/restaurant/tor-planta</loc>
+    <changefreq>weekly</changefreq>
+    <priority>0.7</priority>
+  </url>
+  <url>
+    <loc>https://vegantools.org/restaurant/tor-planta-queen</loc>
+    <changefreq>weekly</changefreq>
+    <priority>0.7</priority>
+  </url>
+  <url>
+    <loc>https://vegantools.org/restaurant/valles-greta-sant-cugat</loc>
+    <changefreq>weekly</changefreq>
+    <priority>0.7</priority>
+  </url>
+  <url>
+    <loc>https://vegantools.org/restaurant/valles-or-la-cookessa</loc>
+    <changefreq>weekly</changefreq>
+    <priority>0.7</priority>
+  </url>
+  <url>
+    <loc>https://vegantools.org/restaurant/valles-vegan-family</loc>
     <changefreq>weekly</changefreq>
     <priority>0.7</priority>
   </url>

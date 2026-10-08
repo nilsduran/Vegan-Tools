@@ -50,7 +50,14 @@ function formatCleanCityName(name: string, state?: string, country?: string): st
     cleanName.toLowerCase() === "tarragona" ||
     cleanName.toLowerCase() === "lleida" ||
     cleanName.toLowerCase() === "vic" ||
-    cleanName.toLowerCase() === "manresa";
+    cleanName.toLowerCase() === "manresa" ||
+    cleanName.toLowerCase().includes("vallès") ||
+    cleanName.toLowerCase().includes("penedès") ||
+    cleanName.toLowerCase().includes("empordà") ||
+    cleanName.toLowerCase().includes("garrotxa") ||
+    cleanName.toLowerCase().includes("maresme") ||
+    cleanName.toLowerCase().includes("solsonès") ||
+    cleanName.toLowerCase().includes("llobregat");
 
   if (isCatalunya) {
     // If it's Barcelona or Girona, it's globally unambiguous

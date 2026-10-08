@@ -48,5 +48,21 @@
     "rating": 4.8,
     "openingHours": "Tu-Sa 13:00-16:00, 20:00-23:00",
     "imageUrl": "https://images.unsplash.com/photo-1546069901-ba9599a7e63c?auto=format&fit=crop&w=800&q=80"
+  },
+  {
+    "id": "gir-la-moderneta",
+    "name": "La Moderneta",
+    "address": "Carrer de les Ballesteries, 33, 17004 Girona",
+    "latitude": 41.9868,
+    "longitude": 2.8256,
+    "mapUrl": "https://www.openstreetmap.org/?mlat=41.9868&mlon=2.8256#map=17/41.9868/2.8256",
+    "provider": "curated",
+    "cuisine": "cafe_bakery",
+    "tags": ["vegan", "cafe_bakery", "donuts", "pastry", "artisanal", "featured"],
+    "isVegan": true,
+    "isFeatured": true,
+    "rating": 4.9,
+    "openingHours": "We-Th 10:00-18:30; Fr-Sa 10:00-19:30",
+    "imageUrl": "https://images.unsplash.com/photo-1509440159596-0249088772ff?auto=format&fit=crop&w=800&q=80"
   }
 ]

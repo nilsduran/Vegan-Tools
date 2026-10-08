@@ -1,0 +1,19 @@
+[
+  {
+    "id": "featured-baix-llobregat-la-luciernaga",
+    "name": "La Luciérnaga Obrador & Pastisseria",
+    "address": "Carrer del Pintor Serra Santa, 18, 08860 Castelldefels",
+    "latitude": 41.2785,
+    "longitude": 1.9772,
+    "websiteUrl": "https://www.laluciernaga.shop",
+    "mapUrl": "https://www.openstreetmap.org/?mlat=41.2785&mlon=1.9772#map=17/41.2785/1.9772",
+    "provider": "curated",
+    "cuisine": "cafe_bakery",
+    "tags": ["vegan", "cafe_bakery", "gluten_free", "pastry", "artisanal", "featured"],
+    "isVegan": true,
+    "isFeatured": true,
+    "rating": 4.9,
+    "openingHours": "Mo-Sa 09:00-14:00, 16:30-20:00",
+    "imageUrl": "https://images.unsplash.com/photo-1509440159596-0249088772ff?auto=format&fit=crop&w=800&q=80"
+  }
+]

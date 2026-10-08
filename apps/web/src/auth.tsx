@@ -55,10 +55,15 @@ export const supabase: SupabaseClient | null =
 
 function userFromSupabaseUser(user: User, fallbackUsername?: string): AuthUser {
   const metadata = user.user_metadata || {};
-  const cleanUser =
+  let cleanUser =
     normalizeUsername(metadata.username || metadata.user_name || fallbackUsername || "") ||
     normalizeUsername(user.email ? user.email.split("@")[0]! : "") ||
     `vegi_${user.id.slice(0, 5)}`;
+
+  // Enforce reservation: only nilsdula@gmail.com can hold 'nils' / 'Nils'
+  if (cleanUser.toLowerCase() === "nils" && user.email?.toLowerCase() !== "nilsdula@gmail.com") {
+    cleanUser = `vegi_${user.id.slice(0, 5)}`;
+  }
 
   const name = metadata.full_name?.replace(/^@+/, "") || cleanUser;
   const avatarUrl = metadata.avatar_url || metadata.picture || undefined;
@@ -129,7 +134,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           if (stored) {
             try {
               const parsed = JSON.parse(stored) as { user: AuthUser; token: string };
-              if (parsed.user && parsed.user.username) {
+              // Purge fake local dev nils session if it was previously created
+              if (
+                parsed.user?.username?.toLowerCase() === "nils" &&
+                parsed.user.email?.includes("@localhost.local")
+              ) {
+                localStorage.removeItem(SESSION_STORAGE_KEY);
+              } else if (parsed.user && parsed.user.username) {
                 setUser(parsed.user);
                 setToken(parsed.token || "authenticated_token");
               }
@@ -171,7 +182,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       if (stored) {
         try {
           const parsed = JSON.parse(stored) as { user: AuthUser; token: string };
-          if (parsed.user && parsed.user.username) {
+          if (
+            parsed.user?.username?.toLowerCase() === "nils" &&
+            parsed.user.email?.includes("@localhost.local")
+          ) {
+            localStorage.removeItem(SESSION_STORAGE_KEY);
+          } else if (parsed.user && parsed.user.username) {
             setUser(parsed.user);
             setToken(parsed.token || "authenticated_token");
           }
@@ -302,9 +318,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       return { error: tx("Please fill in all fields.") };
     }
 
-    const validation = validateUsername(username);
+    const validation = validateUsername(username, { email: cleanEmail });
     if (!validation.valid) {
-      return { error: validation.error || tx("Invalid username.") };
+      return { error: tx(validation.error || "Invalid username.") };
     }
 
     const cleanUser = normalizeUsername(username);
@@ -408,7 +424,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const updateUsername = async (newUsername: string): Promise<{ error?: string }> => {
     if (!user) return { error: "Not logged in" };
 
-    const validation = validateUsername(newUsername);
+    const validation = validateUsername(newUsername, { email: user.email });
     if (!validation.valid) {
       return { error: tx(validation.error || "Username must be at least 3 characters.") };
     }
@@ -498,7 +514,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   // Compatibility helpers & Local Dev Login
   const loginWithUsername = (chosenUsername: string) => {
-    const clean = normalizeUsername(chosenUsername) || "nils";
+    let clean = normalizeUsername(chosenUsername) || "tester_local";
+    if (clean.toLowerCase() === "nils") {
+      clean = "tester_local";
+    }
     const userId = `user-dev-${generateSafeUUID()}`;
     const newUser: AuthUser = {
       id: userId,

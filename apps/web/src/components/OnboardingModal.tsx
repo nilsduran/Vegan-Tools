@@ -236,7 +236,7 @@ export function OnboardingModal({
                   onChange={(e) =>
                     setChosenUsername(e.target.value.toLowerCase().replace(/[^a-z0-9_.-]/g, ""))
                   }
-                  placeholder="nom_usuari (ex: carla_vegan)"
+                  placeholder={tx("username (e.g. carla_vegan)")}
                   minLength={3}
                   maxLength={25}
                   style={{

@@ -1,0 +1,19 @@
+[
+  {
+    "id": "featured-alt-penedes-deveggie",
+    "name": "deVeggie Obrador & Botiga",
+    "address": "Carrer de Francesc Macià, 12, 08720 Vilafranca del Penedès",
+    "latitude": 41.3468,
+    "longitude": 1.6985,
+    "websiteUrl": "https://deveggievilafranca.com",
+    "mapUrl": "https://www.openstreetmap.org/?mlat=41.3468&mlon=1.6985#map=17/41.3468/1.6985",
+    "provider": "curated",
+    "cuisine": "bakery",
+    "tags": ["vegan", "bakery", "deli", "pastry", "cocas", "sandwiches", "featured"],
+    "isVegan": true,
+    "isFeatured": true,
+    "rating": 4.9,
+    "openingHours": "Mo-Fr 09:30-13:30, 17:00-20:00; Sa 10:00-14:00",
+    "imageUrl": "https://images.unsplash.com/photo-1546069901-ba9599a7e63c?auto=format&fit=crop&w=800&q=80"
+  }
+]

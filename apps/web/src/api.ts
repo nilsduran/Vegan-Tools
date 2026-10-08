@@ -268,6 +268,22 @@ export async function discoverRestaurantMenu(
   return menuDraftSchema.parse(await response.json());
 }
 
+export async function createCustomRestaurant(data: {
+  name: string;
+  address?: string;
+  websiteUrl?: string;
+  latitude?: number;
+  longitude?: number;
+}): Promise<RestaurantCandidate> {
+  const response = await checkedFetch("/v1/restaurants/custom", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(data),
+  });
+  return restaurantCandidateSchema.parse(await response.json());
+}
+
+
 export async function discoverMenuByUrl(
   websiteUrl: string,
   restaurantName?: string,

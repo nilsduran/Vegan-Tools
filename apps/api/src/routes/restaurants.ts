@@ -1767,4 +1767,108 @@ export async function restaurantRoutes(
       return candidate;
     }
   });
+
+  // Custom user-added restaurant creation endpoint
+  app.post<{
+    Body: {
+      name: string;
+      address?: string;
+      websiteUrl?: string;
+      latitude?: number;
+      longitude?: number;
+    };
+  }>("/v1/restaurants/custom", { config: { rateLimit: { max: 30, timeWindow: "1 minute" } } }, async (request, reply) => {
+    const rawName = request.body?.name?.trim();
+    if (!rawName || rawName.length < 2) {
+      return reply.code(400).send({
+        code: "NAME_REQUIRED",
+        message: "Enter the restaurant name.",
+      });
+    }
+
+    const rawAddress = request.body?.address?.trim() || "";
+    let rawWebsite = request.body?.websiteUrl?.trim();
+    if (rawWebsite && !/^https?:\/\//i.test(rawWebsite)) {
+      rawWebsite = `https://${rawWebsite}`;
+    }
+
+    let lat = Number(request.body?.latitude);
+    let lon = Number(request.body?.longitude);
+    let formattedAddress = rawAddress;
+
+    if (rawAddress) {
+      try {
+        await waitForNominatim();
+        const url = new URL("https://nominatim.openstreetmap.org/search");
+        url.search = new URLSearchParams({
+          q: rawAddress,
+          format: "jsonv2",
+          limit: "1",
+          addressdetails: "1",
+        }).toString();
+
+        const geoRes = await fetch(url.toString(), {
+          headers: {
+            "User-Agent":
+              process.env.NOMINATIM_USER_AGENT ??
+              process.env.OFF_USER_AGENT ??
+              "VeganTools/0.1 (https://nilsduran.github.io)",
+            Accept: "application/json",
+          },
+          signal: AbortSignal.timeout(5_000),
+        });
+
+        if (geoRes.ok) {
+          const data = (await geoRes.json()) as Array<{
+            lat: string;
+            lon: string;
+            display_name: string;
+            address?: {
+              road?: string;
+              house_number?: string;
+              city?: string;
+              town?: string;
+              village?: string;
+            };
+          }>;
+          if (data.length > 0 && data[0]) {
+            lat = Number(data[0].lat);
+            lon = Number(data[0].lon);
+            const city = data[0].address?.city || data[0].address?.town || data[0].address?.village;
+            formattedAddress = cleanShortAddress(
+              data[0].display_name,
+              data[0].address?.road,
+              data[0].address?.house_number,
+              city,
+            );
+          }
+        }
+      } catch (geoErr) {
+        request.log.warn({ geoErr }, "Nominatim geocoding failed for custom restaurant");
+      }
+    }
+
+    if (!Number.isFinite(lat) || !Number.isFinite(lon)) {
+      lat = 41.3851;
+      lon = 2.1734;
+    }
+
+    if (!formattedAddress) {
+      formattedAddress = "Barcelona";
+    }
+
+    const id = `custom-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 6)}`;
+    const candidate: RestaurantCandidate = {
+      id,
+      name: rawName,
+      address: formattedAddress,
+      latitude: lat,
+      longitude: lon,
+      websiteUrl: rawWebsite && isPlausibleOfficialWebsite(rawWebsite) ? rawWebsite : undefined,
+      mapUrl: `https://www.google.com/maps/search/?api=1&query=${lat},${lon}`,
+      provider: "custom",
+    };
+
+    return reply.code(201).send(candidate);
+  });
 }

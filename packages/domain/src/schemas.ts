@@ -226,7 +226,7 @@ export const restaurantCandidateSchema = z.object({
   longitude: z.number(),
   websiteUrl: z.string().url().optional(),
   mapUrl: z.string().url(),
-  provider: z.enum(["openstreetmap", "geoapify", "foursquare", "curated"]).default("openstreetmap"),
+  provider: z.enum(["openstreetmap", "geoapify", "foursquare", "curated", "custom"]).default("openstreetmap"),
   openingHours: z.string().optional(),
   cuisine: z.string().optional(),
   price: z.string().optional(),

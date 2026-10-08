@@ -74,3 +74,29 @@ export function saveCachedRestaurants(restaurants: RestaurantCandidate[]): void 
     // Ignore storage quota limits silently
   }
 }
+
+const CUSTOM_RESTAURANTS_KEY = "vegan-tools-custom-restaurants";
+
+export function getCustomRestaurants(): RestaurantCandidate[] {
+  if (typeof window === "undefined" || !window.localStorage) return [];
+  try {
+    const raw = localStorage.getItem(CUSTOM_RESTAURANTS_KEY);
+    if (!raw) return [];
+    const parsed = JSON.parse(raw);
+    return Array.isArray(parsed) ? (parsed as RestaurantCandidate[]) : [];
+  } catch {
+    return [];
+  }
+}
+
+export function saveCustomRestaurant(restaurant: RestaurantCandidate): void {
+  if (!restaurant?.id || typeof window === "undefined" || !window.localStorage) return;
+  try {
+    const list = getCustomRestaurants().filter((r) => r.id !== restaurant.id);
+    list.unshift(restaurant);
+    localStorage.setItem(CUSTOM_RESTAURANTS_KEY, JSON.stringify(list));
+    saveCachedRestaurant(restaurant);
+  } catch {
+    // Ignore storage quota limits silently
+  }
+}

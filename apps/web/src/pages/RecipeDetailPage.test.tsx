@@ -42,7 +42,7 @@ describe("RecipeDetailPage", () => {
     expect(screen.getByText("16 unitats")).toBeDefined();
 
     // Increase servings by clicking plus button
-    const plusBtn = screen.getByLabelText("Increase servings");
+    const plusBtn = screen.getByLabelText(/increase servings|augmenta les racions/i);
     fireEvent.click(plusBtn); // 5 servings -> 16 * 5 / 4 = 20 unitats
     expect(screen.getByText("20 unitats")).toBeDefined();
   });

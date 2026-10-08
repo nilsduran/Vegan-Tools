@@ -165,6 +165,9 @@ Tasques que requereixen disseny d'enginyeria, modificació d'esquemes o canvis e
     - *Entrenament i calibració*: Notebook a punt per a Google Colab GPU T4 (`notebooks/train_vegan_classifier_colab.ipynb`) amb funció de pèrdua asimètrica `BCEWithLogitsLoss(pos_weight=[2.5, 1.8, 1.5])` per protegir contra el risc moral, calibració en CPU (*Threshold Moving*) i exportació automàtica a ONNX INT8.
     - *Integració a l'API Fastify*: Servei en cascada a `apps/api/src/edge-classifier.ts` i `apps/api/src/routes/products.ts` que executa inferència local (~15 ms) amb `onnxruntime-node` i fallback transparent a Gemini si el model no és present o la incertesa és màxima.
     - *Especificació tècnica i mètriques reals*: Veure [`docs/ml-classifier-design.md`](./ml-classifier-design.md) i [`docs/benchmark-results.md`](./benchmark-results.md).
+19. **✅ [COMPLETAT] Alta de restaurants no indexats i persistència pròpia (`AddRestaurantModal.tsx`, `POST /v1/restaurants/custom`)**:
+    - *Flux d'alta ràpida*: Quan un restaurant no apareix a la cerca (perquè manca a OpenStreetMap o proveïdors externs), l'usuari pot afegir-lo immediatament des del panell buit o des del peu de la llista de resultats.
+    - *Geocodificació i persistència local*: Geocodifica l'adreça postal amb Nominatim (`/v1/restaurants/custom`), assigna coordenades exactes, guarda el candidat a `localStorage` (`getCustomRestaurants()`) i el mostra instantàniament al mapa i a la cerca de Vegan Tools, permetent explorar-ne la carta o pujar fotos/PDFs al moment.
 
 ---
 
@@ -197,6 +200,8 @@ Projectes d'infraestructura, investigació o serveis en segon pla que requereixe
     - Base de dades global compartida a Supabase/PostgreSQL com a memòria cau persistent (Open Food Facts + Open Beauty Facts) per garantir respostes a 0ms i estalviar quota d'APIs externes per a tota la comunitat.
 11. **📊 Estadístiques Personals i Comunitàries d'Impacte (`/profile` & Comunitat)**:
     - *Objectiu de futur*: Quan la plataforma assoleixi volum d'usuaris i activitat suficient, introduir un mòdul d'estadístiques: resum d'impacte ètic acumulat (àpats vegans gaudits, petjada ecològica i d'animals), mapa de calor de ciutats i barris més explorats, estils culinaris favorits i mètriques agregades de valoracions comunitàries.
+12. **🗺️ Sincronització opcional amb OpenStreetMap (OSM OAuth 2.0 / Edició Directa)**:
+    - *Objectiu de futur*: Permetre als usuaris amb compte d'OpenStreetMap publicar voluntàriament restaurants nous o canvis d'estat (locals tancats o traslladats) directament a la base de dades d'OSM mitjançant OAuth 2.0, amb selecció explícita d'etiquetes dietètiques per part de l'usuari (`diet:vegan`). Es posposa per centrar esforços en l'experiència immediata i autònoma dins de Vegan Tools.
 
 ---
 

@@ -332,7 +332,7 @@ export function RecipeDetailPage() {
                   className="stepper-btn"
                   disabled={servings <= 1}
                   onClick={() => setServings((prev) => Math.max(1, prev - 1))}
-                  aria-label="Decrease servings"
+                  aria-label={tx("Decrease servings")}
                 >
                   <Minus size={14} aria-hidden="true" />
                 </button>
@@ -342,7 +342,7 @@ export function RecipeDetailPage() {
                   className="stepper-btn"
                   disabled={servings >= 12}
                   onClick={() => setServings((prev) => Math.min(12, prev + 1))}
-                  aria-label="Increase servings"
+                  aria-label={tx("Increase servings")}
                 >
                   <Plus size={14} aria-hidden="true" />
                 </button>
@@ -557,7 +557,7 @@ export function RecipeDetailPage() {
             <LeafRating
               value={userRating}
               interactive={true}
-              size={26}
+              size={20}
               onChange={handleRateRecipe}
             />
             {ratingMessage && (

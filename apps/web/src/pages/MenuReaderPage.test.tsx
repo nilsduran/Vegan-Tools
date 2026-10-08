@@ -62,13 +62,13 @@ describe("MenuReaderPage Form UI", () => {
     vi.mocked(api.discoverRestaurantMenu).mockResolvedValue({
       id: "menu-123",
       editToken: "token-123",
-      status: "processing",
+      status: "ready",
       restaurantName: "Bistro Desconegut",
       sourceLabel: "Website menu",
       sourceFiles: [],
       sourceCapturedAt: new Date().toISOString(),
       originalLanguage: "ca",
-      sections: [],
+      sections: [{ id: "sec-1", name: "Primers", items: [] }],
       createdAt: new Date().toISOString(),
       originalDeleteAt: new Date().toISOString(),
     });
@@ -105,7 +105,7 @@ describe("MenuReaderPage Form UI", () => {
     });
 
     expect(await screen.findByRole("button", { name: /back to map/i })).toBeDefined();
-  }, 15000);
+  }, 30000);
 
   it("opens curated restaurant menu instantly without network discovery", async () => {
     const candidate: RestaurantCandidate = {

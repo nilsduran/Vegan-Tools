@@ -34,7 +34,8 @@ const NON_OFFICIAL_HOSTS = [
 
 export function isPlausibleOfficialWebsite(value: string) {
   try {
-    const url = new URL(value);
+    const raw = !/^https?:\/\//i.test(value.trim()) ? `https://${value.trim()}` : value.trim();
+    const url = new URL(raw);
     if (!["http:", "https:"].includes(url.protocol)) return false;
     const hostname = url.hostname.toLowerCase().replace(/^www\./, "");
     return !NON_OFFICIAL_HOSTS.some(

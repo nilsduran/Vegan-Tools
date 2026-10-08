@@ -27,6 +27,7 @@ import {
   createRestaurantMenuAnalysis,
   discoverMenuByUrl,
   discoverRestaurantMenu,
+  getMenuDraft,
   getRestaurantById,
   getRestaurantMenu,
   resolveRestaurant,
@@ -56,6 +57,27 @@ function isSocialMediaUrl(url?: string): boolean {
   } catch {
     return false;
   }
+}
+
+async function waitForMenuProcessing(
+  initialDraft: MenuDraft,
+  isCancelled: () => boolean,
+): Promise<MenuDraft> {
+  if (initialDraft.status !== "processing" || !initialDraft.editToken) {
+    return initialDraft;
+  }
+  let current = initialDraft;
+  for (let poll = 0; poll < 45; poll++) {
+    await new Promise((resolve) => setTimeout(resolve, 2000));
+    if (isCancelled()) return current;
+    try {
+      current = await getMenuDraft(current.id, current.editToken);
+      if (current.status !== "processing") break;
+    } catch {
+      // Keep polling
+    }
+  }
+  return current;
 }
 
 export function RestaurantMenuPage() {
@@ -186,8 +208,9 @@ export function RestaurantMenuPage() {
             candidateWithWebsite.websiteUrl,
           );
           if (!isCancelled) {
-            if (discDraft && discDraft.sections && discDraft.sections.length > 0) {
-              setMenuDraft(discDraft);
+            const finalDraft = await waitForMenuProcessing(discDraft, () => isCancelled);
+            if (!isCancelled && finalDraft.sections && finalDraft.sections.length > 0) {
+              setMenuDraft(finalDraft);
               setLoadingMenu(false);
               return;
             }
@@ -216,16 +239,23 @@ export function RestaurantMenuPage() {
 
   const handleCustomUrlSubmit = async (e: FormEvent) => {
     e.preventDefault();
-    const url = customMenuUrl.trim();
-    if (!url) return;
+    const raw = customMenuUrl.trim();
+    if (!raw) return;
+    const url = !/^https?:\/\//i.test(raw) ? `https://${raw}` : raw;
     setIsAnalyzingCustomUrl(true);
     setMenuError(null);
+    let cancelled = false;
     try {
       const res = await discoverMenuByUrl(url, restaurant?.name);
-      if (res && res.sections && res.sections.length > 0) {
-        setMenuDraft(res);
+      const finalDraft = await waitForMenuProcessing(res, () => cancelled);
+      if (finalDraft.sections && finalDraft.sections.length > 0) {
+        setMenuDraft(finalDraft);
       } else {
-        setMenuError(tx("Finding menu on website failed."));
+        setMenuError(
+          finalDraft.error
+            ? tx(finalDraft.error)
+            : tx("Finding menu on website failed."),
+        );
       }
     } catch (err) {
       setMenuError(err instanceof Error ? err.message : tx("Finding menu on website failed."));
@@ -238,10 +268,18 @@ export function RestaurantMenuPage() {
     if (files.length === 0) return;
     setIsUploadingMenuFiles(true);
     setMenuError(null);
+    let cancelled = false;
     try {
       const draft = await createRestaurantMenuAnalysis(files, restaurant ?? undefined);
-      if (draft && draft.sections && draft.sections.length > 0) {
-        setMenuDraft(draft);
+      const finalDraft = await waitForMenuProcessing(draft, () => cancelled);
+      if (finalDraft.sections && finalDraft.sections.length > 0) {
+        setMenuDraft(finalDraft);
+      } else {
+        setMenuError(
+          finalDraft.error
+            ? tx(finalDraft.error)
+            : tx("Menu analysis could not extract dishes from the uploaded files."),
+        );
       }
     } catch (err) {
       setMenuError(err instanceof Error ? err.message : tx("Menu analysis failed"));
@@ -347,10 +385,14 @@ export function RestaurantMenuPage() {
             </label>
             <form onSubmit={(e) => void handleCustomUrlSubmit(e)} style={{ display: "flex", gap: "0.5rem" }}>
               <input
-                type="url"
+                type="text"
+                inputMode="url"
+                autoCapitalize="none"
+                autoCorrect="off"
+                spellCheck={false}
                 value={customMenuUrl}
                 onChange={(e) => setCustomMenuUrl(e.target.value)}
-                placeholder="https://..."
+                placeholder="restaurant.com / https://..."
                 required
                 style={{
                   flex: 1,

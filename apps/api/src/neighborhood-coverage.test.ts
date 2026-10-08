@@ -92,10 +92,10 @@ describe("Neighborhood Restaurant Coverage (Vila de Gràcia, Barcelona)", () => 
     // 1. Density: Should discover at least 35 unique places in this compact neighborhood
     expect(results.length).toBeGreaterThanOrEqual(35);
 
-    // 2. Curated Inclusion: Asante (Carrer de Verdi, 67 in Gràcia) should be included and prioritized
-    const asante = results.find((r) => r.name.toLowerCase().includes("asante"));
-    expect(asante).toBeDefined();
-    expect(asante?.isVegan).toBe(true);
+    // 2. Curated Inclusion: Gallo Santo (Carrer del Torrent de l'Olla in Gràcia) should be included and prioritized
+    const galloSanto = results.find((r) => r.name.toLowerCase().includes("gallo santo"));
+    expect(galloSanto).toBeDefined();
+    expect(galloSanto?.isVegan).toBe(true);
 
     // 3. Coordinate bounds check: All returned venues must be strictly within neighborhood reach
     for (const r of results) {

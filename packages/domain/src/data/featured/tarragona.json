@@ -31,5 +31,38 @@
     "rating": 4.9,
     "openingHours": "Tu-Sa 09:00-14:00, 17:00-20:00",
     "imageUrl": "https://images.unsplash.com/photo-1509440159596-0249088772ff?auto=format&fit=crop&w=800&q=80"
+  },
+  {
+    "id": "featured-cambrils-cafe-fadri",
+    "name": "Café Fadrí",
+    "address": "Carrer de les Tres Eres, 5, Local 3, 43850 Cambrils",
+    "latitude": 41.0748,
+    "longitude": 1.0558,
+    "websiteUrl": "https://fadri.cafe",
+    "mapUrl": "https://www.openstreetmap.org/?mlat=41.0748&mlon=1.0558#map=17/41.0748/1.0558",
+    "provider": "curated",
+    "cuisine": "cafe_bakery",
+    "tags": ["vegan", "cafe_bakery", "specialty_coffee", "cinnamon_rolls", "pastry", "featured"],
+    "isVegan": true,
+    "isFeatured": true,
+    "rating": 4.9,
+    "openingHours": "We-Su 09:30-13:00",
+    "imageUrl": "https://images.unsplash.com/photo-1550547660-d9450f859349?auto=format&fit=crop&w=800&q=80"
+  },
+  {
+    "id": "featured-reus-herbivore",
+    "name": "Herbivore Plant Based & Fermented Food",
+    "address": "Raval de Sant Pere, 2, 43204 Reus",
+    "latitude": 41.1555,
+    "longitude": 1.1098,
+    "mapUrl": "https://www.openstreetmap.org/?mlat=41.1555&mlon=1.1098#map=17/41.1555/1.1098",
+    "provider": "curated",
+    "cuisine": "brunch",
+    "tags": ["vegan", "fermented", "brunch", "artisanal_cheese", "cafe", "featured"],
+    "isVegan": true,
+    "isFeatured": true,
+    "rating": 4.9,
+    "openingHours": "Mo-Sa 10:00-14:00, 17:00-20:00",
+    "imageUrl": "https://images.unsplash.com/photo-1540420773420-3366772f4999?auto=format&fit=crop&w=800&q=80"
   }
 ]

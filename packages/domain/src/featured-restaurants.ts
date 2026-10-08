@@ -10,6 +10,14 @@ import gironaData from "./data/featured/girona.json" with { type: "json" };
 import tarragonaData from "./data/featured/tarragona.json" with { type: "json" };
 import vicData from "./data/featured/vic.json" with { type: "json" };
 import manresaData from "./data/featured/manresa.json" with { type: "json" };
+import vallesOccidentalData from "./data/featured/valles-occidental.json" with { type: "json" };
+import vallesOrientalData from "./data/featured/valles-oriental.json" with { type: "json" };
+import solsonesData from "./data/featured/solsones.json" with { type: "json" };
+import baixLlobregatData from "./data/featured/baix-llobregat.json" with { type: "json" };
+import maresmeData from "./data/featured/maresme.json" with { type: "json" };
+import garrotxaData from "./data/featured/garrotxa.json" with { type: "json" };
+import baixEmpordaData from "./data/featured/baix-emporda.json" with { type: "json" };
+import altPenedesData from "./data/featured/alt-penedes.json" with { type: "json" };
 import londonData from "./data/featured/london.json" with { type: "json" };
 import berlinData from "./data/featured/berlin.json" with { type: "json" };
 import parisData from "./data/featured/paris.json" with { type: "json" };
@@ -24,6 +32,14 @@ export const FEATURED_RESTAURANTS_GIRONA = gironaData as RestaurantCandidate[];
 export const FEATURED_RESTAURANTS_TARRAGONA = tarragonaData as RestaurantCandidate[];
 export const FEATURED_RESTAURANTS_VIC = vicData as RestaurantCandidate[];
 export const FEATURED_RESTAURANTS_MANRESA = manresaData as RestaurantCandidate[];
+export const FEATURED_RESTAURANTS_VALLES_OCCIDENTAL = vallesOccidentalData as RestaurantCandidate[];
+export const FEATURED_RESTAURANTS_VALLES_ORIENTAL = vallesOrientalData as RestaurantCandidate[];
+export const FEATURED_RESTAURANTS_SOLSONES = solsonesData as RestaurantCandidate[];
+export const FEATURED_RESTAURANTS_BAIX_LLOBREGAT = baixLlobregatData as RestaurantCandidate[];
+export const FEATURED_RESTAURANTS_MARESME = maresmeData as RestaurantCandidate[];
+export const FEATURED_RESTAURANTS_GARROTXA = garrotxaData as RestaurantCandidate[];
+export const FEATURED_RESTAURANTS_BAIX_EMPORDA = baixEmpordaData as RestaurantCandidate[];
+export const FEATURED_RESTAURANTS_ALT_PENEDES = altPenedesData as RestaurantCandidate[];
 export const FEATURED_RESTAURANTS_LONDON = londonData as RestaurantCandidate[];
 export const FEATURED_RESTAURANTS_BERLIN = berlinData as RestaurantCandidate[];
 export const FEATURED_RESTAURANTS_PARIS = parisData as RestaurantCandidate[];
@@ -39,6 +55,14 @@ export const FEATURED_RESTAURANTS: RestaurantCandidate[] = [
   ...FEATURED_RESTAURANTS_TARRAGONA,
   ...FEATURED_RESTAURANTS_VIC,
   ...FEATURED_RESTAURANTS_MANRESA,
+  ...FEATURED_RESTAURANTS_VALLES_OCCIDENTAL,
+  ...FEATURED_RESTAURANTS_VALLES_ORIENTAL,
+  ...FEATURED_RESTAURANTS_SOLSONES,
+  ...FEATURED_RESTAURANTS_BAIX_LLOBREGAT,
+  ...FEATURED_RESTAURANTS_MARESME,
+  ...FEATURED_RESTAURANTS_GARROTXA,
+  ...FEATURED_RESTAURANTS_BAIX_EMPORDA,
+  ...FEATURED_RESTAURANTS_ALT_PENEDES,
   ...FEATURED_RESTAURANTS_LONDON,
   ...FEATURED_RESTAURANTS_BERLIN,
   ...FEATURED_RESTAURANTS_PARIS,
@@ -92,6 +116,62 @@ export const FEATURED_CITY_HUBS: FeaturedCityHub[] = [
     latitude: 41.7282,
     longitude: 1.8268,
     restaurants: FEATURED_RESTAURANTS_MANRESA,
+  },
+  {
+    id: "valles-occidental",
+    name: "Vallès Occidental",
+    latitude: 41.5540,
+    longitude: 2.0230,
+    restaurants: FEATURED_RESTAURANTS_VALLES_OCCIDENTAL,
+  },
+  {
+    id: "valles-oriental",
+    name: "Vallès Oriental",
+    latitude: 41.6062,
+    longitude: 2.2845,
+    restaurants: FEATURED_RESTAURANTS_VALLES_ORIENTAL,
+  },
+  {
+    id: "solsones",
+    name: "Solsonès",
+    latitude: 42.0645,
+    longitude: 1.5476,
+    restaurants: FEATURED_RESTAURANTS_SOLSONES,
+  },
+  {
+    id: "baix-llobregat",
+    name: "Baix Llobregat",
+    latitude: 41.2785,
+    longitude: 1.9772,
+    restaurants: FEATURED_RESTAURANTS_BAIX_LLOBREGAT,
+  },
+  {
+    id: "maresme",
+    name: "Maresme",
+    latitude: 41.5385,
+    longitude: 2.4445,
+    restaurants: FEATURED_RESTAURANTS_MARESME,
+  },
+  {
+    id: "garrotxa",
+    name: "La Garrotxa",
+    latitude: 42.1993,
+    longitude: 2.6998,
+    restaurants: FEATURED_RESTAURANTS_GARROTXA,
+  },
+  {
+    id: "baix-emporda",
+    name: "Baix Empordà",
+    latitude: 41.8505,
+    longitude: 3.1290,
+    restaurants: FEATURED_RESTAURANTS_BAIX_EMPORDA,
+  },
+  {
+    id: "alt-penedes",
+    name: "Alt Penedès",
+    latitude: 41.3468,
+    longitude: 1.6985,
+    restaurants: FEATURED_RESTAURANTS_ALT_PENEDES,
   },
   {
     id: "london",

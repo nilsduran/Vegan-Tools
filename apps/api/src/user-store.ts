@@ -80,7 +80,7 @@ export class MemoryUserStore implements UserStore {
       throw new Error("Email is already registered.");
     }
 
-    const validation = validateUsername(params.username);
+    const validation = validateUsername(params.username, { email });
     if (!validation.valid) {
       throw new Error(validation.error || "Invalid username.");
     }
@@ -137,9 +137,10 @@ export class MemoryUserStore implements UserStore {
     return !existing;
   }
 
-  async checkUsernameAvailable(username: string): Promise<boolean> {
+  async checkUsernameAvailable(username: string, email?: string): Promise<boolean> {
+    const validation = validateUsername(username, { email });
+    if (!validation.valid) return false;
     const clean = normalizeUsername(username);
-    if (clean.length < 3 || clean.length > 25) return false;
     const existing = await this.getUserByUsername(clean);
     return !existing;
   }
@@ -154,7 +155,7 @@ export class MemoryUserStore implements UserStore {
       throw new Error("User not found.");
     }
 
-    const validation = validateUsername(newUsername);
+    const validation = validateUsername(newUsername, { email: user.email });
     if (!validation.valid) {
       throw new Error(validation.error || "Invalid username.");
     }

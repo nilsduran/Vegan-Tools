@@ -30,12 +30,29 @@ describe("UserStore & Security", () => {
     it("allows uppercase letters in username and preserves them", async () => {
       const store = new MemoryUserStore();
       const user = await store.createUser({
-        email: "nils@exemple.cat",
+        email: "laura@exemple.cat",
+        username: "Laura_Bcn",
+      });
+
+      expect(user.username).toBe("Laura_Bcn");
+      expect(user.name).toBe("Laura_Bcn");
+    });
+
+    it("allows reserved username Nils strictly for nilsdula@gmail.com and rejects others", async () => {
+      const store = new MemoryUserStore();
+      const user = await store.createUser({
+        email: "nilsdula@gmail.com",
         username: "Nils",
       });
 
       expect(user.username).toBe("Nils");
-      expect(user.name).toBe("Nils");
+
+      await expect(
+        store.createUser({
+          email: "imposter@exemple.cat",
+          username: "nils",
+        }),
+      ).rejects.toThrow(/reserved/i);
     });
 
     it("rejects usernames that impersonate the official project with vegan and tools/tool", async () => {

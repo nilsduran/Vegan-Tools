@@ -149,6 +149,9 @@ export async function menuRoutes(app: FastifyInstance, options: MenuRoutesOption
         message: "Enter a valid website or menu link.",
       });
     }
+    if (!/^https?:\/\//i.test(websiteUrl)) {
+      websiteUrl = `https://${websiteUrl}`;
+    }
     let normalizedWebsite: string;
     let fallbackName = "";
     try {

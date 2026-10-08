@@ -11,7 +11,44 @@ export function normalizeUsername(raw: string): string {
     .slice(0, 25);
 }
 
-export function validateUsername(raw: string): { valid: boolean; error?: string } {
+/**
+ * Reserved usernames that cannot be claimed by regular registrations or modifications.
+ * The handle "nils" (case-insensitive, e.g. "nils", "Nils") is exclusively reserved for the project founder (nilsdula@gmail.com).
+ */
+export const RESERVED_USERNAMES_MAP: Record<string, string[]> = {
+  nils: ["nilsdula@gmail.com"],
+};
+
+export const SYSTEM_RESERVED_USERNAMES = [
+  "admin",
+  "administrator",
+  "moderator",
+  "root",
+  "vegantools",
+  "vegantool",
+  "vegan_tools",
+];
+
+export function isUsernameReserved(username: string, allowedEmail?: string): boolean {
+  const normalized = normalizeUsername(username).toLowerCase();
+
+  if (SYSTEM_RESERVED_USERNAMES.includes(normalized)) {
+    return true;
+  }
+
+  const allowedEmails = RESERVED_USERNAMES_MAP[normalized];
+  if (allowedEmails) {
+    if (!allowedEmail) return true;
+    return !allowedEmails.some((email) => email.toLowerCase() === allowedEmail.trim().toLowerCase());
+  }
+
+  return false;
+}
+
+export function validateUsername(
+  raw: string,
+  options?: { email?: string }
+): { valid: boolean; error?: string } {
   const clean = normalizeUsername(raw);
   if (!clean || clean.length < 3) {
     return { valid: false, error: "Username must be at least 3 characters." };
@@ -27,6 +64,14 @@ export function validateUsername(raw: string): { valid: boolean; error?: string 
     return {
       valid: false,
       error: "Usernames cannot combine 'vegan' and 'tool' to avoid confusion with official accounts.",
+    };
+  }
+
+  // Check reserved usernames (nils, admin, etc.)
+  if (isUsernameReserved(clean, options?.email)) {
+    return {
+      valid: false,
+      error: "This username is reserved.",
     };
   }
 
