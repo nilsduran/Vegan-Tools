@@ -52,8 +52,8 @@ jobs:
           node-version-file: .node-version
           cache: npm
       - run: npm ci
+      - run: npm run build -w @vegan-tools/domain
       - run: npm run audit:pins
-      - run: npm run check:secrets
 
   build:
     name: Production build
@@ -68,3 +68,4 @@ jobs:
           cache: npm
       - run: npm ci
       - run: npm run build
+      - run: npm run check:secrets
