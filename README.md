@@ -114,6 +114,27 @@ npm run dev
 | `npm run typecheck` | Validates TypeScript compilation across all workspaces |
 | `npm run build` | Compiles domain package and builds production bundles |
 
+### Production release contract
+
+The production web and API deployments require the following environment variables:
+
+| Surface | Required variables | Optional variables |
+| --- | --- | --- |
+| Web | `VITE_API_URL`, `VITE_SUPABASE_URL`, `VITE_SUPABASE_ANON_KEY` | `VITE_GEOAPIFY_API_KEY`, `VITE_CARTO_API_KEY` |
+| API | `PORT`, `WEB_ORIGIN` | `GEMINI_API_KEY`, `SUPABASE_URL`, `SUPABASE_SECRET_KEY`, `GEOAPIFY_API_KEY` |
+
+Public browser variables must use the `VITE_` prefix and must never contain a Supabase service-role key or any provider secret. The API must receive secrets only through the hosting provider's environment configuration; do not commit `.env` files.
+
+Before deploying:
+
+1. Run `npm run check`.
+2. Apply Supabase migrations in filename order and verify RLS policies before exposing write routes.
+3. Confirm `GET /health` and `GET /docs` respond successfully in the deployed API.
+4. Smoke-test one public restaurant lookup and one authenticated write flow.
+5. Keep the previous deployment available until these checks pass so rollback does not require a database downgrade.
+
+The repository CI mirrors these gates in separate typecheck, test, audit, and production-build jobs so failures identify the affected layer directly.
+
 ---
 
 ## 🔐 Authentication & Cloud Sync Setup
