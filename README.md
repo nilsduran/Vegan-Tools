@@ -133,6 +133,8 @@ Before deploying:
 4. Smoke-test one public restaurant lookup and one authenticated write flow.
 5. Keep the previous deployment available until these checks pass so rollback does not require a database downgrade.
 
+For the API availability check, set `API_URL` to the deployed API origin and run `npm run smoke:api`. Every API response also includes an `x-request-id` header; include that value when investigating an error.
+
 The repository CI mirrors these gates in separate typecheck, test, audit, and production-build jobs so failures identify the affected layer directly.
 
 ---

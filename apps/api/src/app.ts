@@ -5,7 +5,7 @@
  * and mounts modular route controllers (location, recipes, products, reviews, restaurants, menus).
  */
 
-import Fastify from "fastify";
+import Fastify, { type FastifyError } from "fastify";
 import cors from "@fastify/cors";
 import multipart from "@fastify/multipart";
 import rateLimit from "@fastify/rate-limit";
@@ -125,7 +125,44 @@ export async function buildApp(
   const reviewStore = deps.reviewStore ?? createRestaurantReviewStore();
   const visitStore = deps.visitStore ?? createRestaurantVisitStore();
 
-  const app = Fastify({ logger: true, bodyLimit: 15 * 1024 * 1024, trustProxy: true });
+  const app = Fastify({
+    logger: true,
+    bodyLimit: 15 * 1024 * 1024,
+    trustProxy: true,
+    requestIdHeader: "x-request-id",
+  });
+
+  app.addHook("onSend", async (request, reply) => {
+    reply.header("x-request-id", request.id);
+  });
+
+  app.setErrorHandler((error: FastifyError, request, reply) => {
+    const statusCode = error.statusCode && error.statusCode >= 400 && error.statusCode < 500
+      ? error.statusCode
+      : 500;
+    request.log.error({ err: error, requestId: request.id, statusCode }, "API request failed");
+    return reply.code(statusCode).send({
+      code: statusCode === 500 ? "INTERNAL_ERROR" : "REQUEST_ERROR",
+      error:
+        statusCode === 429
+          ? "Too Many Requests"
+          : statusCode === 500
+            ? "Internal Server Error"
+            : "Bad Request",
+      message: statusCode === 500 ? "Internal server error." : error.message,
+      statusCode,
+      requestId: request.id,
+    });
+  });
+
+  app.setNotFoundHandler((request, reply) => {
+    request.log.warn({ requestId: request.id }, "API route not found");
+    return reply.code(404).send({
+      code: "NOT_FOUND",
+      message: "Route not found.",
+      requestId: request.id,
+    });
+  });
 
   const normalizeCorsOrigin = (origin: string) =>
     origin.trim().replace(/^['"]|['"]$/g, "").replace(/\/+$/, "");

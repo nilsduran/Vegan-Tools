@@ -27,6 +27,7 @@
     "audit:cuisine-tags": "tsx scripts/audit-cuisine-tag-coverage.ts",
     "audit:restaurant-taxonomy": "tsx scripts/audit-restaurant-taxonomy-coverage.ts",
     "check:secrets": "node scripts/check-bundle-secrets.mjs",
+    "smoke:api": "node scripts/smoke-api.mjs",
     "check": "npm run typecheck && npm test && npm run audit:pins && npm run build && npm run check:secrets",
     "clean": "node scripts/clean.mjs"
   },

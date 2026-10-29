@@ -34,6 +34,25 @@ describe("API", () => {
     await app.close();
   }, 30_000);
 
+  it("returns a request ID on successful and error responses", async () => {
+    const app = await buildApp(new MemoryRepository());
+    const successful = await app.inject({
+      method: "GET",
+      url: "/health",
+      headers: { "x-request-id": "smoke-request-123" },
+    });
+    expect(successful.headers["x-request-id"]).toBe("smoke-request-123");
+
+    const error = await app.inject({ method: "GET", url: "/route-that-does-not-exist" });
+    expect(error.statusCode).toBe(404);
+    expect(error.headers["x-request-id"]).toBeDefined();
+    expect(error.json()).toMatchObject({
+      code: "NOT_FOUND",
+      requestId: error.headers["x-request-id"],
+    });
+    await app.close();
+  });
+
   it("adds CORS headers for the production web origin on actual API responses", async () => {
     vi.stubEnv("WEB_ORIGIN", "\"https://vegan-tools.onrender.com/\"");
     const app = await buildApp(new MemoryRepository());
@@ -979,4 +998,3 @@ describe("API", () => {
     await app.close();
   });
 });
-
