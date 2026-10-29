@@ -12,12 +12,14 @@ export function getDirectionsUrl(restaurant: RestaurantCandidate): string {
     restaurant.latitude !== 0 &&
     restaurant.longitude !== 0;
 
+  const fullDestination = restaurant.address
+    ? `${restaurant.name}, ${restaurant.address}`
+    : restaurant.name;
+
   if (!hasCoordinates) {
     return (
       restaurant.mapUrl ||
-      `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(
-        `${restaurant.name} ${restaurant.address}`,
-      )}`
+      `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(fullDestination)}`
     );
   }
 
@@ -26,8 +28,8 @@ export function getDirectionsUrl(restaurant: RestaurantCandidate): string {
     /Android|iPhone|iPad|iPod|Mobile/i.test(navigator.userAgent || "");
 
   if (isMobile) {
-    return `geo:${restaurant.latitude},${restaurant.longitude}?q=${encodeURIComponent(restaurant.name)}`;
+    return `geo:${restaurant.latitude},${restaurant.longitude}?q=${encodeURIComponent(fullDestination)}`;
   }
 
-  return `https://www.google.com/maps/dir/?api=1&destination=${restaurant.latitude},${restaurant.longitude}`;
+  return `https://www.google.com/maps/dir/?api=1&destination=${encodeURIComponent(fullDestination)}`;
 }

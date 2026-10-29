@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Camera, CameraOff, ChevronRight, HelpCircle, RefreshCw, Smartphone, Upload, X } from "lucide-react";
+import { Camera, CameraOff, RefreshCw, X } from "lucide-react";
 import { tx, useLanguage } from "../i18n";
 
 export interface CameraPermissionModalProps {
@@ -33,7 +33,7 @@ export function CameraPermissionModal({
 
   return (
     <div className="auth-dialog-backdrop" role="dialog" aria-modal="true" aria-labelledby="camera-permission-title">
-      <div className="auth-dialog-content camera-permission-dialog">
+      <div className="auth-dialog-modal camera-permission-dialog">
         <div className="auth-dialog-header">
           <div style={{ display: "flex", alignItems: "center", gap: "0.5rem" }}>
             <div className="camera-icon-badge" style={{ background: "#fee2e2", color: "#dc2626", padding: "0.4rem", borderRadius: "50%", display: "flex" }}>
@@ -53,13 +53,13 @@ export function CameraPermissionModal({
           </button>
         </div>
 
-        <div className="camera-permission-body" style={{ marginTop: "0.8rem" }}>
-          <p style={{ fontSize: "0.88rem", color: "#475569", lineHeight: "1.45", margin: "0 0 1rem 0" }}>
+        <div className="camera-permission-body">
+          <p className="camera-permission-description">
             {tx("To scan barcodes and photograph ingredient labels in real time, your browser needs permission to access the camera.")}
           </p>
 
           {/* Device Tabs */}
-          <div className="auth-mode-tabs" style={{ marginBottom: "1rem" }}>
+          <div className="auth-mode-tabs camera-device-tabs">
             <button
               type="button"
               className={isIOS ? "active" : ""}
@@ -84,9 +84,9 @@ export function CameraPermissionModal({
           </div>
 
           {/* Instructions Step by Step */}
-          <div className="permission-steps-card" style={{ background: "#f8fafc", border: "1px solid #e2e8f0", borderRadius: "0.75rem", padding: "0.85rem 1rem", marginBottom: "1.2rem" }}>
+          <div className="permission-steps-card">
             {isIOS ? (
-              <ol style={{ margin: 0, paddingLeft: "1.2rem", fontSize: "0.84rem", color: "#334155", display: "flex", flexDirection: "column", gap: "0.5rem" }}>
+              <ol>
                 <li>
                   <strong>{language === "ca" ? "Toca la icona 'aA' o ajustos" : "Tap the 'aA' or settings icon"}</strong> {language === "ca" ? "a l'esquerra de la barra d'adreces de Safari." : "on the left of the Safari address bar."}
                 </li>
@@ -96,12 +96,12 @@ export function CameraPermissionModal({
                 <li>
                   {language === "ca" ? "Canvia la " : "Set "}<strong>{language === "ca" ? "Càmera" : "Camera"}</strong> {language === "ca" ? "a " : "to "}<strong>{language === "ca" ? "Permetre" : "Allow"}</strong>.
                 </li>
-                <li style={{ fontSize: "0.78rem", color: "#64748b" }}>
+                <li className="permission-step-note">
                   {language === "ca" ? "O bé ves a Ajustos de l'iPhone > Safari > Càmera." : "Or go to iPhone Settings > Safari > Camera."}
                 </li>
               </ol>
             ) : isAndroid ? (
-              <ol style={{ margin: 0, paddingLeft: "1.2rem", fontSize: "0.84rem", color: "#334155", display: "flex", flexDirection: "column", gap: "0.5rem" }}>
+              <ol>
                 <li>
                   <strong>{language === "ca" ? "Toca la icona de cadenat o controls" : "Tap the lock or tune icon"}</strong> {language === "ca" ? "al costat de la barra d'adreces a Chrome." : "next to the address bar in Chrome."}
                 </li>
@@ -113,7 +113,7 @@ export function CameraPermissionModal({
                 </li>
               </ol>
             ) : (
-              <ol style={{ margin: 0, paddingLeft: "1.2rem", fontSize: "0.84rem", color: "#334155", display: "flex", flexDirection: "column", gap: "0.5rem" }}>
+              <ol>
                 <li>
                   {language === "ca" ? "Fes clic a la icona de cadenat a l'esquerra de la URL." : "Click the lock icon to the left of the URL."}
                 </li>
@@ -125,11 +125,10 @@ export function CameraPermissionModal({
           </div>
 
           {/* Action buttons */}
-          <div style={{ display: "flex", flexDirection: "column", gap: "0.6rem" }}>
+          <div className="camera-permission-actions">
             <button
               type="button"
-              className="primary-button"
-              style={{ width: "100%", justifyContent: "center", gap: "0.5rem", padding: "0.75rem" }}
+              className="primary-button camera-permission-action"
               onClick={() => {
                 onRetry();
                 onClose();
@@ -141,18 +140,7 @@ export function CameraPermissionModal({
 
             {onNativeCapture && (
               <label
-                className="secondary-button"
-                style={{
-                  width: "100%",
-                  justifyContent: "center",
-                  gap: "0.5rem",
-                  padding: "0.75rem",
-                  cursor: "pointer",
-                  display: "inline-flex",
-                  alignItems: "center",
-                  margin: 0,
-                  boxSizing: "border-box",
-                }}
+                className="secondary-button camera-permission-action"
               >
                 <Camera size={16} aria-hidden="true" />
                 <span>{tx("Take photo with native camera")}</span>

@@ -36,10 +36,12 @@ export function AuthDialog({
   isOpen,
   onClose,
   onSuccess,
+  title,
 }: {
   isOpen: boolean;
   onClose: () => void;
   onSuccess?: () => void;
+  title?: string;
 }) {
   const language = useLanguage();
   const {
@@ -161,11 +163,12 @@ export function AuthDialog({
         <header className="auth-dialog-header">
           <div className="auth-dialog-leaf-badge">🍃</div>
           <h2 id="auth-dialog-title">
-            {mode === "reset"
+            {title ??
+              (mode === "reset"
               ? tx("Reset password")
               : mode === "signup"
               ? tx("Create account")
-              : tx("Sign in to rate")}
+              : tx("Sign in to rate"))}
           </h2>
           <p className="auth-dialog-subtitle">
             {mode === "reset"
@@ -205,10 +208,13 @@ export function AuthDialog({
 
         {/* Localhost developer bypass */}
         {typeof window !== "undefined" &&
-          (window.location.hostname === "localhost" ||
+          (import.meta.env.DEV ||
+            window.location.hostname === "localhost" ||
             window.location.hostname === "127.0.0.1" ||
-            window.location.hostname === "[::1]") && (
-            <div className="auth-localhost-box" style={{ marginBottom: "1.2rem" }}>
+            window.location.hostname === "[::1]" ||
+            window.location.hostname.startsWith("192.168.") ||
+            window.location.hostname.startsWith("10.")) && (
+            <div className="auth-localhost-box" style={{ marginBottom: "1rem" }}>
               <div className="auth-localhost-header">
                 <span className="auth-localhost-badge">Local Dev</span>
                 <span>{tx("Quick local access")}</span>
@@ -219,8 +225,10 @@ export function AuthDialog({
                   className="auth-localhost-btn"
                   onClick={() => {
                     loginWithUsername("tester_local");
-                    onSuccess?.();
                     onClose();
+                    setTimeout(() => {
+                      onSuccess?.();
+                    }, 0);
                   }}
                 >
                   ⚡ {tx("Log in as")} <strong>tester_local</strong>
@@ -230,8 +238,10 @@ export function AuthDialog({
                   className="auth-localhost-btn secondary"
                   onClick={() => {
                     loginWithUsername("comunitat_veg");
-                    onSuccess?.();
                     onClose();
+                    setTimeout(() => {
+                      onSuccess?.();
+                    }, 0);
                   }}
                 >
                   {tx("Log in as")} <strong>comunitat</strong>

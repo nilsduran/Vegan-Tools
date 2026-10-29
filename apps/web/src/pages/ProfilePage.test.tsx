@@ -79,15 +79,15 @@ describe("ProfilePage with Letterboxd Diary & Top 4", () => {
 
     saveVisitLog({
       userId: mockUser.id,
-      restaurantId: "roots-bcn",
-      restaurantName: "Roots Vegan",
+      restaurantId: "asante-bcn",
+      restaurantName: "Asante",
       visitDate: "2026-09-08",
       rating: 4.5,
       notes: "Phenomenal brunch and burgers!",
       dishesTried: ["Roots Burger"],
     });
 
-    setUserTop4(["roots-bcn"], mockUser.id);
+    setUserTop4(["asante-bcn"], mockUser.id);
 
     render(
       <MemoryRouter>

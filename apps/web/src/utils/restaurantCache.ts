@@ -83,7 +83,11 @@ export function getCustomRestaurants(): RestaurantCandidate[] {
     const raw = localStorage.getItem(CUSTOM_RESTAURANTS_KEY);
     if (!raw) return [];
     const parsed = JSON.parse(raw);
-    return Array.isArray(parsed) ? (parsed as RestaurantCandidate[]) : [];
+    if (!Array.isArray(parsed)) return [];
+    return parsed.map((item) => ({
+      ...item,
+      isFeatured: false,
+    })) as RestaurantCandidate[];
   } catch {
     return [];
   }

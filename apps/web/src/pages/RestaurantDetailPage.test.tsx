@@ -30,14 +30,14 @@ describe("RestaurantDetailPage", () => {
 
   it("renders curated restaurant details and back link", async () => {
     render(
-      <MemoryRouter initialEntries={["/restaurant/roots-bcn"]}>
+      <MemoryRouter initialEntries={["/restaurant/asante-bcn"]}>
         <Routes>
           <Route path="/restaurant/:id" element={<RestaurantDetailPage />} />
         </Routes>
       </MemoryRouter>,
     );
 
-    expect(await screen.findByText("Roots Vegan")).toBeDefined();
+    expect(await screen.findByText("Asante")).toBeDefined();
     expect(screen.getAllByText(/Vegan/i).length).toBeGreaterThan(0);
     expect(screen.getByText(/Directions/i)).toBeDefined();
     expect(screen.getAllByText(/Log a visit/i).length).toBeGreaterThan(0);
@@ -90,8 +90,8 @@ describe("RestaurantDetailPage", () => {
 
     saveVisitLog({
       userId: mockUser.id,
-      restaurantId: "roots-bcn",
-      restaurantName: "Roots Vegan",
+      restaurantId: "asante-bcn",
+      restaurantName: "Asante",
       visitDate: "2026-09-08",
       rating: 4.8,
       notes: "The beyond burger was super juicy!",
@@ -99,14 +99,14 @@ describe("RestaurantDetailPage", () => {
     });
 
     render(
-      <MemoryRouter initialEntries={["/restaurant/roots-bcn"]}>
+      <MemoryRouter initialEntries={["/restaurant/asante-bcn"]}>
         <Routes>
           <Route path="/restaurant/:id" element={<RestaurantDetailPage />} />
         </Routes>
       </MemoryRouter>,
     );
 
-    const titles = await screen.findAllByText("Roots Vegan");
+    const titles = await screen.findAllByText("Asante");
     expect(titles.length).toBeGreaterThan(0);
     expect(screen.getByText(/The beyond burger was super juicy!/i)).toBeDefined();
     expect(screen.getByText(/Burger, Fries/i)).toBeDefined();
@@ -131,7 +131,7 @@ describe("RestaurantDetailPage", () => {
     });
 
     render(
-      <MemoryRouter initialEntries={["/restaurant/roots-bcn"]}>
+      <MemoryRouter initialEntries={["/restaurant/asante-bcn"]}>
         <Routes>
           <Route path="/restaurant/:id" element={<RestaurantDetailPage />} />
         </Routes>
@@ -164,7 +164,7 @@ describe("RestaurantDetailPage", () => {
     });
 
     render(
-      <MemoryRouter initialEntries={["/restaurant/roots-bcn"]}>
+      <MemoryRouter initialEntries={["/restaurant/asante-bcn"]}>
         <Routes>
           <Route path="/restaurant/:id" element={<RestaurantDetailPage />} />
         </Routes>

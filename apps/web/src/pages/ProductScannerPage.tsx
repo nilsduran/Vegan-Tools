@@ -139,6 +139,7 @@ export function ProductScannerPage() {
   const [ingredientPhoto, setIngredientPhoto] = useState<File>();
   const [photoUrl, setPhotoUrl] = useState("");
   const [remotePhotoUrl, setRemotePhotoUrl] = useState("");
+  const [scannedUrl, setScannedUrl] = useState("");
   const [recentScans, setRecentScans] = useState<RecentScanItem[]>(getStoredRecentScans);
   const [revealedImages, setRevealedImages] = useState<Record<string, boolean>>({});
   const lookup = useQuery({
@@ -190,8 +191,30 @@ export function ProductScannerPage() {
   }, [ingredientPhoto]);
 
   const runLookup = useCallback((value: string) => {
-    setCode(value);
-    void navigate(`/product/${encodeURIComponent(value)}`);
+    const cleanValue = value.trim();
+    if (!cleanValue) return;
+
+    try {
+      const url = new URL(cleanValue);
+      const isOpenFactsUrl =
+        url.hostname.endsWith("openfoodfacts.org") ||
+        url.hostname.endsWith("openbeautyfacts.org");
+      const productCode = url.pathname.match(/\d{8,14}/)?.[0];
+      if (!isOpenFactsUrl || !productCode) {
+        setScannedUrl(cleanValue);
+        return;
+      }
+      setScannedUrl("");
+      setCode(productCode);
+      void navigate(`/product/${encodeURIComponent(productCode)}`);
+      return;
+    } catch {
+      // Non-URL payloads are handled as product codes when possible.
+    }
+
+    setScannedUrl("");
+    setCode(cleanValue);
+    void navigate(`/product/${encodeURIComponent(cleanValue)}`);
   }, [navigate]);
 
   const readIngredientPhoto = (file: File) => {
@@ -249,6 +272,27 @@ export function ProductScannerPage() {
         <section className="checker-panel" aria-label={tx("Barcode checker")}>
           {!routeGtin && <BarcodeCamera onDetected={runLookup} />}
 
+          {scannedUrl && (
+            <div className="scanner-external-result" role="status">
+              <strong>{tx("Code detected")}</strong>
+              <p className="muted">{scannedUrl}</p>
+              <div className="not-found-actions">
+                <button
+                  type="button"
+                  className="primary-button"
+                  onClick={() => window.open(scannedUrl, "_blank", "noopener,noreferrer")}
+                >
+                  <ExternalLink aria-hidden="true" />
+                  <span>{tx("Open scanned link")}</span>
+                </button>
+                <button type="button" className="secondary-button" onClick={() => setScannedUrl("")}>
+                  <RotateCcw aria-hidden="true" />
+                  <span>{tx("Scan another")}</span>
+                </button>
+              </div>
+            </div>
+          )}
+
           {!routeGtin && <form
             className="barcode-form"
             onSubmit={(event) => {
@@ -261,8 +305,7 @@ export function ProductScannerPage() {
               <input
                 id="barcode"
                 type="text"
-                pattern="[0-9]*"
-                inputMode="numeric"
+                inputMode="text"
                 autoComplete="off"
                 value={code}
                 onChange={(event) => setCode(event.target.value)}

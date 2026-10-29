@@ -9,6 +9,7 @@ import Fastify from "fastify";
 import cors from "@fastify/cors";
 import multipart from "@fastify/multipart";
 import rateLimit from "@fastify/rate-limit";
+import etag from "@fastify/etag";
 import swagger from "@fastify/swagger";
 import swaggerUi from "@fastify/swagger-ui";
 import { repository, type Repository } from "./store.js";
@@ -161,9 +162,9 @@ export async function buildApp(
   // Global default: 100 requests per minute per IP.
   // AI-heavy routes get stricter per-route overrides (registered below)
   // to prevent cost abuse on Gemini / Geoapify.
-  // In tests, disabled by default to avoid flakiness unless explicitly enabled via { disableRateLimit: false }.
-  const isTestEnv = process.env.NODE_ENV === "test";
-  const disableRateLimit = deps.disableRateLimit ?? isTestEnv;
+  // Rate limiting applies strictly in production; disabled in dev and tests.
+  const isProduction = process.env.NODE_ENV === "production";
+  const disableRateLimit = deps.disableRateLimit ?? !isProduction;
 
   if (!disableRateLimit) {
     await app.register(rateLimit, {
@@ -177,6 +178,11 @@ export async function buildApp(
       addHeaders: { "x-ratelimit-limit": true, "x-ratelimit-remaining": true, "x-ratelimit-reset": true, "retry-after": true },
     });
   }
+
+  // ── HTTP ETag & 304 Cache ─────────────────────────────────────────────
+  // Fast fnv1a non-cryptographic hashing to emit ETags and reply 304 Not Modified
+  // with zero body transfer when client cache is warm.
+  await app.register(etag);
 
   await app.register(multipart, {
     limits: { files: 8, fileSize: 10 * 1024 * 1024 },

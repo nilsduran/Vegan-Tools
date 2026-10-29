@@ -108,25 +108,23 @@ export const CATEGORY_FILTERS: FilterDefinition[] = [
     },
   },
   {
-    id: "cafe_bakery",
-    labelKey: "Cafe & Bakery",
+    id: "cafe",
+    labelKey: "Cafe",
     icon: "☕",
     match: (c) => {
-      const name = c.name.toLowerCase();
+      const text = `${c.name} ${c.cuisine || ""} ${(c.tags || []).join(" ")}`.toLowerCase();
       return Boolean(
-        c.tags?.includes("cafe_bakery") ||
-          c.tags?.includes("cafe") ||
-          c.tags?.includes("bakery") ||
-          c.cuisine?.includes("cafe") ||
-          c.cuisine?.includes("bakery") ||
-          name.includes("cafe") ||
-          name.includes("cafeteria") ||
-          name.includes("bakery") ||
-          name.includes("coffee") ||
-          name.includes("pastisseria") ||
-          name.includes("pasteleria") ||
-          name.includes("forn") ||
-          name.includes("donut"),
+        c.tags?.includes("cafe") ||
+          c.tags?.includes("coffee") ||
+          c.tags?.includes("specialty_coffee") ||
+          c.tags?.includes("tea") ||
+          c.cuisine?.toLowerCase().includes("cafe") ||
+          c.cuisine?.toLowerCase().includes("coffee") ||
+          text.includes("cafe") ||
+          text.includes("cafeteria") ||
+          text.includes("coffee") ||
+          text.includes("espresso") ||
+          text.includes("matcha"),
       );
     },
   },
@@ -195,22 +193,34 @@ export const CATEGORY_FILTERS: FilterDefinition[] = [
     labelKey: "Asian",
     icon: "🍜",
     match: (c) => {
-      const name = c.name.toLowerCase();
+      const text = `${c.name} ${c.cuisine || ""} ${(c.tags || []).join(" ")}`.toLowerCase();
       return Boolean(
         c.tags?.includes("asian") ||
+          c.tags?.includes("ramen") ||
+          c.tags?.includes("japanese") ||
+          c.tags?.includes("chinese") ||
+          c.tags?.includes("thai") ||
+          c.tags?.includes("korean") ||
+          c.tags?.includes("vietnamese") ||
           c.cuisine?.toLowerCase().includes("asian") ||
           c.cuisine?.toLowerCase().includes("japanese") ||
           c.cuisine?.toLowerCase().includes("chinese") ||
-          name.includes("sushi") ||
-          name.includes("ramen") ||
-          name.includes("asian") ||
-          name.includes("asiat") ||
-          name.includes("thai") ||
-          name.includes("chinese") ||
-          name.includes("wok") ||
-          name.includes("desoriente") ||
-          name.includes("vietnam") ||
-          name.includes("korean"),
+          c.cuisine?.toLowerCase().includes("ramen") ||
+          text.includes("sushi") ||
+          text.includes("ramen") ||
+          text.includes("asian") ||
+          text.includes("asiat") ||
+          text.includes("thai") ||
+          text.includes("chinese") ||
+          text.includes("wok") ||
+          text.includes("noodle") ||
+          text.includes("udon") ||
+          text.includes("soba") ||
+          text.includes("pho") ||
+          text.includes("pad thai") ||
+          text.includes("desoriente") ||
+          text.includes("vietnam") ||
+          text.includes("korean"),
       );
     },
   },
@@ -394,21 +404,6 @@ export const CATEGORY_FILTERS: FilterDefinition[] = [
     match: (c) => Boolean(c.tags?.includes("halal") || c.name.toLowerCase().includes("halal")),
   },
   {
-    id: "fish_and_chips",
-    labelKey: "Fish and chips",
-    icon: "🍟",
-    match: (c) => {
-      const name = c.name.toLowerCase();
-      return Boolean(
-        c.tags?.includes("fish_and_chips") ||
-          c.cuisine?.toLowerCase().includes("fish_and_chips") ||
-          name.includes("fish and chips") ||
-          name.includes("fish & chips") ||
-          name.includes("chippy"),
-      );
-    },
-  },
-  {
     id: "brunch",
     labelKey: "Brunch",
     icon: "🥪",
@@ -418,9 +413,9 @@ export const CATEGORY_FILTERS: FilterDefinition[] = [
     },
   },
   {
-    id: "bakery",
-    labelKey: "Bakery",
-    icon: "🥖",
+    id: "bakery_pastry",
+    labelKey: "Bakery & Pastry",
+    icon: "🥐",
     match: (c) => {
       const text = `${c.name} ${c.cuisine || ""} ${(c.tags || []).join(" ")}`.toLowerCase();
       return (
@@ -428,23 +423,15 @@ export const CATEGORY_FILTERS: FilterDefinition[] = [
         text.includes("fleca") ||
         text.includes("forn") ||
         text.includes("panader") ||
-        text.includes("boulangerie")
-      );
-    },
-  },
-  {
-    id: "pastry",
-    labelKey: "Pastry",
-    icon: "🥐",
-    match: (c) => {
-      const text = `${c.name} ${c.cuisine || ""} ${(c.tags || []).join(" ")}`.toLowerCase();
-      return (
+        text.includes("boulangerie") ||
         text.includes("pastiss") ||
         text.includes("pasteler") ||
         text.includes("croissant") ||
-        text.includes("pastry") ||
         text.includes("cake") ||
-        text.includes("dolç")
+        text.includes("pastry") ||
+        text.includes("dolç") ||
+        text.includes("donut") ||
+        text.includes(" pa ")
       );
     },
   },
@@ -470,15 +457,6 @@ export const CATEGORY_FILTERS: FilterDefinition[] = [
     match: (c) => {
       const text = `${c.name} ${c.cuisine || ""} ${(c.tags || []).join(" ")}`.toLowerCase();
       return text.includes("paella") || text.includes("arros") || text.includes("arroz") || text.includes("rice");
-    },
-  },
-  {
-    id: "ramen",
-    labelKey: "Ramen",
-    icon: "🍜",
-    match: (c) => {
-      const text = `${c.name} ${c.cuisine || ""} ${(c.tags || []).join(" ")}`.toLowerCase();
-      return text.includes("ramen") || text.includes("noodle") || text.includes("udon") || text.includes("soba");
     },
   },
   {

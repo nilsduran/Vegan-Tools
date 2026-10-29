@@ -183,32 +183,29 @@ svg:not(.leaf-rating-svg):not(.rating-leaf-icon):not([data-static-leaf]) { width
 
   .mobile-bottom-nav a {
     display: flex;
-    flex-direction: column;
     align-items: center;
     justify-content: center;
-    gap: 0.2rem;
     flex: 1;
     height: 100%;
     color: #64748b;
     text-decoration: none;
-    font-size: 0.72rem;
-    font-weight: 600;
-    transition: color 0.15s ease, transform 0.15s ease;
+    transition: color 0.18s ease, transform 0.18s ease;
+    position: relative;
   }
 
   .mobile-bottom-nav a svg {
-    width: 20px;
-    height: 20px;
-    transition: transform 0.15s ease;
+    width: 25px;
+    height: 25px;
+    stroke-width: 2.15;
+    transition: transform 0.18s cubic-bezier(0.34, 1.56, 0.64, 1), color 0.18s ease;
   }
 
   .mobile-bottom-nav a.active {
     color: #047857;
-    font-weight: 750;
   }
 
   .mobile-bottom-nav a.active svg {
-    transform: scale(1.1);
+    transform: scale(1.16);
   }
 
   body {
@@ -1635,6 +1632,48 @@ button:disabled { cursor: not-allowed; opacity: .55; }
   font-size: 0.75rem;
   color: #94a3b8;
   padding: 0 4px;
+}
+
+.diary-filters {
+  display: grid;
+  grid-template-columns: minmax(180px, 2fr) repeat(3, minmax(120px, 1fr));
+  gap: 0.75rem;
+  margin-bottom: 1rem;
+  padding: 0.85rem;
+  background: var(--bg-subtle, #f8fafc);
+  border: 1px solid var(--line, #e2e8f0);
+  border-radius: 0.75rem;
+}
+
+.diary-filters label {
+  display: grid;
+  gap: 0.3rem;
+  color: var(--muted, #64748b);
+  font-size: 0.75rem;
+  font-weight: 700;
+}
+
+.diary-filters input,
+.diary-filters select {
+  width: 100%;
+  min-height: 2.25rem;
+  padding: 0.45rem 0.55rem;
+  border: 1px solid var(--line, #cbd5e1);
+  border-radius: 0.5rem;
+  background: var(--bg, #ffffff);
+  color: var(--text, #0f172a);
+  font: inherit;
+  font-size: 0.82rem;
+}
+
+@media (max-width: 720px) {
+  .diary-filters {
+    grid-template-columns: 1fr 1fr;
+  }
+
+  .diary-filters label:first-child {
+    grid-column: 1 / -1;
+  }
 }
 
 /* =========================================================================
@@ -4836,6 +4875,11 @@ button:disabled { cursor: not-allowed; opacity: .55; }
   color: var(--text-primary) !important;
 }
 
+[data-theme="dark"] .filter-pills-extra {
+  background: var(--bg-card) !important;
+  border-color: var(--line) !important;
+}
+
 [data-theme="dark"] .map-tool-button {
   background: var(--bg-card) !important;
   border: 1px solid var(--line) !important;
@@ -5908,4 +5952,3 @@ button:disabled { cursor: not-allowed; opacity: .55; }
 [data-theme="dark"] .settings-delete-btn:hover {
   background: #5b0d0d;
 }
-

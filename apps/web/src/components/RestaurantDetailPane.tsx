@@ -22,6 +22,7 @@ import {
   LoaderCircle,
   MapPin,
   Navigation,
+  Pencil,
   Share2,
   Upload,
   User,
@@ -46,6 +47,9 @@ import {
   type UserRestaurantList,
 } from "../utils/userLists";
 import { ListSelectModal } from "./ListSelectModal";
+import { EditRestaurantModal } from "./EditRestaurantModal";
+import { AuthDialog } from "./AuthDialog";
+import { useAuth } from "../auth";
 import { VeganBadgeIcon, VegetarianBadgeIcon, VeganOptionsBadgeIcon } from "./DietIcons";
 
 export function getDietBadge(restaurant: RestaurantCandidate): {
@@ -135,9 +139,6 @@ function formatDisplayAddress(address: string): string {
     }
   }
 
-  if (deduped.length > 2) {
-    return `${deduped[0]}, ${deduped[deduped.length - 1]}`;
-  }
   return deduped.join(", ") || address;
 }
 
@@ -292,6 +293,7 @@ export function RestaurantDetailPane({
   onClose,
   onOpenMenu,
   onUploadMenu,
+  onUpdateRestaurant,
 }: {
   restaurant: RestaurantCandidate;
   userCoords?: { lat: number; lng: number };
@@ -299,10 +301,15 @@ export function RestaurantDetailPane({
   onClose: () => void;
   onOpenMenu: (restaurant: RestaurantCandidate) => void;
   onUploadMenu: (restaurant: RestaurantCandidate) => void;
+  onUpdateRestaurant?: (updated: RestaurantCandidate) => void;
 }) {
   const language = useLanguage();
+  const { user } = useAuth();
   const [transit, setTransit] = useState<TransitEstimate>();
   const [showRatingInfo, setShowRatingInfo] = useState(false);
+  const [isEditModalOpen, setIsEditModalOpen] = useState(false);
+  const [showAuthModal, setShowAuthModal] = useState(false);
+  const [pendingAuthAction, setPendingAuthAction] = useState<"liked" | "want_to_go" | "lists" | "edit" | null>(null);
 
   // Approximate leaf score (e.g. 4.8 for vegan places, 4.2 for veg-friendly places)
   const isVeganPlace = getDietBadge(restaurant)?.type === "all_vegan";
@@ -329,36 +336,64 @@ export function RestaurantDetailPane({
   const cuisineTags = getCuisineTags(restaurant);
 
   const [loadingMenu, setLoadingMenu] = useState(false);
-  const [isLikedState, setIsLikedState] = useState(() => isLiked(restaurant.id));
-  const [isWantToGoState, setIsWantToGoState] = useState(() => isWantToGo(restaurant.id));
+  const [isLikedState, setIsLikedState] = useState(() => Boolean(user) && isLiked(restaurant.id));
+  const [isWantToGoState, setIsWantToGoState] = useState(() => Boolean(user) && isWantToGo(restaurant.id));
   const [isListModalOpen, setIsListModalOpen] = useState(false);
   const [copiedAddress, setCopiedAddress] = useState(false);
   const [copiedShare, setCopiedShare] = useState(false);
 
   useEffect(() => {
-    setIsLikedState(isLiked(restaurant.id));
-    setIsWantToGoState(isWantToGo(restaurant.id));
+    setIsLikedState(Boolean(user) && isLiked(restaurant.id));
+    setIsWantToGoState(Boolean(user) && isWantToGo(restaurant.id));
     setCopiedAddress(false);
     setCopiedShare(false);
-  }, [restaurant.id]);
+  }, [restaurant.id, user]);
 
   useEffect(() => {
     const handleUpdate = () => {
-      setIsLikedState(isLiked(restaurant.id));
-      setIsWantToGoState(isWantToGo(restaurant.id));
+      setIsLikedState(Boolean(user) && isLiked(restaurant.id));
+      setIsWantToGoState(Boolean(user) && isWantToGo(restaurant.id));
     };
     window.addEventListener("vt-user-lists-updated", handleUpdate);
     return () => window.removeEventListener("vt-user-lists-updated", handleUpdate);
-  }, [restaurant.id]);
+  }, [restaurant.id, user]);
 
   const handleToggleLiked = () => {
+    if (!user) {
+      setPendingAuthAction("liked");
+      setShowAuthModal(true);
+      return;
+    }
     const next = toggleLiked(restaurant.id);
     setIsLikedState(next);
   };
 
   const handleToggleWantToGo = () => {
+    if (!user) {
+      setPendingAuthAction("want_to_go");
+      setShowAuthModal(true);
+      return;
+    }
     const next = toggleWantToGo(restaurant.id);
     setIsWantToGoState(next);
+  };
+
+  const handleOpenLists = () => {
+    if (!user) {
+      setPendingAuthAction("lists");
+      setShowAuthModal(true);
+      return;
+    }
+    setIsListModalOpen(true);
+  };
+
+  const handleOpenEdit = () => {
+    if (!user) {
+      setPendingAuthAction("edit");
+      setShowAuthModal(true);
+      return;
+    }
+    setIsEditModalOpen(true);
   };
 
   const handleShare = async () => {
@@ -493,7 +528,7 @@ export function RestaurantDetailPane({
           <button
             type="button"
             className="letterboxd-action-btn"
-            onClick={() => setIsListModalOpen(true)}
+            onClick={handleOpenLists}
             title={tx("Lists")}
             aria-label={tx("Lists")}
             style={{
@@ -664,23 +699,51 @@ export function RestaurantDetailPane({
           </button>
         </div>
 
-        {/* Suggest edit link */}
+        {/* Community edit / report closed button */}
         <div className="detail-suggest-row">
           <button
             type="button"
             className="detail-suggest-btn"
-            onClick={() => {
-              const subject = encodeURIComponent(`Vegan Tools: Suggeriment per a ${restaurant.name}`);
-              const body = encodeURIComponent(
-                `Hola! Vull suggerir una actualització o canvi per a "${restaurant.name}" (${restaurant.address || "adreça desconeguda"}):\n\n[Escriu aquí el suggeriment o novetat]`
-              );
-              window.open(`mailto:hola@vegantools.org?subject=${subject}&body=${body}`, "_blank");
-            }}
+            onClick={handleOpenEdit}
+            title={tx("Edit restaurant details or report closed")}
           >
-            <Info aria-hidden="true" size={14} />
-            <span>{tx("Suggest an edit")}</span>
+            <Pencil aria-hidden="true" size={14} />
+            <span>{tx("Edit restaurant or report closed")}</span>
           </button>
         </div>
+
+        <EditRestaurantModal
+          isOpen={isEditModalOpen}
+          restaurant={restaurant}
+          onClose={() => setIsEditModalOpen(false)}
+          onSaved={(updated) => {
+            setIsEditModalOpen(false);
+            onUpdateRestaurant?.(updated);
+          }}
+        />
+
+        <AuthDialog
+          isOpen={showAuthModal}
+          onClose={() => {
+            setShowAuthModal(false);
+            setPendingAuthAction(null);
+          }}
+          onSuccess={() => {
+            setShowAuthModal(false);
+            if (pendingAuthAction === "liked") {
+              const next = toggleLiked(restaurant.id);
+              setIsLikedState(next);
+            } else if (pendingAuthAction === "want_to_go") {
+              const next = toggleWantToGo(restaurant.id);
+              setIsWantToGoState(next);
+            } else if (pendingAuthAction === "lists") {
+              setIsListModalOpen(true);
+            } else if (pendingAuthAction === "edit") {
+              setIsEditModalOpen(true);
+            }
+            setPendingAuthAction(null);
+          }}
+        />
       </div>
     </div>
   );

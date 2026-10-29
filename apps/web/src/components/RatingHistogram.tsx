@@ -5,9 +5,9 @@
  */
 
 import { useMemo } from "react";
-import { Star } from "lucide-react";
 import { getRatingHistogram, type RestaurantVisitLog } from "../utils/diary";
 import { tx } from "../i18n";
+import { LeafRating } from "./LeafRating";
 
 interface RatingHistogramProps {
   logs: RestaurantVisitLog[];
@@ -36,7 +36,7 @@ export function RatingHistogram({ logs }: RatingHistogramProps) {
         </div>
         <div className="diary-histogram-stats">
           <span className="diary-histogram-avg">
-            <Star size={14} fill="#059669" color="#059669" aria-hidden="true" />
+            <LeafRating value={averageRating} size={14} ariaLabel={tx("Average rating")} />
             <strong>{averageRating.toFixed(1)}</strong>
           </span>
           <span className="diary-histogram-count">
@@ -49,7 +49,7 @@ export function RatingHistogram({ logs }: RatingHistogramProps) {
         <div className="diary-histogram-bars">
           {histogram.map((bin) => {
             const heightPercent = bin.count > 0 ? Math.max(bin.percentage, 10) : 0;
-            const tooltipText = `${bin.score} ★: ${bin.count} ${bin.count === 1 ? tx("visit") : tx("visits")}`;
+            const tooltipText = `${bin.score} ${tx("leaves")}: ${bin.count} ${bin.count === 1 ? tx("visit") : tx("visits")}`;
 
             return (
               <div
@@ -72,8 +72,8 @@ export function RatingHistogram({ logs }: RatingHistogramProps) {
           })}
         </div>
         <div className="diary-histogram-axis-labels">
-          <span>0.5 ★</span>
-          <span>5.0 ★</span>
+          <span><LeafRating value={0.5} size={13} ariaLabel={tx("One half leaf")} /></span>
+          <span><LeafRating value={5} size={13} ariaLabel={tx("Five leaves")} /></span>
         </div>
       </div>
     </div>

@@ -26,7 +26,6 @@ function getInitialLists(): UserRestaurantList[] {
     {
       id: "liked",
       title: "Liked",
-      description: "Restaurants que t'encanten",
       isPublic: false,
       isDefault: true,
       restaurantIds: [],
@@ -36,7 +35,6 @@ function getInitialLists(): UserRestaurantList[] {
     {
       id: "want_to_go",
       title: "Want to go",
-      description: "Llocs pendents de provar (Watchlist)",
       isPublic: false,
       isDefault: true,
       restaurantIds: [],
@@ -108,6 +106,17 @@ export function toggleRestaurantInList(listId: string, restaurantId: string): bo
   list.updatedAt = new Date().toISOString();
   saveUserLists(lists);
   return isNowInList;
+}
+
+export function removeRestaurantFromList(listId: string, restaurantId: string): void {
+  const lists = loadUserLists();
+  const index = lists.findIndex((l) => l.id === listId);
+  if (index === -1) return;
+
+  const list = lists[index]!;
+  list.restaurantIds = list.restaurantIds.filter((id) => id !== restaurantId);
+  list.updatedAt = new Date().toISOString();
+  saveUserLists(lists);
 }
 
 export function isLiked(restaurantId: string): boolean {

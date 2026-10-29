@@ -106,11 +106,6 @@
     <priority>0.7</priority>
   </url>
   <url>
-    <loc>https://vegantools.org/restaurant/besneta-bcn</loc>
-    <changefreq>weekly</changefreq>
-    <priority>0.7</priority>
-  </url>
-  <url>
     <loc>https://vegantools.org/restaurant/bj-blossom</loc>
     <changefreq>weekly</changefreq>
     <priority>0.7</priority>
@@ -127,11 +122,6 @@
   </url>
   <url>
     <loc>https://vegantools.org/restaurant/bj-gong-de-lin</loc>
-    <changefreq>weekly</changefreq>
-    <priority>0.7</priority>
-  </url>
-  <url>
-    <loc>https://vegantools.org/restaurant/bj-kings-joy</loc>
     <changefreq>weekly</changefreq>
     <priority>0.7</priority>
   </url>
@@ -161,17 +151,17 @@
     <priority>0.7</priority>
   </url>
   <url>
+    <loc>https://vegantools.org/restaurant/bj-ye-bo-zhai</loc>
+    <changefreq>weekly</changefreq>
+    <priority>0.7</priority>
+  </url>
+  <url>
     <loc>https://vegantools.org/restaurant/blubar-bcn</loc>
     <changefreq>weekly</changefreq>
     <priority>0.7</priority>
   </url>
   <url>
-    <loc>https://vegantools.org/restaurant/cactuscat-bcn</loc>
-    <changefreq>weekly</changefreq>
-    <priority>0.7</priority>
-  </url>
-  <url>
-    <loc>https://vegantools.org/restaurant/chezkessler-bcn</loc>
+    <loc>https://vegantools.org/restaurant/bubita-bcn</loc>
     <changefreq>weekly</changefreq>
     <priority>0.7</priority>
   </url>
@@ -206,7 +196,7 @@
     <priority>0.7</priority>
   </url>
   <url>
-    <loc>https://vegantools.org/restaurant/featured-manresa-espai-organic</loc>
+    <loc>https://vegantools.org/restaurant/featured-manresa-el-gat-vega</loc>
     <changefreq>weekly</changefreq>
     <priority>0.7</priority>
   </url>
@@ -237,16 +227,6 @@
   </url>
   <url>
     <loc>https://vegantools.org/restaurant/featured-tgn-veggiesseria</loc>
-    <changefreq>weekly</changefreq>
-    <priority>0.7</priority>
-  </url>
-  <url>
-    <loc>https://vegantools.org/restaurant/featured-vic-el-taller</loc>
-    <changefreq>weekly</changefreq>
-    <priority>0.7</priority>
-  </url>
-  <url>
-    <loc>https://vegantools.org/restaurant/featured-vic-nyamera</loc>
     <changefreq>weekly</changefreq>
     <priority>0.7</priority>
   </url>
@@ -401,6 +381,11 @@
     <priority>0.7</priority>
   </url>
   <url>
+    <loc>https://vegantools.org/restaurant/nyc-anixi</loc>
+    <changefreq>weekly</changefreq>
+    <priority>0.7</priority>
+  </url>
+  <url>
     <loc>https://vegantools.org/restaurant/nyc-avant-garden</loc>
     <changefreq>weekly</changefreq>
     <priority>0.7</priority>
@@ -412,11 +397,6 @@
   </url>
   <url>
     <loc>https://vegantools.org/restaurant/nyc-coletta</loc>
-    <changefreq>weekly</changefreq>
-    <priority>0.7</priority>
-  </url>
-  <url>
-    <loc>https://vegantools.org/restaurant/nyc-dirt-candy</loc>
     <changefreq>weekly</changefreq>
     <priority>0.7</priority>
   </url>
@@ -461,11 +441,6 @@
     <priority>0.7</priority>
   </url>
   <url>
-    <loc>https://vegantools.org/restaurant/par-breathe</loc>
-    <changefreq>weekly</changefreq>
-    <priority>0.7</priority>
-  </url>
-  <url>
     <loc>https://vegantools.org/restaurant/par-charlotte</loc>
     <changefreq>weekly</changefreq>
     <priority>0.7</priority>
@@ -481,11 +456,6 @@
     <priority>0.7</priority>
   </url>
   <url>
-    <loc>https://vegantools.org/restaurant/par-hank-burger</loc>
-    <changefreq>weekly</changefreq>
-    <priority>0.7</priority>
-  </url>
-  <url>
     <loc>https://vegantools.org/restaurant/par-jah-jah</loc>
     <changefreq>weekly</changefreq>
     <priority>0.7</priority>
@@ -496,22 +466,22 @@
     <priority>0.7</priority>
   </url>
   <url>
+    <loc>https://vegantools.org/restaurant/par-sol-semilla</loc>
+    <changefreq>weekly</changefreq>
+    <priority>0.7</priority>
+  </url>
+  <url>
     <loc>https://vegantools.org/restaurant/par-soya</loc>
     <changefreq>weekly</changefreq>
     <priority>0.7</priority>
   </url>
   <url>
-    <loc>https://vegantools.org/restaurant/quinoa-bcn</loc>
+    <loc>https://vegantools.org/restaurant/par-vg-patisserie</loc>
     <changefreq>weekly</changefreq>
     <priority>0.7</priority>
   </url>
   <url>
-    <loc>https://vegantools.org/restaurant/roots-bcn</loc>
-    <changefreq>weekly</changefreq>
-    <priority>0.7</priority>
-  </url>
-  <url>
-    <loc>https://vegantools.org/restaurant/santoni-bcn</loc>
+    <loc>https://vegantools.org/restaurant/potstot-bcn</loc>
     <changefreq>weekly</changefreq>
     <priority>0.7</priority>
   </url>
@@ -627,6 +597,11 @@
   </url>
   <url>
     <loc>https://vegantools.org/restaurant/valles-vegan-family</loc>
+    <changefreq>weekly</changefreq>
+    <priority>0.7</priority>
+  </url>
+  <url>
+    <loc>https://vegantools.org/restaurant/vegancorner-bcn</loc>
     <changefreq>weekly</changefreq>
     <priority>0.7</priority>
   </url>

@@ -84,6 +84,7 @@ export function AddRestaurantModal({
         websiteUrl: normalizedWebsite || undefined,
         mapUrl: `https://www.google.com/maps/search/?api=1&query=${lat},${lon}`,
         provider: "custom",
+        isFeatured: false,
       };
 
       saveCustomRestaurant(fallbackCandidate);

@@ -144,12 +144,17 @@ export function App() {
           </Suspense>
         </main>
 
-        {/* Mobile Bottom Navigation */}
+        {/* Mobile Bottom Navigation (clean icon-only navigation with full accessibility) */}
         <nav className="mobile-bottom-nav" aria-label={tx("App navigation")}>
           {links.map(({ to, label, icon: Icon }) => (
-            <NavLink key={to} to={to} end={to === "/"}>
+            <NavLink
+              key={to}
+              to={to}
+              end={to === "/"}
+              aria-label={label}
+              title={label}
+            >
               <Icon aria-hidden="true" />
-              <span>{label}</span>
             </NavLink>
           ))}
         </nav>

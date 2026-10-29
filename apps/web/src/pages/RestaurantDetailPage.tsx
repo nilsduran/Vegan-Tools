@@ -6,7 +6,7 @@
  */
 
 import { useState, useEffect } from "react";
-import { useParams, Link } from "react-router-dom";
+import { useParams, Link, useNavigate, useLocation } from "react-router-dom";
 import {
   ArrowLeft,
   BookOpen,
@@ -17,6 +17,7 @@ import {
   ExternalLink,
   Globe,
   MapPin,
+  Pencil,
   Plus,
   Share2,
   Sparkles,
@@ -29,6 +30,8 @@ import {
   findCuratedMenu,
   type RestaurantCandidate,
 } from "@vegan-tools/domain";
+import { isRestaurantClosed } from "../utils/restaurantEdits";
+import { EditRestaurantModal } from "../components/EditRestaurantModal";
 import {
   getCuratedRestaurants,
   getRecentRestaurantMenus,
@@ -60,6 +63,8 @@ import { useDocumentHead } from "../utils/seo";
 
 export function RestaurantDetailPage() {
   const { id } = useParams<{ id: string }>();
+  const navigate = useNavigate();
+  const location = useLocation();
   const language = useLanguage();
   const { user } = useAuth();
 
@@ -67,9 +72,13 @@ export function RestaurantDetailPage() {
   const [loading, setLoading] = useState(true);
   const [showLogModal, setShowLogModal] = useState(false);
   const [showAuthModal, setShowAuthModal] = useState(false);
+  const [pendingAuthAction, setPendingAuthAction] = useState<"log" | "edit" | null>(null);
+  const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [selectedLog, setSelectedLog] = useState<RestaurantVisitLog | null>(null);
   const [menuDishes, setMenuDishes] = useState<string[]>([]);
   const [copiedShare, setCopiedShare] = useState(false);
+
+  const cameFromHome = Boolean((location.state as { from?: string } | null)?.from === "home");
 
   useDocumentHead({
     title: restaurant ? restaurant.name : undefined,
@@ -84,6 +93,7 @@ export function RestaurantDetailPage() {
   // Reactive diary logs scoped to user
   useDiaryLogs(user?.id);
   const visitLogs = id && user ? getLogsForRestaurant(id, user.id) : [];
+  const datedVisitLogs = visitLogs.filter((log) => Boolean(log.visitDate));
 
   useEffect(() => {
     if (!id) return;
@@ -230,6 +240,7 @@ export function RestaurantDetailPage() {
 
   const handleOpenLogModal = (log?: RestaurantVisitLog | null) => {
     if (!user) {
+      setPendingAuthAction("log");
       setShowAuthModal(true);
       return;
     }
@@ -237,39 +248,65 @@ export function RestaurantDetailPage() {
     setShowLogModal(true);
   };
 
+  const handleOpenEditModal = () => {
+    if (!user) {
+      setPendingAuthAction("edit");
+      setShowAuthModal(true);
+      return;
+    }
+    setIsEditModalOpen(true);
+  };
+
+  const handleBack = () => {
+    if (location.key !== "default" || (typeof window !== "undefined" && window.history.length > 1)) {
+      navigate(-1);
+    } else {
+      navigate("/");
+    }
+  };
+
   return (
     <div className="page restaurant-detail-page">
       {/* Top back navigation */}
       <nav className="detail-top-nav">
-        <Link to="/" className="detail-back-link">
+        <button
+          type="button"
+          onClick={handleBack}
+          className="detail-back-link"
+          style={{ cursor: "pointer", fontFamily: "inherit" }}
+        >
           <ArrowLeft size={18} aria-hidden="true" />
           <span>{tx("Back")}</span>
-        </Link>
-        <div style={{ display: "flex", alignItems: "center", gap: "0.6rem" }}>
-          <button
-            type="button"
-            onClick={() => void handleShare()}
-            className="detail-map-link"
-            style={{
-              background: "none",
-              border: "none",
-              cursor: "pointer",
-              display: "inline-flex",
-              alignItems: "center",
-              gap: "0.35rem",
-              color: copiedShare ? "var(--green)" : "inherit",
-            }}
-            title={tx("Share")}
-          >
-            {copiedShare ? <Check size={16} /> : <Share2 size={16} />}
-            <span>{copiedShare ? tx("Copied!") : tx("Share")}</span>
-          </button>
-          <Link to={`/map?q=${encodeURIComponent(restaurant.name)}`} className="detail-map-link">
+        </button>
+        {cameFromHome && (
+          <Link to={`/map?place=${encodeURIComponent(restaurant.id)}`} className="detail-map-link">
             <MapPin size={16} aria-hidden="true" />
             <span>{tx("View on map")}</span>
           </Link>
-        </div>
+        )}
       </nav>
+
+      {/* Permanently closed warning banner if reported */}
+      {isRestaurantClosed(restaurant) && (
+        <aside
+          role="status"
+          style={{
+            margin: "0 0 1.25rem 0",
+            padding: "0.85rem 1.15rem",
+            borderRadius: "10px",
+            background: "#fee2e2",
+            border: "1px solid #fca5a5",
+            color: "#991b1b",
+            fontSize: "0.95rem",
+            fontWeight: 600,
+            display: "flex",
+            alignItems: "center",
+            gap: "0.6rem",
+          }}
+        >
+          <span>⚠️ {tx("This establishment is permanently closed.")}</span>
+        </aside>
+      )}
 
       {/* Hero Cover Image & Header */}
       <header className="restaurant-hero-card">
@@ -389,11 +426,12 @@ export function RestaurantDetailPage() {
 
             <button
               type="button"
-              className="secondary-button detail-action-btn log-visit-btn"
-              onClick={() => handleOpenLogModal(null)}
+              className="secondary-button detail-action-btn edit-venue-btn"
+              onClick={handleOpenEditModal}
+              title={tx("Suggest edit or report closed")}
             >
-              <Plus size={16} aria-hidden="true" />
-              <span>{tx("Log a visit")}</span>
+              <Pencil size={16} aria-hidden="true" />
+              <span>{tx("Edit details")}</span>
             </button>
 
             <button
@@ -429,46 +467,18 @@ export function RestaurantDetailPage() {
         />
       </section>
 
-      {/* Diary Visits History Section */}
-      <section className="restaurant-visits-section">
-        <div className="restaurant-visits-header">
-          <div className="restaurant-visits-title-wrap">
-            <Calendar size={18} aria-hidden="true" />
-            <h2>{tx("My visit diary")}</h2>
+      {/* Diary Visits History Section — only shown when logged in with dated visits */}
+      {user && datedVisitLogs.length > 0 && (
+        <section className="restaurant-visits-section">
+          <div className="restaurant-visits-header">
+            <div className="restaurant-visits-title-wrap">
+              <Calendar size={18} aria-hidden="true" />
+              <h2>{tx("Visit diary")}</h2>
+            </div>
           </div>
-          <button
-            type="button"
-            className="secondary-button add-visit-small-btn"
-            onClick={() => handleOpenLogModal(null)}
-          >
-            <Plus size={14} aria-hidden="true" />
-            <span>{tx("Log visit")}</span>
-          </button>
-        </div>
 
-        {!user ? (
-          <div className="visits-empty-state">
-            <p>{tx("An account is required to log visits and reviews.")}</p>
-            <button
-              type="button"
-              className="primary-button"
-              style={{ marginTop: "0.5rem" }}
-              onClick={() => setShowAuthModal(true)}
-            >
-              <span>{tx("Sign in / Create account")}</span>
-            </button>
-          </div>
-        ) : visitLogs.length === 0 ? (
-          <div className="visits-empty-state">
-            <p>
-              {tx(
-                "You haven't logged any visits to this restaurant yet. Tap 'Log visit' to save what you ate and rate your experience!",
-              )}
-            </p>
-          </div>
-        ) : (
           <ul className="restaurant-visits-list">
-            {visitLogs.map((log) => {
+            {datedVisitLogs.map((log) => {
               const formattedDate = log.visitDate
                 ? new Date(log.visitDate).toLocaleDateString(
                     language === "ca" ? "ca-ES" : "en-US",
@@ -539,8 +549,18 @@ export function RestaurantDetailPage() {
               );
             })}
           </ul>
-        )}
-      </section>
+        </section>
+      )}
+
+      {/* Edit Restaurant Modal */}
+      {isEditModalOpen && (
+        <EditRestaurantModal
+          isOpen={isEditModalOpen}
+          restaurant={restaurant}
+          onClose={() => setIsEditModalOpen(false)}
+          onSaved={(updated) => setRestaurant(updated)}
+        />
+      )}
 
       {/* Log Visit Modal */}
       {showLogModal && (
@@ -557,7 +577,20 @@ export function RestaurantDetailPage() {
       {showAuthModal && (
         <AuthDialog
           isOpen={showAuthModal}
-          onClose={() => setShowAuthModal(false)}
+          title={pendingAuthAction === "log" ? tx("Sign in / Create account") : undefined}
+          onClose={() => {
+            setShowAuthModal(false);
+            setPendingAuthAction(null);
+          }}
+          onSuccess={() => {
+            setShowAuthModal(false);
+            if (pendingAuthAction === "edit") {
+              setIsEditModalOpen(true);
+            } else if (pendingAuthAction === "log") {
+              setShowLogModal(true);
+            }
+            setPendingAuthAction(null);
+          }}
         />
       )}
     </div>

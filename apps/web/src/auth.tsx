@@ -119,10 +119,35 @@ async function hashPassword(password: string): Promise<string> {
   return btoa(password);
 }
 
+function getStoredLocalSession(): { user: AuthUser; token: string } | null {
+  if (typeof localStorage === "undefined") return null;
+  const stored = localStorage.getItem(SESSION_STORAGE_KEY);
+  if (!stored) return null;
+  try {
+    const parsed = JSON.parse(stored) as { user?: AuthUser; token?: string };
+    if (
+      parsed.user?.username?.toLowerCase() === "nils" &&
+      parsed.user.email?.includes("@localhost.local")
+    ) {
+      localStorage.removeItem(SESSION_STORAGE_KEY);
+      return null;
+    }
+    if (parsed.user && parsed.user.username) {
+      return {
+        user: parsed.user,
+        token: parsed.token || "authenticated_token",
+      };
+    }
+  } catch {
+    // Ignore invalid JSON
+  }
+  return null;
+}
+
 export function AuthProvider({ children }: { children: ReactNode }) {
-  const [user, setUser] = useState<AuthUser | null>(null);
+  const [user, setUser] = useState<AuthUser | null>(() => getStoredLocalSession()?.user ?? null);
   const [session, setSession] = useState<Session | null>(null);
-  const [token, setToken] = useState<string | null>(null);
+  const [token, setToken] = useState<string | null>(() => getStoredLocalSession()?.token ?? null);
   const [loading, setLoading] = useState(true);
 
   // Synchronize visual theme when authentication state changes
@@ -139,30 +164,17 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           setToken(currentSession.access_token);
           setUser(userFromSupabaseUser(currentSession.user));
         } else {
-          const stored = localStorage.getItem(SESSION_STORAGE_KEY);
-          if (stored) {
-            try {
-              const parsed = JSON.parse(stored) as { user: AuthUser; token: string };
-              // Purge fake local dev nils session if it was previously created
-              if (
-                parsed.user?.username?.toLowerCase() === "nils" &&
-                parsed.user.email?.includes("@localhost.local")
-              ) {
-                localStorage.removeItem(SESSION_STORAGE_KEY);
-              } else if (parsed.user && parsed.user.username) {
-                setUser(parsed.user);
-                setToken(parsed.token || "authenticated_token");
-              }
-            } catch {
-              // Ignore invalid JSON
-            }
+          const local = getStoredLocalSession();
+          if (local) {
+            setUser(local.user);
+            setToken(local.token);
           }
         }
         setLoading(false);
       });
 
       const { data: authListener } = supabase.auth.onAuthStateChange(
-        (_event, newSession) => {
+        (event, newSession) => {
           if (newSession?.user) {
             setSession(newSession);
             setToken(newSession.access_token);
@@ -175,8 +187,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             }
           } else {
             setSession(null);
-            setToken(null);
-            setUser(null);
+            const local = event === "SIGNED_OUT" ? null : getStoredLocalSession();
+            if (local) {
+              setUser(local.user);
+              setToken(local.token);
+            } else {
+              setToken(null);
+              setUser(null);
+            }
           }
           setLoading(false);
         }
@@ -187,22 +205,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       };
     } else {
       // Local persistent session restore
-      const stored = localStorage.getItem(SESSION_STORAGE_KEY);
-      if (stored) {
-        try {
-          const parsed = JSON.parse(stored) as { user: AuthUser; token: string };
-          if (
-            parsed.user?.username?.toLowerCase() === "nils" &&
-            parsed.user.email?.includes("@localhost.local")
-          ) {
-            localStorage.removeItem(SESSION_STORAGE_KEY);
-          } else if (parsed.user && parsed.user.username) {
-            setUser(parsed.user);
-            setToken(parsed.token || "authenticated_token");
-          }
-        } catch {
-          // Ignore invalid JSON
-        }
+      const local = getStoredLocalSession();
+      if (local) {
+        setUser(local.user);
+        setToken(local.token);
       }
       setLoading(false);
     }
@@ -509,9 +515,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   };
 
   const signOut = async (): Promise<void> => {
-    if (supabase) {
-      await supabase.auth.signOut();
-    }
     localStorage.removeItem(SESSION_STORAGE_KEY);
     localStorage.removeItem("vegan_tools_public_user");
     localStorage.removeItem("vegan_tools_public_username");
@@ -519,6 +522,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setUser(null);
     setSession(null);
     setToken(null);
+    if (supabase) {
+      await supabase.auth.signOut().catch(() => {});
+    }
   };
 
   // Compatibility helpers & Local Dev Login
@@ -527,7 +533,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     if (clean.toLowerCase() === "nils") {
       clean = "tester_local";
     }
-    const userId = `user-dev-${generateSafeUUID()}`;
+    const lower = clean.toLowerCase();
+    const userId =
+      lower === "tester_local"
+        ? "00000000-0000-4000-8000-000000000001"
+        : lower === "comunitat_veg" || lower === "comunitat"
+        ? "00000000-0000-4000-8000-000000000002"
+        : `user-dev-${generateSafeUUID()}`;
     const newUser: AuthUser = {
       id: userId,
       username: clean,
@@ -535,8 +547,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       email: `${clean}@localhost.local`,
       usernameChanges: [],
     };
-    const header = btoa(JSON.stringify({ alg: "HS256", typ: "JWT" }));
-    const payload = btoa(
+    const toBase64Url = (str: string) =>
+      btoa(str).replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, "");
+    const header = toBase64Url(JSON.stringify({ alg: "HS256", typ: "JWT" }));
+    const payload = toBase64Url(
       JSON.stringify({
         sub: userId,
         email: newUser.email,
@@ -552,6 +566,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     localStorage.removeItem(`vegan_tools_new_signup_${newUser.id}`);
     setUser(newUser);
     setToken(devToken);
+    setLoading(false);
   };
 
   const loginAsDemoUser = (name = "usuari_comunitat") => {

@@ -3,16 +3,39 @@ import { BarcodeDetectorPolyfill } from "@undecaf/barcode-detector-polyfill";
 import { Camera, CameraOff, HelpCircle, RefreshCw } from "lucide-react";
 import { tx } from "../i18n";
 import { CameraPermissionModal } from "./CameraPermissionModal";
+import { getCameraPermissionState, isCameraPermissionError } from "../utils/camera";
 
 type Detector = {
   detect(source: CanvasImageSource): Promise<Array<{ rawValue: string }>>;
 };
+
+type NativeBarcodeDetector = {
+  new (options: { formats: string[] }): Detector;
+  getSupportedFormats?: () => Promise<string[]>;
+};
+
+const UNIVERSAL_BARCODE_FORMATS = [
+  "aztec",
+  "code_128",
+  "code_39",
+  "code_93",
+  "codabar",
+  "data_matrix",
+  "ean_13",
+  "ean_8",
+  "itf",
+  "pdf417",
+  "qr_code",
+  "upc_a",
+  "upc_e",
+];
 
 export function BarcodeCamera({ onDetected }: { onDetected: (value: string) => void }) {
   const videoRef = useRef<HTMLVideoElement>(null);
   const [error, setError] = useState("");
   const [started, setStarted] = useState(true);
   const [showPermissionModal, setShowPermissionModal] = useState(false);
+  const [canShowPermissionHelp, setCanShowPermissionHelp] = useState(false);
   const [retryCount, setRetryCount] = useState(0);
 
   useEffect(() => {
@@ -25,20 +48,29 @@ export function BarcodeCamera({ onDetected }: { onDetected: (value: string) => v
 
     const start = async () => {
       setError("");
+      setCanShowPermissionHelp(false);
       try {
-        const NativeDetector = (globalThis as unknown as {
-          BarcodeDetector?: new (options: { formats: string[] }) => Detector;
-        }).BarcodeDetector;
-        const DetectorClass = NativeDetector ?? (BarcodeDetectorPolyfill as unknown as new (
-          options: { formats: string[] },
-        ) => Detector);
-        const detector = new DetectorClass({
-          formats: ["ean_13", "ean_8", "upc_a", "upc_e"],
-        });
+        const permissionState = await getCameraPermissionState();
+        if (permissionState === "denied") {
+          throw new DOMException("Camera permission was denied.", "NotAllowedError");
+        }
+        if (!navigator.mediaDevices?.getUserMedia) {
+          throw new DOMException("Camera access is unavailable in this browser.", "SecurityError");
+        }
         stream = await navigator.mediaDevices.getUserMedia({
           video: { facingMode: "environment", width: { ideal: 1280 } },
         });
         if (!active || !videoRef.current) return;
+        const NativeDetector = (globalThis as unknown as {
+          BarcodeDetector?: NativeBarcodeDetector;
+        }).BarcodeDetector;
+        const supportedFormats = NativeDetector?.getSupportedFormats
+          ? (await NativeDetector.getSupportedFormats()).filter((format) => UNIVERSAL_BARCODE_FORMATS.includes(format))
+          : UNIVERSAL_BARCODE_FORMATS;
+        const DetectorClass = NativeDetector ?? (BarcodeDetectorPolyfill as unknown as NativeBarcodeDetector);
+        const detector = new DetectorClass({
+          formats: supportedFormats.length > 0 ? supportedFormats : ["qr_code"],
+        });
         videoRef.current.srcObject = stream;
         await videoRef.current.play();
 
@@ -65,9 +97,11 @@ export function BarcodeCamera({ onDetected }: { onDetected: (value: string) => v
           }, 180);
         };
         frame = requestAnimationFrame(detect);
-      } catch (err) {
+      } catch (error) {
         setError(tx("Camera access is unavailable. Enter the barcode below."));
-        setShowPermissionModal(true);
+        const permissionError = isCameraPermissionError(error);
+        setCanShowPermissionHelp(permissionError);
+        setShowPermissionModal(false);
       }
     };
     void start();
@@ -82,13 +116,14 @@ export function BarcodeCamera({ onDetected }: { onDetected: (value: string) => v
   const handleNativeCapture = async (file: File) => {
     try {
       const NativeDetector = (globalThis as unknown as {
-        BarcodeDetector?: new (options: { formats: string[] }) => Detector;
+        BarcodeDetector?: NativeBarcodeDetector;
       }).BarcodeDetector;
-      const DetectorClass = NativeDetector ?? (BarcodeDetectorPolyfill as unknown as new (
-        options: { formats: string[] },
-      ) => Detector);
+      const supportedFormats = NativeDetector?.getSupportedFormats
+        ? (await NativeDetector.getSupportedFormats()).filter((format) => UNIVERSAL_BARCODE_FORMATS.includes(format))
+        : UNIVERSAL_BARCODE_FORMATS;
+      const DetectorClass = NativeDetector ?? (BarcodeDetectorPolyfill as unknown as NativeBarcodeDetector);
       const detector = new DetectorClass({
-        formats: ["ean_13", "ean_8", "upc_a", "upc_e"],
+        formats: supportedFormats.length > 0 ? supportedFormats : ["qr_code"],
       });
 
       const img = new Image();
@@ -126,15 +161,17 @@ export function BarcodeCamera({ onDetected }: { onDetected: (value: string) => v
             <span>{error}</span>
           </div>
           <div style={{ display: "flex", gap: "0.5rem", flexWrap: "wrap", justifyContent: "center" }}>
-            <button
-              type="button"
-              className="secondary-button"
-              style={{ fontSize: "0.82rem", padding: "0.4rem 0.75rem", gap: "0.35rem" }}
-              onClick={() => setShowPermissionModal(true)}
-            >
-              <HelpCircle size={15} aria-hidden="true" />
-              <span>{tx("How to enable camera")}</span>
-            </button>
+            {canShowPermissionHelp && (
+              <button
+                type="button"
+                className="secondary-button"
+                style={{ fontSize: "0.82rem", padding: "0.4rem 0.75rem", gap: "0.35rem" }}
+                onClick={() => setShowPermissionModal(true)}
+              >
+                <HelpCircle size={15} aria-hidden="true" />
+                <span>{tx("How to enable camera")}</span>
+              </button>
+            )}
             <button
               type="button"
               className="secondary-button"

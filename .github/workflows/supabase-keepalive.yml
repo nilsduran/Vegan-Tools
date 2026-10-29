@@ -2,14 +2,15 @@ name: Supabase Keep-Alive
 
 on:
   schedule:
-    # Runs at 07:00 UTC every 6 days (days 1, 7, 13, 19, 25, 31)
-    - cron: '0 7 */6 * *'
+    # Generate daily database activity; Supabase may pause free projects after
+    # seven days with too little activity.
+    - cron: '0 7 * * *'
   workflow_dispatch: # Allows manual trigger anytime from GitHub Actions tab
 
 jobs:
   ping:
     name: Ping Supabase Database & API
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     steps:
       - name: Ping Supabase Project
         env:
@@ -19,32 +20,24 @@ jobs:
           SUPABASE_SECRET_KEY: ${{ secrets.SUPABASE_SECRET_KEY }}
         run: |
           API_KEY="${SUPABASE_PUBLISHABLE_KEY:-${SUPABASE_ANON_KEY:-$SUPABASE_SECRET_KEY}}"
-          
+
           echo "Connecting to Supabase at: $SUPABASE_URL"
 
           if [ -n "$API_KEY" ]; then
-            echo "Sending authenticated ping to Supabase REST and Auth endpoints..."
-            
-            # Ping PostgREST root schema with API key
-            REST_CODE=$(curl -s -o /dev/null -w "%{http_code}" \
-              -H "apikey: $API_KEY" \
-              -H "Authorization: Bearer $API_KEY" \
-              "$SUPABASE_URL/rest/v1/")
-            echo "PostgREST endpoint response HTTP code: $REST_CODE"
+            echo "Sending authenticated database and Auth health requests..."
 
-            # Ping Auth health endpoint with API key
-            AUTH_CODE=$(curl -s -o /dev/null -w "%{http_code}" \
+            REST_CODE=$(curl --fail-with-body -sS -o /dev/null -w "%{http_code}" \
+              -H "apikey: $API_KEY" \
+              "$SUPABASE_URL/rest/v1/venues?select=id&limit=1")
+            echo "Venues endpoint response HTTP code: $REST_CODE"
+
+            AUTH_CODE=$(curl --fail-with-body -sS -o /dev/null -w "%{http_code}" \
               -H "apikey: $API_KEY" \
               "$SUPABASE_URL/auth/v1/health")
             echo "Auth health endpoint response HTTP code: $AUTH_CODE"
 
             echo "Keep-alive ping completed successfully."
           else
-            echo "::warning:: Neither SUPABASE_PUBLISHABLE_KEY nor SUPABASE_SECRET_KEY secret is set in GitHub repository secrets."
-            echo "Sending unauthenticated ping to project URL..."
-            
-            HTTP_CODE=$(curl -s -o /dev/null -w "%{http_code}" "$SUPABASE_URL")
-            echo "Project root response HTTP code: $HTTP_CODE"
-            
-            echo "TIP: For maximum reliability, add SUPABASE_PUBLISHABLE_KEY to your GitHub repository secrets."
+            echo "::error::Set SUPABASE_PUBLISHABLE_KEY (or SUPABASE_ANON_KEY) in GitHub repository secrets."
+            exit 1
           fi

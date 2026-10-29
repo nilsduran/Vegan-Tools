@@ -9,7 +9,9 @@ import type { FastifyInstance } from "fastify";
 import {
   restaurantCandidateSchema,
   type RestaurantCandidate,
+  isPermanentlyClosedVenue,
 } from "@vegan-tools/domain";
+import { getVenueStore } from "../venue-store.js";
 import { CURATED_RESTAURANTS } from "../curated-restaurants.js";
 import { evaluateOpeningHours } from "../opening-hours.js";
 import {
@@ -568,15 +570,17 @@ export async function restaurantRoutes(
         Number.isFinite(latitude) && latitude >= -90 && latitude <= 90 &&
         Number.isFinite(longitude) && longitude >= -180 && longitude <= 180;
 
+      const activeCurated = CURATED_RESTAURANTS.filter((r) => !isPermanentlyClosedVenue(r));
+
       if (!hasLocation) {
-        return CURATED_RESTAURANTS.slice(0, limit).map((r) => ({
+        return activeCurated.slice(0, limit).map((r) => ({
           ...r,
           isOpenNow: evaluateOpeningHours(r.openingHours),
         }));
       }
 
       // Calculate distance in km to each curated place
-      const withDistance = CURATED_RESTAURANTS.map((r) => {
+      const withDistance = activeCurated.map((r) => {
         const dLat = ((r.latitude - latitude) * Math.PI) / 180;
         const dLng = ((r.longitude - longitude) * Math.PI) / 180;
         const a =
@@ -861,15 +865,16 @@ export async function restaurantRoutes(
         primaryNameQuery?: string,
         locationFilter?: string,
       ): RestaurantCandidate[] => {
+        const activeCandidates = candidates.filter((c) => !isPermanentlyClosedVenue(c));
         let sorted: RestaurantCandidate[];
         if (!isGeneric) {
-          sorted = candidates.sort(
+          sorted = activeCandidates.sort(
             (a, b) =>
               calculateRelevanceScore(searchQuery, b, primaryNameQuery, locationFilter) -
               calculateRelevanceScore(searchQuery, a, primaryNameQuery, locationFilter),
           );
         } else {
-          sorted = candidates.sort((a, b) => {
+          sorted = activeCandidates.sort((a, b) => {
             const aVegan = a.isVegan ? 2 : a.isVegetarian ? 1 : 0;
             const bVegan = b.isVegan ? 2 : b.isVegetarian ? 1 : 0;
             if (bVegan !== aVegan) return bVegan - aVegan;
@@ -1530,6 +1535,15 @@ export async function restaurantRoutes(
 
     const cleanId = decodeURIComponent(id.trim());
 
+    // Check tombstone status in System of Record
+    const venueStore = getVenueStore();
+    if (await venueStore.isTombstone(cleanId)) {
+      return reply.code(404).send({
+        code: "RESTAURANT_CLOSED",
+        message: "This establishment is permanently closed.",
+      });
+    }
+
     // 1. Check curated restaurants first
     const curated = CURATED_RESTAURANTS.find(
       (r) =>
@@ -1689,6 +1703,63 @@ export async function restaurantRoutes(
       code: "RESTAURANT_NOT_FOUND",
       message: "Restaurant could not be found.",
     });
+  });
+
+  // Community edit / correction submission endpoint
+  app.post<{
+    Params: { id: string };
+    Body: {
+      name?: string;
+      address?: string;
+      websiteUrl?: string;
+      openingHours?: string;
+      isVegan?: boolean;
+      isVegetarian?: boolean;
+      permanentlyClosed?: boolean;
+      notes?: string;
+    };
+  }>("/v1/restaurants/:id/edit", { config: { rateLimit: { max: 50, timeWindow: "1 hour" } } }, async (request, reply) => {
+    const { id } = request.params;
+    if (!id || !id.trim()) {
+      return reply.code(400).send({
+        code: "INVALID_RESTAURANT_ID",
+        message: "Restaurant ID is required.",
+      });
+    }
+
+    const edit = request.body || {};
+    request.log.info({ restaurantId: id, edit }, "Received community restaurant edit");
+
+    const venueStore = getVenueStore();
+    if (edit.permanentlyClosed) {
+      await venueStore.markVenueClosed(id, "community-user", edit.notes || "Reported closed by community");
+      return {
+        success: true,
+        message: "Restaurant marked as permanently closed and tombstoned.",
+      };
+    }
+
+    const existing = await venueStore.getVenue(id);
+    if (existing) {
+      await venueStore.saveVenue(
+        {
+          ...existing,
+          name: edit.name || existing.name,
+          address: edit.address || existing.address,
+          websiteUrl: edit.websiteUrl || existing.websiteUrl,
+          openingHours: edit.openingHours || existing.openingHours,
+          isVegan: edit.isVegan ?? existing.isVegan,
+          isVegetarian: edit.isVegetarian ?? existing.isVegetarian,
+        },
+        "community-user",
+        "DETAILS_EDITED",
+      );
+    }
+
+    return {
+      success: true,
+      message: "Restaurant edit registered successfully.",
+    };
   });
 
   // Restaurant resolve endpoint
@@ -1867,6 +1938,7 @@ export async function restaurantRoutes(
       websiteUrl: rawWebsite && isPlausibleOfficialWebsite(rawWebsite) ? rawWebsite : undefined,
       mapUrl: `https://www.google.com/maps/search/?api=1&query=${lat},${lon}`,
       provider: "custom",
+      isFeatured: false,
     };
 
     return reply.code(201).send(candidate);

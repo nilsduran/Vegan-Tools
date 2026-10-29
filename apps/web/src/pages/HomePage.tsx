@@ -254,6 +254,7 @@ export function HomePage() {
                 <Link
                   key={place.id}
                   to={`/restaurant/${place.id}`}
+                  state={{ from: "home" }}
                   className="home-place-card"
                 >
                   <div className="home-place-cover">

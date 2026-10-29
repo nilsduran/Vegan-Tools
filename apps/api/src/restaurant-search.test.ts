@@ -223,15 +223,15 @@ describe("Universal Restaurant Search across multiple cities", () => {
       expect(results2.some((r) => r.name.toLowerCase().includes("teresa carles"))).toBe(true);
     });
 
-    it("finds Roots Vegan by name and with city hint", async () => {
+    it("finds Mad Mad Vegan by name and with city hint", async () => {
       const app = await getApp();
       const res = await app.inject({
         method: "GET",
-        url: `/v1/restaurants/search?q=Roots Vegan&latitude=${USER_BCN_LAT}&longitude=${USER_BCN_LNG}`,
+        url: `/v1/restaurants/search?q=Mad Mad Vegan&latitude=${USER_BCN_LAT}&longitude=${USER_BCN_LNG}`,
       });
       expect(res.statusCode).toBe(200);
       const results = res.json() as Array<{ name: string }>;
-      expect(results.some((r) => r.name.toLowerCase().includes("roots"))).toBe(true);
+      expect(results.some((r) => r.name.toLowerCase().includes("mad"))).toBe(true);
     });
   });
 
@@ -370,12 +370,12 @@ describe("Universal Restaurant Search across multiple cities", () => {
       const app = await getApp();
       const res = await app.inject({
         method: "GET",
-        url: "/v1/restaurants/roots-bcn",
+        url: "/v1/restaurants/asante-bcn",
       });
       expect(res.statusCode).toBe(200);
       const data = res.json() as { id: string; name: string; isVegan: boolean };
-      expect(data.id).toBe("roots-bcn");
-      expect(data.name).toBe("Roots Vegan");
+      expect(data.id).toBe("asante-bcn");
+      expect(data.name).toBe("Asante");
       expect(data.isVegan).toBe(true);
     });
 

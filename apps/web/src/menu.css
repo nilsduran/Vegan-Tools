@@ -894,6 +894,7 @@
   overflow-x: auto;
   scrollbar-width: none;
   -ms-overflow-style: none;
+  -webkit-overflow-scrolling: touch;
   padding-bottom: 2px;
 }
 
@@ -1131,9 +1132,13 @@
   flex-wrap: wrap;
   gap: 0.35rem;
   padding: 0.5rem;
-  background: #f9fafb;
+  background: var(--bg-subtle, #f9fafb);
   border-radius: 12px;
   border: 1px solid var(--line);
+  max-height: 185px;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: thin;
   animation: typeaheadFadeIn 0.15s ease;
 }
 
@@ -1321,16 +1326,6 @@
   height: 13px;
 }
 
-.filter-pills-extra {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 0.35rem;
-  padding: 0.5rem;
-  background: #f9fafb;
-  border-radius: 12px;
-  border: 1px solid var(--line);
-  animation: typeaheadFadeIn 0.15s ease;
-}
 
 .community-rating-status {
   display: flex;
@@ -2798,12 +2793,124 @@
 .auth-dialog-modal {
   background: #ffffff;
   border-radius: 1rem;
-  padding: 1.75rem 1.5rem;
+  padding: 1.5rem 1.35rem;
   width: 100%;
   max-width: 400px;
+  max-height: calc(100dvh - 2rem);
+  overflow-y: auto;
+  overscroll-behavior: contain;
   position: relative;
   box-shadow: 0 20px 35px -5px rgba(0, 0, 0, 0.3);
   animation: authModalFadeIn 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.camera-permission-dialog {
+  color: #0f172a;
+}
+
+.camera-permission-body {
+  margin-top: 0.8rem;
+}
+
+.camera-permission-description {
+  margin: 0 0 1rem;
+  color: #334155;
+  font-size: 0.88rem;
+  line-height: 1.45;
+}
+
+.camera-device-tabs {
+  margin-bottom: 1rem;
+}
+
+.permission-steps-card {
+  margin-bottom: 1.2rem;
+  padding: 0.85rem 1rem;
+  background: #f8fafc;
+  border: 1px solid #cbd5e1;
+  border-radius: 0.75rem;
+}
+
+.permission-steps-card ol {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  margin: 0;
+  padding-left: 1.2rem;
+  color: #1e293b;
+  font-size: 0.84rem;
+  line-height: 1.4;
+}
+
+.permission-step-note {
+  color: #475569;
+  font-size: 0.78rem;
+}
+
+.camera-permission-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 0.6rem;
+}
+
+.camera-permission-action {
+  width: 100%;
+  justify-content: center;
+  gap: 0.5rem;
+  padding: 0.75rem;
+  box-sizing: border-box;
+}
+
+.auth-localhost-box {
+  background: #f0fdf4;
+  border: 1px solid #bbf7d0;
+  border-radius: 0.65rem;
+  padding: 0.65rem 0.75rem;
+}
+
+.auth-localhost-header {
+  display: flex;
+  align-items: center;
+  gap: 0.45rem;
+  font-size: 0.76rem;
+  font-weight: 600;
+  color: #166534;
+}
+
+.auth-localhost-badge {
+  background: #047857;
+  color: #ffffff;
+  font-size: 0.68rem;
+  font-weight: 700;
+  padding: 0.1rem 0.4rem;
+  border-radius: 999px;
+  text-transform: uppercase;
+}
+
+.auth-localhost-btn {
+  flex: 1;
+  padding: 0.45rem 0.6rem;
+  border-radius: 0.45rem;
+  border: 1px solid #047857;
+  background: #047857;
+  color: #ffffff;
+  font-size: 0.78rem;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.auth-localhost-btn:hover {
+  background: #065f46;
+}
+
+.auth-localhost-btn.secondary {
+  background: #ffffff;
+  color: #047857;
+  border-color: #86efac;
+}
+
+.auth-localhost-btn.secondary:hover {
+  background: #dcfce7;
 }
 
 @keyframes authModalFadeIn {
@@ -3121,14 +3228,13 @@
   padding: 0.55rem 0.9rem;
 }
 
-/* Fix Leaflet DivIcon default border, background & margins to eliminate zoom jump artifacts */
+/* Fix Leaflet DivIcon default border & background (preserve inline margin used by iconAnchor) */
 .vegan-tools-map-pin-container,
 .vegan-tools-map-cluster-container,
 .user-location-marker {
   background: transparent !important;
   border: none !important;
   box-shadow: none !important;
-  margin: 0 !important;
   padding: 0 !important;
   line-height: 0 !important;
 }
@@ -3201,4 +3307,3 @@
 .reviews-center-leaves .leaf-slot:hover {
   transform: scale(1.15);
 }
-

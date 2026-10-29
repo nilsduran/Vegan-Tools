@@ -523,4 +523,42 @@ describe("MenuReaderPage Form UI", () => {
       );
     });
   });
+
+  it("treats custom restaurant as regular candidate and discovers it via search query", async () => {
+    localStorage.setItem(
+      "vegan-tools-custom-restaurants",
+      JSON.stringify([
+        {
+          id: "custom-alcoi-123",
+          name: "El noi d'Alcoi Laforja",
+          address: "Carrer de Laforja, 10, Barcelona",
+          latitude: 41.398,
+          longitude: 2.147,
+          provider: "custom",
+          isFeatured: false,
+        },
+      ]),
+    );
+
+    render(
+      <MemoryRouter>
+        <MenuReaderPage />
+      </MemoryRouter>
+    );
+
+    // Initial state: custom restaurant is NOT in the featured list or initial results list
+    expect(screen.queryByText("El noi d'Alcoi Laforja")).toBeNull();
+
+    // When the user searches for it in the search input
+    const searchInput = screen.getByRole("textbox", { name: /search for a restaurant/i });
+    fireEvent.change(searchInput, { target: { value: "Alcoi" } });
+    const searchButton = screen.getByRole("button", { name: /search restaurants/i });
+    fireEvent.click(searchButton);
+
+    // Now it appears in the results
+    expect(await screen.findByText("El noi d'Alcoi Laforja")).toBeDefined();
+    expect(screen.getByText(/Carrer de Laforja/)).toBeDefined();
+
+    localStorage.removeItem("vegan-tools-custom-restaurants");
+  });
 });

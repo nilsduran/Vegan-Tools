@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import { Camera, CameraOff, HelpCircle, LoaderCircle, RefreshCw } from "lucide-react";
 import { tx } from "../i18n";
 import { CameraPermissionModal } from "./CameraPermissionModal";
+import { getCameraPermissionState, isCameraPermissionError } from "../utils/camera";
 
 export function IngredientCamera({
   onCapture,
@@ -14,6 +15,7 @@ export function IngredientCamera({
   const [capturing, setCapturing] = useState(false);
   const [error, setError] = useState("");
   const [showPermissionModal, setShowPermissionModal] = useState(false);
+  const [canShowPermissionHelp, setCanShowPermissionHelp] = useState(false);
   const [retryCount, setRetryCount] = useState(0);
   const [aspectRatio, setAspectRatio] = useState<number>();
 
@@ -24,7 +26,15 @@ export function IngredientCamera({
 
     const openCamera = async () => {
       setError("");
+      setCanShowPermissionHelp(false);
       try {
+        const permissionState = await getCameraPermissionState();
+        if (permissionState === "denied") {
+          throw new DOMException("Camera permission was denied.", "NotAllowedError");
+        }
+        if (!navigator.mediaDevices?.getUserMedia) {
+          throw new DOMException("Camera access is unavailable in this browser.", "SecurityError");
+        }
         stream = await navigator.mediaDevices.getUserMedia({
           video: {
             facingMode: "environment",
@@ -39,9 +49,11 @@ export function IngredientCamera({
           setAspectRatio(videoRef.current.videoWidth / videoRef.current.videoHeight);
         }
         setReady(true);
-      } catch {
+      } catch (error) {
         setError(tx("Camera access is unavailable. Upload an image below instead."));
-        setShowPermissionModal(true);
+        const permissionError = isCameraPermissionError(error);
+        setCanShowPermissionHelp(permissionError);
+        setShowPermissionModal(false);
       }
     };
 
@@ -123,15 +135,17 @@ export function IngredientCamera({
             <span>{error}</span>
           </div>
           <div style={{ display: "flex", gap: "0.5rem", flexWrap: "wrap", justifyContent: "center" }}>
-            <button
-              type="button"
-              className="secondary-button"
-              style={{ fontSize: "0.82rem", padding: "0.4rem 0.75rem", gap: "0.35rem" }}
-              onClick={() => setShowPermissionModal(true)}
-            >
-              <HelpCircle size={15} aria-hidden="true" />
-              <span>{tx("How to enable camera")}</span>
-            </button>
+            {canShowPermissionHelp && (
+              <button
+                type="button"
+                className="secondary-button"
+                style={{ fontSize: "0.82rem", padding: "0.4rem 0.75rem", gap: "0.35rem" }}
+                onClick={() => setShowPermissionModal(true)}
+              >
+                <HelpCircle size={15} aria-hidden="true" />
+                <span>{tx("How to enable camera")}</span>
+              </button>
+            )}
             <button
               type="button"
               className="secondary-button"

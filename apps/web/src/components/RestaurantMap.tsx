@@ -312,6 +312,7 @@ function createRestaurantIcon(
   restaurant: RestaurantCandidate,
   isSelected: boolean,
   isHovered: boolean = false,
+  showRating: boolean = false,
 ) {
   const isFeatured = Boolean(restaurant.isFeatured);
 
@@ -338,8 +339,8 @@ function createRestaurantIcon(
   // Render exactly one prominent cuisine emoji
   const emojisHtml = `<span class="pin-cuisine-emoji single">${icon}</span>`;
 
-  // Rating pill centered horizontally directly above the dome
-  const ratingPillHtml = (hasRating || isFeatured)
+  // Rating pill centered horizontally directly above the dome, displayed only with high zoom (zoom >= 16)
+  const ratingPillHtml = (showRating && (hasRating || isFeatured))
     ? `<div class="vegan-map-pin-rating" style="color: ${pinColor}; border-color: ${pinColor};">
          ★ ${ratingLabel}
        </div>`
@@ -371,14 +372,14 @@ function createRestaurantIcon(
 }
 
 // Custom modern circular cluster badge with count
-function createClusterIcon(count: number, hasSelected: boolean) {
+function createClusterIcon(count: number, hasSelected: boolean, hasFeatured: boolean = false) {
   const size = count < 10 ? 46 : count < 50 ? 54 : 62;
-  const bgColor = hasSelected ? "#064e3b" : "#047857";
-  const borderColor = hasSelected ? "#a7f3d0" : "#d9f99d";
-  const borderWidth = hasSelected ? 3.5 : 3;
+  const bgColor = hasSelected ? "#064e3b" : hasFeatured ? "#065f46" : "#047857";
+  const borderColor = hasSelected ? "#a7f3d0" : hasFeatured ? "#facc15" : "#d9f99d";
+  const borderWidth = hasSelected ? 3.5 : hasFeatured ? 3.5 : 3;
 
   const html = `
-    <div class="vegan-tools-map-cluster ${hasSelected ? "selected" : ""}" style="width: ${size}px; height: ${size}px; line-height: ${size}px; font-size: ${size >= 54 ? "1.1rem" : "0.95rem"}; background: ${bgColor}; border: ${borderWidth}px solid ${borderColor};">
+    <div class="vegan-tools-map-cluster ${hasSelected ? "selected" : ""} ${hasFeatured ? "has-featured" : ""}" style="position: relative; width: ${size}px; height: ${size}px; line-height: ${size}px; font-size: ${size >= 54 ? "1.1rem" : "0.95rem"}; background: ${bgColor}; border: ${borderWidth}px solid ${borderColor};">
       <span>${count}</span>
     </div>
   `;
@@ -491,7 +492,8 @@ export function RestaurantMap({
     markersGroup.clearLayers();
 
     const zoom = map.getZoom();
-    const clusterRadius = zoom >= 14 ? 0 : zoom === 13 ? 14 : zoom === 12 ? 22 : 32;
+    const clusterRadius = zoom >= 14 ? 0 : zoom >= 13 ? 16 : zoom >= 12 ? 24 : 34;
+    const showPinRating = zoom >= 16;
 
     // Use the restaurants provided by the parent component
     const validRestaurants = restaurants.filter(
@@ -508,7 +510,7 @@ export function RestaurantMap({
       clusterRadius > 0
         ? clusterPoints(
             validRestaurants,
-            (lat, lng) => map.latLngToLayerPoint([lat, lng]),
+            (lat, lng) => map.project([lat, lng], zoom),
             clusterRadius
           )
         : validRestaurants.map((item) => ({
@@ -524,7 +526,7 @@ export function RestaurantMap({
         const isSelected = selectedRestaurant?.id === restaurant.id;
         const isHovered = hoveredRestaurantId === restaurant.id;
         const marker = L.marker([restaurant.latitude, restaurant.longitude], {
-          icon: createRestaurantIcon(restaurant, isSelected, isHovered),
+          icon: createRestaurantIcon(restaurant, isSelected, isHovered, showPinRating),
           zIndexOffset: isSelected ? 1000 : isHovered ? 900 : 0,
         });
 
@@ -564,7 +566,7 @@ export function RestaurantMap({
           : false;
 
         const clusterMarker = L.marker([result.latitude, result.longitude], {
-          icon: createClusterIcon(result.count, hasSelected || hasHovered),
+          icon: createClusterIcon(result.count, hasSelected || hasHovered, Boolean(result.hasFeatured)),
           zIndexOffset: hasSelected ? 800 : hasHovered ? 700 : 100,
         });
 

@@ -54,9 +54,10 @@ import { BottomSheet, type SnapPoint } from "../components/BottomSheet";
 import { t, tx, useLanguage } from "../i18n";
 import { useDocumentHead } from "../utils/seo";
 import { getDirectionsUrl } from "../utils/navigation";
-import { formatDistance } from "../utils/distance";
+import { formatDistance, calculateDistanceKm } from "../utils/distance";
 import { getCustomRestaurants } from "../utils/restaurantCache";
 import { generateSafeUUID } from "../utils/uuid";
+import { isRestaurantClosed } from "../utils/restaurantEdits";
 
 function newSearchSessionToken() {
   return generateSafeUUID().replaceAll("-", "");
@@ -87,7 +88,9 @@ export function MenuReaderPage() {
   const uploadSectionRef = useRef<HTMLElement>(null);
   const [restaurantQuery, setRestaurantQuery] = useState("");
   const [restaurantResults, setRestaurantResults] = useState<RestaurantCandidate[]>([]);
-  const [curatedPins, setCuratedPins] = useState<RestaurantCandidate[]>(FEATURED_RESTAURANTS);
+  const [curatedPins, setCuratedPins] = useState<RestaurantCandidate[]>(() =>
+    FEATURED_RESTAURANTS.filter((r) => !isRestaurantClosed(r)),
+  );
   const [selectedRestaurant, setSelectedRestaurant] = useState<RestaurantCandidate>();
   const [searchingRestaurants, setSearchingRestaurants] = useState(false);
   const [hoveredRestaurantId, setHoveredRestaurantId] = useState<string>();
@@ -122,7 +125,7 @@ export function MenuReaderPage() {
   const editToken = draft?.editToken;
   const draftStatus = draft?.status;
   const [sheetSnapPoint, setSheetSnapPoint] = useState<SnapPoint>(() =>
-    searchParams.get("place") ? "half" : "collapsed",
+    searchParams.get("place") ? "expanded" : "collapsed",
   );
   const previousPlaceIdRef = useRef<string | null>(searchParams.get("place"));
 
@@ -143,7 +146,7 @@ export function MenuReaderPage() {
 
     setSelectedRestaurant(restaurant);
     if (restaurant) {
-      setSheetSnapPoint("half");
+      setSheetSnapPoint("expanded");
       if (restaurant.websiteUrl) {
         setWebsiteUrlInput(restaurant.websiteUrl);
       }
@@ -190,7 +193,7 @@ export function MenuReaderPage() {
           const merged = [
             ...curated,
             ...FEATURED_RESTAURANTS.filter((f) => !existingIds.has(f.id)),
-          ];
+          ].filter((r) => !isRestaurantClosed(r));
           setCuratedPins(merged);
         }
       } catch {
@@ -200,6 +203,36 @@ export function MenuReaderPage() {
     void loadCuratedPins();
     return () => {
       cancelled = true;
+    };
+  }, []);
+
+  // Listen to live restaurant edits & closure reports to keep map and list completely synchronized
+  useEffect(() => {
+    const handleClosed = (e: Event) => {
+      const customEvent = e as CustomEvent<{ id?: string }>;
+      const closedId = customEvent.detail?.id;
+      if (!closedId) return;
+
+      setCuratedPins((prev) => prev.filter((r) => r.id !== closedId));
+      setRestaurantResults((prev) => prev.filter((r) => r.id !== closedId));
+      setSelectedRestaurant((prev) => (prev?.id === closedId ? undefined : prev));
+    };
+
+    const handleEdited = (e: Event) => {
+      const customEvent = e as CustomEvent<{ restaurant?: RestaurantCandidate }>;
+      const updated = customEvent.detail?.restaurant;
+      if (!updated) return;
+
+      setCuratedPins((prev) => prev.map((r) => (r.id === updated.id ? updated : r)));
+      setRestaurantResults((prev) => prev.map((r) => (r.id === updated.id ? updated : r)));
+      setSelectedRestaurant((prev) => (prev?.id === updated.id ? updated : prev));
+    };
+
+    window.addEventListener("vegan-tools-restaurant-closed", handleClosed);
+    window.addEventListener("vegan-tools-restaurant-edited", handleEdited);
+    return () => {
+      window.removeEventListener("vegan-tools-restaurant-closed", handleClosed);
+      window.removeEventListener("vegan-tools-restaurant-edited", handleEdited);
     };
   }, []);
 
@@ -291,7 +324,7 @@ export function MenuReaderPage() {
       curatedPins.find((r) => r.id === cleanId);
     if (match) {
       setSelectedRestaurant(match);
-      setSheetSnapPoint("half");
+      setSheetSnapPoint("expanded");
       if (autoScan) {
         void selectRestaurant(match);
       }
@@ -300,7 +333,7 @@ export function MenuReaderPage() {
       void getRestaurantById(cleanId).then((candidate) => {
         if (candidate) {
           setSelectedRestaurant(candidate);
-          setSheetSnapPoint("half");
+          setSheetSnapPoint("expanded");
           if (autoScan) {
             void selectRestaurant(candidate);
           }
@@ -435,15 +468,48 @@ export function MenuReaderPage() {
         bbox,
       });
       const safe = Array.isArray(results) ? results : [];
-      setRestaurantResults(safe);
+      const customMatches = getCustomRestaurants().filter((c) => {
+        if (typeof c.latitude !== "number" || typeof c.longitude !== "number") return false;
+        if (bbox) {
+          return (
+            c.longitude >= bbox[0] &&
+            c.latitude >= bbox[1] &&
+            c.longitude <= bbox[2] &&
+            c.latitude <= bbox[3]
+          );
+        }
+        const distKm = calculateDistanceKm(center, { lat: c.latitude, lng: c.longitude });
+        return distKm * 1000 <= radius;
+      });
+      const merged = [...safe, ...customMatches.filter((cm) => !safe.some((s) => s.id === cm.id))];
+      setRestaurantResults(merged);
       setSheetSnapPoint("half");
-      if (safe.length === 0) {
+      if (merged.length === 0) {
         setRestaurantError(tx("No matching restaurant was found in this area."));
       } else {
         setRestaurantError("");
       }
     } catch {
-      setRestaurantResults([]);
+      const customMatches = getCustomRestaurants().filter((c) => {
+        if (typeof c.latitude !== "number" || typeof c.longitude !== "number") return false;
+        if (bbox) {
+          return (
+            c.longitude >= bbox[0] &&
+            c.latitude >= bbox[1] &&
+            c.longitude <= bbox[2] &&
+            c.latitude <= bbox[3]
+          );
+        }
+        const distKm = calculateDistanceKm(center, { lat: c.latitude, lng: c.longitude });
+        return distKm * 1000 <= radius;
+      });
+      setRestaurantResults(customMatches);
+      if (customMatches.length === 0) {
+        setRestaurantError(tx("No matching restaurant was found in this area."));
+      } else {
+        setRestaurantError("");
+      }
+      setSheetSnapPoint("half");
     } finally {
       setSearchingRestaurants(false);
     }
@@ -802,10 +868,14 @@ export function MenuReaderPage() {
     }
   };
 
-  const customPins = getCustomRestaurants();
-  const filteredCustom = filterRestaurants(customPins, activeFilters);
-  const filteredResults = filterRestaurants(restaurantResults, activeFilters);
-  const filteredCurated = filterRestaurants(curatedPins, activeFilters);
+  const filteredResults = filterRestaurants(
+    restaurantResults.filter((r) => !isRestaurantClosed(r)),
+    activeFilters,
+  );
+  const filteredCurated = filterRestaurants(
+    curatedPins.filter((r) => !isRestaurantClosed(r)),
+    activeFilters,
+  );
   const baseDisplayedRestaurants =
     restaurantResults.length > 0
       ? [
@@ -813,12 +883,8 @@ export function MenuReaderPage() {
           ...filteredCurated.filter(
             (c) => c.isFeatured && !filteredResults.some((r) => r.id === c.id),
           ),
-          ...filteredCustom.filter((c) => !filteredResults.some((r) => r.id === c.id)),
         ]
-      : [
-          ...filteredCustom,
-          ...filteredCurated.filter((c) => !filteredCustom.some((fc) => fc.id === c.id)),
-        ];
+      : filteredCurated;
   const displayedMapRestaurants =
     selectedRestaurant && !baseDisplayedRestaurants.some((r) => r.id === selectedRestaurant.id)
       ? [selectedRestaurant, ...baseDisplayedRestaurants]

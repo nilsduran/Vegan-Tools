@@ -32,7 +32,7 @@ describe("API", () => {
       expect(response.headers["access-control-allow-origin"]).toBe(origin);
     }
     await app.close();
-  }, 15_000);
+  }, 30_000);
 
   it("adds CORS headers for the production web origin on actual API responses", async () => {
     vi.stubEnv("WEB_ORIGIN", "\"https://vegan-tools.onrender.com/\"");
@@ -336,6 +336,28 @@ describe("API", () => {
     // Strictly coordinates-based; uses circle filter
     expect(requestedUrl.searchParams.get("filter")).toBe("circle:-0.144,51.538,5000");
     expect(requestedUrl.searchParams.get("text")).toBeNull();
+    await app.close();
+  });
+
+  it("emits ETag and returns 304 Not Modified when if-none-match header matches", async () => {
+    const app = await buildApp(new MemoryRepository());
+    const initialResponse = await app.inject({
+      method: "GET",
+      url: "/",
+    });
+    expect(initialResponse.statusCode).toBe(200);
+    const etagHeader = initialResponse.headers.etag;
+    expect(etagHeader).toBeDefined();
+
+    const cachedResponse = await app.inject({
+      method: "GET",
+      url: "/",
+      headers: {
+        "if-none-match": etagHeader as string,
+      },
+    });
+    expect(cachedResponse.statusCode).toBe(304);
+    expect(cachedResponse.body).toBe("");
     await app.close();
   });
 

@@ -1,4 +1,4 @@
-﻿/**
+/**
  * @file audit-curated-pins.mjs
  * @description Task 14: Systematic audit script for curated restaurant pins across all cities.
  * Validates:
@@ -38,6 +38,11 @@ for (const file of jsonFiles) {
 
   let validHours = 0;
   let validImages = 0;
+
+  const featuredCount = venues.filter((v) => v.isFeatured === true).length;
+  if (featuredCount > 10) {
+    errors.push(`[${cityName}]: EXCEEDED FEATURED CAP - Maximum 10 featured picks per city allowed, found ${featuredCount}`);
+  }
 
   for (const [idx, v] of venues.entries()) {
     totalVenues++;

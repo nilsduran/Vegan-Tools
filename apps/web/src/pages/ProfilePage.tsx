@@ -4,7 +4,7 @@
  * Designed for authenticated contributors with full GDPR data portability and account management.
  */
 
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
 import type { RestaurantReview } from "@vegan-tools/domain";
 import {
@@ -25,6 +25,7 @@ import { deleteRestaurantReview, getUserReviews } from "../api";
 import { useAuth } from "../auth";
 import { AuthDialog } from "../components/AuthDialog";
 import { Top4Restaurants } from "../components/Top4Restaurants";
+import { UserListsSection } from "../components/UserListsSection";
 import { RatingHistogram } from "../components/RatingHistogram";
 import { LeafRating } from "../components/LeafRating";
 import { deleteVisitLog, useDiaryLogs } from "../utils/diary";
@@ -53,6 +54,43 @@ export function ProfilePage() {
   const [loadingReviews, setLoadingReviews] = useState(false);
   const [showAuthModal, setShowAuthModal] = useState(false);
   const [deletingId, setDeletingId] = useState<string | null>(null);
+  const [diarySearch, setDiarySearch] = useState("");
+  const [diaryPeriod, setDiaryPeriod] = useState<"all" | "year" | "month">("all");
+  const [diaryCuisine, setDiaryCuisine] = useState("all");
+  const [diaryMinimumRating, setDiaryMinimumRating] = useState("all");
+
+  const diaryCuisines = useMemo(
+    () =>
+      [...new Set(diaryLogs.map((log) => log.cuisine?.trim()).filter((cuisine): cuisine is string => Boolean(cuisine)))]
+        .sort((a, b) => a.localeCompare(b, language)),
+    [diaryLogs, language],
+  );
+
+  const filteredDiaryLogs = useMemo(() => {
+    const now = new Date();
+    const currentYear = now.getFullYear();
+    const currentMonth = now.getMonth();
+    const query = diarySearch.trim().toLocaleLowerCase(language === "ca" ? "ca-ES" : "en-US");
+    const minimumRating = diaryMinimumRating === "all" ? 0 : Number(diaryMinimumRating);
+
+    return diaryLogs.filter((log) => {
+      const date = log.visitDate ? new Date(`${log.visitDate}T12:00:00`) : undefined;
+      const matchesPeriod =
+        diaryPeriod === "all" ||
+        (date !== undefined &&
+          date.getFullYear() === currentYear &&
+          (diaryPeriod === "year" || date.getMonth() === currentMonth));
+      const searchable = `${log.restaurantName} ${log.cuisine ?? ""} ${log.notes ?? ""} ${(log.dishesTried ?? []).join(" ")}`.toLocaleLowerCase(
+        language === "ca" ? "ca-ES" : "en-US",
+      );
+      return (
+        matchesPeriod &&
+        (diaryCuisine === "all" || log.cuisine === diaryCuisine) &&
+        log.rating >= minimumRating &&
+        (!query || searchable.includes(query))
+      );
+    });
+  }, [diaryCuisine, diaryLogs, diaryMinimumRating, diaryPeriod, diarySearch, language]);
 
   const fetchUserReviews = async () => {
     if (!token) {
@@ -281,8 +319,11 @@ export function ProfilePage() {
           {/* Letterboxd-style Top 4 Favorite Restaurants */}
           <Top4Restaurants />
 
+          {/* User Saved & Custom Lists (Liked, Want to go, Custom lists) */}
+          <UserListsSection />
+
           {/* Letterboxd-style Rating Distribution Chart */}
-          {diaryLogs.length > 0 && <RatingHistogram logs={diaryLogs} />}
+          {filteredDiaryLogs.length > 0 && <RatingHistogram logs={filteredDiaryLogs} />}
 
           {/* Visit Diary Section */}
           <section className="profile-reviews-section profile-reviews-card">
@@ -292,7 +333,7 @@ export function ProfilePage() {
                 <h2>{tx("My Visit Diary")}</h2>
               </div>
               <span className="profile-reviews-count-badge">
-                {diaryLogs.length} {diaryLogs.length === 1 ? tx("entry") : tx("entries")}
+                {filteredDiaryLogs.length} {filteredDiaryLogs.length === 1 ? tx("entry") : tx("entries")}
               </span>
             </div>
 
@@ -307,8 +348,60 @@ export function ProfilePage() {
                 </Link>
               </div>
             ) : (
+              <>
+                <div className="diary-filters" aria-label={tx("Filter diary")}>
+                  <label>
+                    <span>{tx("Search")}</span>
+                    <input
+                      type="search"
+                      value={diarySearch}
+                      onChange={(event) => setDiarySearch(event.target.value)}
+                      placeholder={tx("Restaurant, dish or note")}
+                    />
+                  </label>
+                  <label>
+                    <span>{tx("Period")}</span>
+                    <select value={diaryPeriod} onChange={(event) => setDiaryPeriod(event.target.value as typeof diaryPeriod)}>
+                      <option value="all">{tx("All time")}</option>
+                      <option value="year">{tx("This year")}</option>
+                      <option value="month">{tx("This month")}</option>
+                    </select>
+                  </label>
+                  <label>
+                    <span>{tx("Cuisine")}</span>
+                    <select value={diaryCuisine} onChange={(event) => setDiaryCuisine(event.target.value)}>
+                      <option value="all">{tx("All cuisines")}</option>
+                      {diaryCuisines.map((cuisine) => <option key={cuisine} value={cuisine}>{cuisine}</option>)}
+                    </select>
+                  </label>
+                  <label>
+                    <span>{tx("Minimum rating")}</span>
+                    <select value={diaryMinimumRating} onChange={(event) => setDiaryMinimumRating(event.target.value)}>
+                      <option value="all">{tx("Any rating")}</option>
+                      {[1, 2, 3, 4, 5].map((rating) => <option key={rating} value={rating}>{rating}+ {tx("leaves")}</option>)}
+                    </select>
+                  </label>
+                </div>
+
+                {filteredDiaryLogs.length === 0 ? (
+                  <div className="profile-empty-state">
+                    <h3>{tx("No diary entries match these filters.")}</h3>
+                    <button
+                      type="button"
+                      className="secondary-button"
+                      onClick={() => {
+                        setDiarySearch("");
+                        setDiaryPeriod("all");
+                        setDiaryCuisine("all");
+                        setDiaryMinimumRating("all");
+                      }}
+                    >
+                      {tx("Clear filters")}
+                    </button>
+                  </div>
+                ) : (
               <ul className="profile-reviews-list">
-                {diaryLogs.map((log) => {
+                {filteredDiaryLogs.map((log) => {
                   const formattedDate = log.visitDate
                     ? new Date(log.visitDate).toLocaleDateString(
                         language === "ca" ? "ca-ES" : "en-US",
@@ -364,6 +457,8 @@ export function ProfilePage() {
                   );
                 })}
               </ul>
+                )}
+              </>
             )}
           </section>
 

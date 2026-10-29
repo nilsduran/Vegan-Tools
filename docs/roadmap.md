@@ -139,7 +139,8 @@ Tasques que requereixen disseny d'enginyeria, modificació d'esquemes o canvis e
     - *Decisió ètica*: Per evitar riscos greus per a la salut de les persones (xocs anafilàctics, contaminació creuada a fàbriques/cuines) per un excés de confiança en la IA o l'OCR, **s'exclou qualsevol garantia o filtre mèdic d'al·lèrgies**. L'app se centra exclusivament en la composició ètica vegana/vegetariana.
 12. **✅ [COMPLETAT] Diari de visites estil Letterboxd, Top 4 i Favorits (`ProfilePage.tsx`, `diary.ts`)**:
     - *Log diari*: Registre de visites a restaurants en diferents dies (amb límit estricte d'1 registre per dia per local, format `YYYY-MM-DD`), amb notes personals, plats demanats i valoració amb pas de mig punt (0.5 a 5.0).
-    - *Distribució d'estrelles*: Histograma de puntuacions al perfil amb 10 barres verticals (0.5 a 5.0), mitjana aritmètica calculada i recompte de visites.
+    - *Distribució de fulles*: Histograma de puntuacions al perfil amb 10 barres verticals (0.5 a 5.0), mitjana aritmètica calculada i recompte de visites.
+    - *Vista filtrable*: El diari permet filtrar per text, període, cuina i puntuació mínima.
     - *Top 4 Restaurants*: Selector dels 4 restaurants preferits de l'usuari ancorats a la capçalera del perfil amb calaix de cerca.
 13. **✅ [COMPLETAT] Pàgines de perfil dedicades per a cada restaurant (`/restaurant/:id`)**:
     - Fitxes independents indexables (`RestaurantDetailPage.tsx`) amb portada d'alta definició, horaris detallats calculats en local sense dependències (`evaluateOpeningHours`), indicacions de transport, enllaç oficial, diari de visites personals i ressenyes ètiques comunitàries.
@@ -150,7 +151,7 @@ Tasques que requereixen disseny d'enginyeria, modificació d'esquemes o canvis e
       - Sintaxi i validesa d'horaris comercials segons format OSM (`openingHours`).
       - Coherència de protocol web (`https://`) i existència d'imatges d'Espai Segur.
       - Integrat directament a la pipeline de verificació `npm run check`.
-15. **🏷️ Distintius d'Usuari al Perfil i Ressenyes (`Vegan`, `Vegetarian`, `Non Veg`) & Onboarding Suau**:
+15. **✅ [COMPLETAT] Distintius d'Usuari al Perfil i Ressenyes (`Vegan`, `Vegetarian`, `Non Veg`) & Onboarding Suau**:
     - *Onboarding suau en 3 passos al registre*: 1) Idioma (anglès per defecte, amb selecció de Català o English), 2) Nom d'usuari lliure i net, 3) Preferència dietètica (`Vegan`, `Vegetarian`, `Non Veg`). S'executa una sola vegada per nou perfil sense insistències repetitives.
     - *Distintius d'estil de vida a la comunitat*: Els perfils d'usuari i les seves ressenyes mostren de manera transparent la seva etiqueta dietètica per contextualitzar les valoracions.
     - *Format de nom d'usuari*: Noms d'usuari sense prefix forçat d'arroba (`@`), amb suport per a majúscules (`Nils`, `VegiChef`) i filtre estricte que impedeix registrar combinacions de `vegan` i `tool`/`tools` per evitar suplantacions de la plataforma oficial.
@@ -168,6 +169,15 @@ Tasques que requereixen disseny d'enginyeria, modificació d'esquemes o canvis e
 19. **✅ [COMPLETAT] Alta de restaurants no indexats i persistència pròpia (`AddRestaurantModal.tsx`, `POST /v1/restaurants/custom`)**:
     - *Flux d'alta ràpida*: Quan un restaurant no apareix a la cerca (perquè manca a OpenStreetMap o proveïdors externs), l'usuari pot afegir-lo immediatament des del panell buit o des del peu de la llista de resultats.
     - *Geocodificació i persistència local*: Geocodifica l'adreça postal amb Nominatim (`/v1/restaurants/custom`), assigna coordenades exactes, guarda el candidat a `localStorage` (`getCustomRestaurants()`) i el mostra instantàniament al mapa i a la cerca de Vegan Tools, permetent explorar-ne la carta o pujar fotos/PDFs al moment.
+20. **🔎 Revisió i Harmonització de la Taxonomia de Tags i Filtres Gastronòmics (AUDITORIA DE COBERTURA COMPLETADA)**:
+    - *Auditoria*: Inventari reproduïble amb `npm run audit:cuisine-tags`, aplicat als 114 locals curats de 21 fitxers de ciutat, amb freqüència, percentatge de cobertura, nombre de ciutats i origen (`cuisine` o `tags`).
+    - *Següent fase*: Separar categories gastronòmiques d'atributs (preu, servei, certificacions i descriptors editorials), unificar sinònims i aplicar les decisions de tractament a les dades, filtres i etiquetes visibles.
+    - *Objectiu*: Unificar els filtres del cercador i les etiquetes de les fitxes en un únic concepte coherent, agrupant especialitats rares sota categories útils quan no tinguin prou cobertura i conservant-les només quan aportin valor real.
+21. **📊 Estadístiques Gastronòmiques Avançades a l'estil The StoryGraph / Letterboxd Pro**:
+    - *Panell d'analítica personal al perfil (`/profile`)*: Gràfics visuals de distribució per tipus de cuina (gràfic circular/barres), barris i ciutats més freqüentats, mitjana de fulles per estil culinari, evolució temporal dels àpats al llarg de l'any i comparativa d'hàbits gastronòmics basat en el diari de visites.
+22. **📲 Lector Universal de Codis Integrat a l'Escàner (`/scanner`)**:
+    - *Abast*: Unificar en un sol lector la detecció de QR i qualsevol codi de barres compatible (EAN/UPC, Code 128, Code 39, Data Matrix, PDF417, etc.), mantenint també l'entrada manual i la fotografia d'etiquetes.
+    - *Classificació del resultat*: Els codis numèrics es deriven al flux de productes (alimentació o cosmètica segons la base de dades); les URL i QR de cartes es canalitzen al descobridor de cartes; els productes de cosmètica o roba han de poder mostrar ingredients, materials i informació sobre experimentació animal; els codis desconeguts es mostren amb una acció segura per obrir o continuar analitzant.
 
 ---
 
@@ -202,6 +212,35 @@ Projectes d'infraestructura, investigació o serveis en segon pla que requereixe
     - *Objectiu de futur*: Quan la plataforma assoleixi volum d'usuaris i activitat suficient, introduir un mòdul d'estadístiques: resum d'impacte ètic acumulat (àpats vegans gaudits, petjada ecològica i d'animals), mapa de calor de ciutats i barris més explorats, estils culinaris favorits i mètriques agregades de valoracions comunitàries.
 12. **🗺️ Sincronització opcional amb OpenStreetMap (OSM OAuth 2.0 / Edició Directa)**:
     - *Objectiu de futur*: Permetre als usuaris amb compte d'OpenStreetMap publicar voluntàriament restaurants nous o canvis d'estat (locals tancats o traslladats) directament a la base de dades d'OSM mitjançant OAuth 2.0, amb selecció explícita d'etiquetes dietètiques per part de l'usuari (`diet:vegan`). Es posposa per centrar esforços en l'experiència immediata i autònoma dins de Vegan Tools.
+13. **🛡️ Filtre i Moderador Automàtic d'Espai Segur per a Imatges (AI Safe Space Guard)**:
+    - Auditoria prèvia de fotografies pujades per la comunitat mitjançant visió per computador per bloquejar automàticament imatges de carn, peix o sofriment abans d'emmagatzemar-les a Supabase Storage.
+14. **📅 Capa d'Esdeveniments, Trobades i Jornades a Santuaris (`venues_and_events`)**:
+    - Suport per a activitats puntuals al mapa: jornades de voluntariat a santuaris d'animals, xerrades antiespecistes, mercats vegans i dinars comunitaris.
+15. **🛒 Comparador de Supermercat i Recomanador d'Alternatives Veganes (`/scanner`)**:
+    - Quan un producte escanejat no sigui vegà, suggerir alternatives 100% vegetals populars i accessibles al mateix mercat (ex: formatges vegans, iogurts de soia o xocolata sense lactis).
+16. **🔗 Llistes Públiques Compartibles estil Letterboxd (`/lists`)**:
+    - Permetre als usuaris crear llistes temàtiques de restaurants i compartir-les públicament via URL curta.
+
+---
+
+## ❓ Candidats a Avaluació i Simplificació (Pendent de Decisió / Sense Trencar Res)
+
+Propostes d'optimització, disseny i neteja que requereixen reflexió prèvia abans d'executar-se per evitar regressions en una web que ja és funcional:
+
+1. **Mida d'icones i etiquetes a la navegació mòbil (`styles.css`, `App.tsx`)**:
+   - *Proposta*: Avaluar ampliar les icones a 24-26px a la barra inferior mòbil i analitzar la conveniència de conservar micro-etiquetes de text o passar a només icones amb indicadors d'estat actiu.
+2. **Unificació dels modes de càmera a l'Escàner (`ProductScannerPage.tsx`)**:
+   - *Proposta*: Avaluar un flux unificat amb detecció automàtica en temps real de codis de barres i codis QR mitjançant la càmera contínua, complementat amb un únic botó disparador per a fotos d'etiquetes d'ingredients / OCR.
+3. **Racionalització de proveïdors de cerca (`restaurant-search.ts`)**:
+   - *Proposta*: Avaluar si la combinació actual de 4 proveïdors (Geoapify + Photon + Overpass + Nominatim) es pot simplificar a un flux binari primari/secundari clar sense reduir la cobertura de locals.
+4. **Unificació de formularis de restaurant (`AddRestaurantModal.tsx` & `EditRestaurantModal.tsx`)**:
+   - *Proposta*: Avaluar la fusió dels dos components en un sol formulari polimòrfic per evitar codi repetit de validació i geocodificació.
+5. **Emmagatzematge de rajoles del mapa de Barcelona en local (.pmtiles)**:
+   - *Proposta*: Investigar la descàrrega i emmagatzematge de la capa de carrers de Barcelona en format vectorial compacte (PMTiles, ~20-30 MB) per estalviar crides de xarxa a les rajoles cartogràfiques i permetre visualització offline completa.
+6. **Estratègia d'amplitud de ping de manteniment de Render**:
+   - *Proposta*: En lloc de limitar el keep-alive a hores d'àpats (ja que les reserves i cerques es fan a qualsevol hora i hi ha diferències de fuseau horari), avaluar una finestra d'inactivitat segura exclusivament entre 1:00 am i 8:00 am (hora local) si cal estalviar hores de servei.
+7. **Accions de màrqueting físic i xarxes socials**:
+   - *Proposta*: Disseny d'adhesius físics QR «Verificat per Vegan Tools» per a la porta/barra de restaurants 100% vegans i potenciació d'Instagram (`@vegantools`) enllaçant amb la comunitat i santuaris.
 
 ---
 

@@ -25,7 +25,6 @@ export function ListSelectModal({
   const [lists, setLists] = useState<UserRestaurantList[]>([]);
   const [isCreating, setIsCreating] = useState(false);
   const [newTitle, setNewTitle] = useState("");
-  const [newDescription, setNewDescription] = useState("");
   const [newIsPublic, setNewIsPublic] = useState(false);
 
   useEffect(() => {
@@ -33,7 +32,6 @@ export function ListSelectModal({
       setLists(loadUserLists());
       setIsCreating(false);
       setNewTitle("");
-      setNewDescription("");
       setNewIsPublic(false);
     }
   }, [isOpen]);
@@ -48,12 +46,11 @@ export function ListSelectModal({
   const handleCreateList = (e: FormEvent) => {
     e.preventDefault();
     if (!newTitle.trim()) return;
-    const created = createCustomList(newTitle, newDescription, newIsPublic);
+    const created = createCustomList(newTitle, "", newIsPublic);
     toggleRestaurantInList(created.id, restaurantId);
     setLists(loadUserLists());
     setIsCreating(false);
     setNewTitle("");
-    setNewDescription("");
   };
 
   return (
@@ -67,23 +64,23 @@ export function ListSelectModal({
       <div
         className="auth-dialog-modal list-select-modal-card"
         onClick={(e) => e.stopPropagation()}
-        style={{ maxWidth: "460px", width: "92%" }}
+        style={{ maxWidth: "400px", width: "92%", padding: "1.1rem 1.15rem" }}
       >
         <header
           style={{
             display: "flex",
             alignItems: "center",
             justifyContent: "space-between",
-            marginBottom: "1rem",
-            paddingBottom: "0.75rem",
+            marginBottom: "0.65rem",
+            paddingBottom: "0.55rem",
             borderBottom: "1px solid var(--line)",
           }}
         >
-          <div>
-            <h3 id="list-modal-title" style={{ margin: 0, fontSize: "1.15rem", fontWeight: 800 }}>
+          <div style={{ minWidth: 0, paddingRight: "1.75rem" }}>
+            <h3 id="list-modal-title" style={{ margin: 0, fontSize: "1.05rem", fontWeight: 800 }}>
               {tx("Add to list")}
             </h3>
-            <span style={{ fontSize: "0.82rem", color: "var(--muted)", fontWeight: 600 }}>
+            <span style={{ fontSize: "0.8rem", color: "var(--muted)", fontWeight: 600, display: "block", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
               {restaurantName}
             </span>
           </div>
@@ -97,7 +94,7 @@ export function ListSelectModal({
           </button>
         </header>
 
-        <div className="list-select-items" style={{ display: "flex", flexDirection: "column", gap: "0.5rem", maxHeight: "280px", overflowY: "auto", margin: "0.5rem 0" }}>
+        <div className="list-select-items" style={{ display: "flex", flexDirection: "column", gap: "0.35rem", maxHeight: "260px", overflowY: "auto", margin: "0.35rem 0" }}>
           {lists.map((list) => {
             const inList = isRestaurantInList(list.id, restaurantId);
             return (
@@ -109,8 +106,8 @@ export function ListSelectModal({
                   display: "flex",
                   alignItems: "center",
                   justifyContent: "space-between",
-                  padding: "0.75rem 1rem",
-                  borderRadius: "0.75rem",
+                  padding: "0.45rem 0.75rem",
+                  borderRadius: "0.6rem",
                   border: `1.5px solid ${inList ? "var(--green)" : "var(--line)"}`,
                   background: inList ? "rgba(4, 120, 87, 0.06)" : "var(--bg-card)",
                   cursor: "pointer",
@@ -118,103 +115,87 @@ export function ListSelectModal({
                   transition: "all 0.15s ease",
                 }}
               >
-                <div style={{ display: "flex", alignItems: "center", gap: "0.75rem" }}>
-                  <span style={{ fontSize: "1.2rem" }}>
+                <div style={{ display: "flex", alignItems: "center", gap: "0.55rem", minWidth: 0 }}>
+                  <span style={{ fontSize: "1rem", lineHeight: 1 }}>
                     {list.id === "liked" ? "💖" : list.id === "want_to_go" ? "🔖" : "📁"}
                   </span>
-                  <div>
-                    <strong style={{ display: "block", fontSize: "0.95rem", color: "var(--text-primary)" }}>
-                      {tx(list.title)}
-                    </strong>
-                    {list.description ? (
-                      <span style={{ fontSize: "0.78rem", color: "var(--muted)" }}>{list.description}</span>
-                    ) : null}
-                  </div>
+                  <strong style={{ fontSize: "0.88rem", color: "var(--text-primary)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                    {tx(list.title)}
+                  </strong>
+                  <span style={{ fontSize: "0.75rem", color: "var(--muted)", fontWeight: 600 }}>
+                    ({list.restaurantIds.length})
+                  </span>
                 </div>
 
                 <div
                   style={{
-                    width: "22px",
-                    height: "22px",
-                    borderRadius: "6px",
-                    border: `2px solid ${inList ? "var(--green)" : "var(--line)"}`,
+                    width: "19px",
+                    height: "19px",
+                    borderRadius: "5px",
+                    border: `1.5px solid ${inList ? "var(--green)" : "var(--line)"}`,
                     background: inList ? "var(--green)" : "transparent",
                     display: "flex",
                     alignItems: "center",
                     justifyContent: "center",
                     color: "#ffffff",
+                    flexShrink: 0,
                   }}
                 >
-                  {inList && <Check size={14} strokeWidth={3} />}
+                  {inList && <Check size={13} strokeWidth={3} />}
                 </div>
               </button>
             );
           })}
         </div>
 
-        {/* Form to create new list */}
+        {/* Compact form to create new list */}
         {isCreating ? (
-          <form onSubmit={handleCreateList} style={{ marginTop: "1rem", padding: "0.85rem", background: "#f8fafc", borderRadius: "0.75rem", border: "1px solid var(--line)" }}>
-            <h4 style={{ margin: "0 0 0.6rem", fontSize: "0.95rem", fontWeight: 700 }}>
-              {tx("Create new list")}
-            </h4>
-            <input
-              type="text"
-              placeholder={tx("List title")}
-              value={newTitle}
-              onChange={(e) => setNewTitle(e.target.value)}
-              required
-              autoFocus
-              style={{
-                width: "100%",
-                padding: "0.55rem 0.75rem",
-                borderRadius: "0.5rem",
-                border: "1px solid var(--line)",
-                marginBottom: "0.5rem",
-                fontSize: "0.88rem",
-                boxSizing: "border-box",
-              }}
-            />
-            <input
-              type="text"
-              placeholder={tx("Description (optional)")}
-              value={newDescription}
-              onChange={(e) => setNewDescription(e.target.value)}
-              style={{
-                width: "100%",
-                padding: "0.55rem 0.75rem",
-                borderRadius: "0.5rem",
-                border: "1px solid var(--line)",
-                marginBottom: "0.75rem",
-                fontSize: "0.88rem",
-                boxSizing: "border-box",
-              }}
-            />
-            <label style={{ display: "flex", alignItems: "center", gap: "0.5rem", fontSize: "0.82rem", marginBottom: "0.75rem", cursor: "pointer" }}>
+          <form onSubmit={handleCreateList} style={{ marginTop: "0.65rem", padding: "0.65rem", background: "var(--bg-subtle, #f8fafc)", borderRadius: "0.65rem", border: "1px solid var(--line)" }}>
+            <div style={{ display: "flex", gap: "0.4rem", marginBottom: "0.45rem" }}>
               <input
-                type="checkbox"
-                checked={newIsPublic}
-                onChange={(e) => setNewIsPublic(e.target.checked)}
+                type="text"
+                placeholder={tx("List title")}
+                value={newTitle}
+                onChange={(e) => setNewTitle(e.target.value)}
+                required
+                autoFocus
+                style={{
+                  flex: 1,
+                  padding: "0.45rem 0.65rem",
+                  borderRadius: "0.45rem",
+                  border: "1px solid var(--line)",
+                  fontSize: "0.85rem",
+                  minWidth: 0,
+                }}
               />
-              <span>{tx("Make public")}</span>
-            </label>
-            <div style={{ display: "flex", gap: "0.5rem", justifyContent: "flex-end" }}>
-              <button
-                type="button"
-                className="secondary-button"
-                onClick={() => setIsCreating(false)}
-                style={{ padding: "0.4rem 0.75rem", fontSize: "0.82rem" }}
-              >
-                {tx("Cancel")}
-              </button>
-              <button
-                type="submit"
-                className="primary-button"
-                disabled={!newTitle.trim()}
-                style={{ padding: "0.4rem 0.85rem", fontSize: "0.82rem" }}
-              >
-                {tx("Create")}
-              </button>
+            </div>
+            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: "0.5rem" }}>
+              <label style={{ display: "flex", alignItems: "center", gap: "0.4rem", fontSize: "0.78rem", cursor: "pointer", color: "var(--text-secondary)" }}>
+                <input
+                  type="checkbox"
+                  checked={newIsPublic}
+                  onChange={(e) => setNewIsPublic(e.target.checked)}
+                />
+                <span>{tx("Make public")}</span>
+              </label>
+              <div style={{ display: "flex", gap: "0.4rem" }}>
+                <button
+                  type="button"
+                  className="secondary-button"
+                  onClick={() => setIsCreating(false)}
+                  style={{ padding: "0.35rem 0.65rem", fontSize: "0.78rem" }}
+                >
+                  {tx("Cancel")}
+                </button>
+                <button
+                  type="submit"
+                  className="primary-button"
+                  disabled={!newTitle.trim()}
+                  style={{ padding: "0.35rem 0.75rem", fontSize: "0.78rem" }}
+                >
+                  {tx("Create")}
+                </button>
+              </div>
             </div>
           </form>
         ) : (
@@ -224,17 +205,17 @@ export function ListSelectModal({
             onClick={() => setIsCreating(true)}
             style={{
               width: "100%",
-              marginTop: "0.75rem",
+              marginTop: "0.55rem",
               display: "flex",
               alignItems: "center",
               justifyContent: "center",
-              gap: "0.45rem",
-              padding: "0.6rem",
-              fontSize: "0.88rem",
+              gap: "0.4rem",
+              padding: "0.5rem",
+              fontSize: "0.84rem",
               fontWeight: 700,
             }}
           >
-            <Plus size={16} aria-hidden="true" />
+            <Plus size={15} aria-hidden="true" />
             <span>{tx("Create new list")}</span>
           </button>
         )}

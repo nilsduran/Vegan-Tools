@@ -145,6 +145,14 @@ export function RestaurantReviews({ restaurant, onOpenLogModal, reviewUpdateTrig
             <Edit2 size={15} aria-hidden="true" />
             <span>{myReview ? tx("Edit review & visit log") : tx("Write review or log visit")}</span>
           </button>
+          <button
+            type="button"
+            className="secondary-button"
+            onClick={() => onOpenLogModal?.()}
+            aria-label={tx("Log a visit")}
+          >
+            {tx("Log a visit")}
+          </button>
 
           {myReview && (
             <button
@@ -169,15 +177,8 @@ export function RestaurantReviews({ restaurant, onOpenLogModal, reviewUpdateTrig
           </div>
         ) : reviews.length === 0 ? (
           <div className="reviews-empty-state">
-            <div className="empty-leaf-icon">🌱</div>
             <p>{tx("This place has no community reviews yet.")}</p>
-            <button
-              type="button"
-              className="empty-cta-btn"
-              onClick={handleOpenReviewForm}
-            >
-              {tx("Be the first person to rate it!")}
-            </button>
+            <span>{tx("Be the first person to rate it!")}</span>
           </div>
         ) : (
           <ul className="community-reviews-items">
@@ -301,7 +302,11 @@ export function RestaurantReviews({ restaurant, onOpenLogModal, reviewUpdateTrig
         onClose={() => setShowAuthModal(false)}
         onSuccess={() => {
           setShowAuthModal(false);
-          setIsFormOpen(true);
+          if (onOpenLogModal) {
+            onOpenLogModal();
+          } else {
+            setIsFormOpen(true);
+          }
         }}
       />
     </section>
