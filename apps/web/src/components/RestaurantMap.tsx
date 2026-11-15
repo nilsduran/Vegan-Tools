@@ -408,43 +408,36 @@ function createUserLocationIcon() {
   });
 }
 
-function getBasemapConfig(isDark: boolean) {
-  const cartoKey = (import.meta.env.VITE_CARTO_API_KEY as string | undefined)?.trim();
-  const geoapifyKey = (import.meta.env.VITE_GEOAPIFY_API_KEY as string | undefined)?.trim();
+/**
+ * Basemap: OpenFreeMap vector tiles (free, no API key, no usage limits), rendered through
+ * MapLibre GL inside Leaflet so pins, clustering and popups keep working unchanged.
+ * Positron is used for light mode because it has no POI icons competing with our pins.
+ */
+const OPENFREEMAP_STYLE_URLS = {
+  light: "https://tiles.openfreemap.org/styles/positron",
+  dark: "https://tiles.openfreemap.org/styles/dark",
+} as const;
 
-  if (cartoKey) {
-    return {
-      type: "carto",
-      url: isDark
-        ? `https://{s}.basemaps.cartocdn.com/rastertiles/dark_all/{z}/{x}/{y}{r}.png?key=${encodeURIComponent(cartoKey)}`
-        : `https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png?key=${encodeURIComponent(cartoKey)}`,
-      attribution:
-        '&copy; <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noreferrer">OpenStreetMap</a> contributors &copy; <a href="https://carto.com/attributions" target="_blank" rel="noreferrer">CARTO</a>',
-      subdomains: "abcd",
-    };
+const OPENFREEMAP_ATTRIBUTION =
+  '<a href="https://openfreemap.org" target="_blank" rel="noreferrer">OpenFreeMap</a> &copy; <a href="https://www.openmaptiles.org/" target="_blank" rel="noreferrer">OpenMapTiles</a> Data from <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noreferrer">OpenStreetMap</a>';
+
+/** Last-resort raster fallback, only for devices without WebGL (light, policy-compliant usage). */
+const OSM_RASTER_FALLBACK = {
+  url: "https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png",
+  attribution:
+    '&copy; <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noreferrer">OpenStreetMap</a> contributors',
+};
+
+function supportsWebGL(): boolean {
+  try {
+    const canvas = document.createElement("canvas");
+    return Boolean(canvas.getContext("webgl2") || canvas.getContext("webgl"));
+  } catch {
+    return false;
   }
-
-  if (geoapifyKey) {
-    return {
-      type: "geoapify",
-      url: isDark
-        ? `https://maps.geoapify.com/v1/tile/dark-matter-dark-purple/{z}/{x}/{y}.png?apiKey=${encodeURIComponent(geoapifyKey)}`
-        : `https://maps.geoapify.com/v1/tile/osm-bright-smooth/{z}/{x}/{y}.png?apiKey=${encodeURIComponent(geoapifyKey)}`,
-      attribution:
-        'Powered by <a href="https://www.geoapify.com/" target="_blank">Geoapify</a> | &copy; <a href="https://www.openstreetmap.org/copyright" target="_blank">OpenStreetMap</a> contributors',
-      subdomains: "abcd",
-    };
-  }
-
-  // Official OpenStreetMap standard basemap (100% free, no API key required, zero watermarks)
-  return {
-    type: "osm",
-    url: "https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png",
-    attribution:
-      '&copy; <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noreferrer">OpenStreetMap</a> contributors',
-    subdomains: "abc",
-  };
 }
+
+type MaplibreBasemapLayer = L.Layer & { getMaplibreMap(): { setStyle(style: string): unknown } };
 
 export function RestaurantMap({
   restaurants,
@@ -477,7 +470,9 @@ export function RestaurantMap({
   onMapClickRef.current = onMapClick;
   const mapContainerRef = useRef<HTMLDivElement>(null);
   const mapInstanceRef = useRef<L.Map | null>(null);
-  const tileLayerRef = useRef<L.TileLayer | null>(null);
+  const basemapLayerRef = useRef<MaplibreBasemapLayer | null>(null);
+  const effectiveThemeRef = useRef(effectiveTheme);
+  effectiveThemeRef.current = effectiveTheme;
   const markersGroupRef = useRef<L.LayerGroup | null>(null);
   const userMarkerRef = useRef<L.Marker | null>(null);
   const [userCoords, setUserCoords] = useState<{ lat: number; lng: number }>();
@@ -606,44 +601,48 @@ export function RestaurantMap({
       preferCanvas: true,
     });
 
-    // Basemap: Carto if key is provided, Geoapify if key is provided, otherwise official OpenStreetMap (100% free, zero watermark).
-    const isDark = effectiveTheme === "dark";
-    const basemapConfig = getBasemapConfig(isDark);
+    // Basemap: OpenFreeMap vector styles via MapLibre GL (loaded lazily so the ~800 kB
+    // renderer never lands in the main bundle). Raster OSM only when WebGL is unavailable.
+    let basemapCancelled = false;
+    const containerEl = mapContainerRef.current;
+    const addRasterFallback = (reason: string) => {
+      if (basemapCancelled) return;
+      console.warn(`[RestaurantMap] ${reason}. Falling back to raster OpenStreetMap tiles.`);
+      containerEl.classList.add("map-tiles-osm");
+      L.tileLayer(OSM_RASTER_FALLBACK.url, {
+        attribution: OSM_RASTER_FALLBACK.attribution,
+        subdomains: "abc",
+        maxNativeZoom: 19,
+        maxZoom: 20,
+      }).addTo(map);
+    };
 
-    if (mapContainerRef.current) {
-      if (basemapConfig.type === "osm") {
-        mapContainerRef.current.classList.add("map-tiles-osm");
-      } else {
-        mapContainerRef.current.classList.remove("map-tiles-osm");
-      }
+    if (supportsWebGL()) {
+      Promise.all([
+        import("maplibre-gl"),
+        import("@maplibre/maplibre-gl-leaflet"),
+        // MapLibre resolves its worker next to its own chunk by default, which Vite doesn't emit;
+        // point it at the hashed asset explicitly (works in dev and production).
+        import("maplibre-gl/dist/maplibre-gl-worker.mjs?url"),
+        import("maplibre-gl/dist/maplibre-gl.css"),
+      ])
+        .then(([maplibre, bridge, worker]) => {
+          if (basemapCancelled) return;
+          maplibre.setWorkerUrl(worker.default);
+          const layer = bridge.maplibreGL({
+            style: OPENFREEMAP_STYLE_URLS[effectiveThemeRef.current],
+            // Shown immediately via Leaflet's attribution control (the bridge reads customAttribution).
+            attributionControl: { customAttribution: OPENFREEMAP_ATTRIBUTION },
+          }) as unknown as MaplibreBasemapLayer;
+          layer.addTo(map); // goes into Leaflet's tilePane, below markers and popups
+          basemapLayerRef.current = layer;
+        })
+        .catch((error: unknown) => {
+          addRasterFallback(`Vector basemap failed to load (${String(error)})`);
+        });
+    } else {
+      addRasterFallback("WebGL is not available");
     }
-
-    const tileLayer = L.tileLayer(basemapConfig.url, {
-      attribution: basemapConfig.attribution,
-      subdomains: basemapConfig.subdomains,
-      maxNativeZoom: 19,
-      maxZoom: 20,
-      keepBuffer: 12,
-      updateWhenIdle: true,
-      updateInterval: 150,
-    }).addTo(map);
-    tileLayerRef.current = tileLayer;
-
-    console.info(
-      `[RestaurantMap] Basemap active: ${basemapConfig.type} (${isDark ? "dark" : "light"})`,
-    );
-
-    let hasFallenBackToOsm = false;
-
-    // Resilient fallback: If Geoapify or Carto fails (e.g. adblocker, quota, network), fallback instantly to OpenStreetMap
-    tileLayer.on("tileerror", () => {
-      if (!hasFallenBackToOsm && tileLayerRef.current) {
-        hasFallenBackToOsm = true;
-        console.warn("[RestaurantMap] Provider tile error detected (adblocker/network/quota). Seamlessly falling back to OpenStreetMap.");
-        tileLayerRef.current.setUrl("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png");
-        mapContainerRef.current?.classList.add("map-tiles-osm");
-      }
-    });
 
     // Ensure map container calculates correct dimensions immediately after rendering
     requestAnimationFrame(() => {
@@ -699,26 +698,17 @@ export function RestaurantMap({
     }
 
     return () => {
+      basemapCancelled = true;
+      basemapLayerRef.current = null;
       resizeObserver?.disconnect();
       map.remove();
       mapInstanceRef.current = null;
     };
   }, []);
 
-  // Update map tile theme reactively
+  // Switch the vector style when the theme changes
   useEffect(() => {
-    if (!tileLayerRef.current) return;
-    const isDark = effectiveTheme === "dark";
-    const basemapConfig = getBasemapConfig(isDark);
-    tileLayerRef.current.setUrl(basemapConfig.url);
-
-    if (mapContainerRef.current) {
-      if (basemapConfig.type === "osm") {
-        mapContainerRef.current.classList.add("map-tiles-osm");
-      } else {
-        mapContainerRef.current.classList.remove("map-tiles-osm");
-      }
-    }
+    basemapLayerRef.current?.getMaplibreMap().setStyle(OPENFREEMAP_STYLE_URLS[effectiveTheme]);
   }, [effectiveTheme]);
 
   const initialLocatedRef = useRef(false);

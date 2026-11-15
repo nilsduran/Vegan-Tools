@@ -29,39 +29,42 @@ export default defineConfig({
       },
       workbox: {
         runtimeCaching: [
+          // OpenFreeMap style + TileJSON are unversioned: serve cached, refresh in background.
           {
-            urlPattern: /^https:\/\/maps\.geoapify\.com\/v1\/tile\/.*/i,
-            handler: "CacheFirst",
+            urlPattern: /^https:\/\/tiles\.openfreemap\.org\/(styles\/[^/]+|planet)$/i,
+            handler: "StaleWhileRevalidate",
             options: {
-              cacheName: "geoapify-tiles",
+              cacheName: "openfreemap-styles",
               expiration: {
-                maxEntries: 1200,
-                maxAgeSeconds: 60 * 60 * 24 * 14, // 14 days
+                maxEntries: 20,
+                maxAgeSeconds: 60 * 60 * 24 * 7, // 7 days
               },
               cacheableResponse: {
                 statuses: [0, 200],
               },
             },
           },
+          // Vector tiles (versioned planet path), fonts and sprites are immutable.
+          {
+            urlPattern: /^https:\/\/tiles\.openfreemap\.org\/.*/i,
+            handler: "CacheFirst",
+            options: {
+              cacheName: "openfreemap-tiles",
+              expiration: {
+                maxEntries: 3000,
+                maxAgeSeconds: 60 * 60 * 24 * 30, // 30 days
+              },
+              cacheableResponse: {
+                statuses: [0, 200],
+              },
+            },
+          },
+          // Raster fallback for devices without WebGL only.
           {
             urlPattern: /^https:\/\/[a-c]\.tile\.openstreetmap\.org\/.*/i,
             handler: "CacheFirst",
             options: {
               cacheName: "osm-tiles",
-              expiration: {
-                maxEntries: 1200,
-                maxAgeSeconds: 60 * 60 * 24 * 14, // 14 days
-              },
-              cacheableResponse: {
-                statuses: [0, 200],
-              },
-            },
-          },
-          {
-            urlPattern: /^https:\/\/[a-d]\.basemaps\.cartocdn\.com\/.*/i,
-            handler: "CacheFirst",
-            options: {
-              cacheName: "carto-tiles",
               expiration: {
                 maxEntries: 1200,
                 maxAgeSeconds: 60 * 60 * 24 * 14, // 14 days
@@ -81,6 +84,9 @@ export default defineConfig({
         manualChunks: (id) => {
           if (id.includes("node_modules/leaflet") || id.includes("node_modules/react-leaflet")) {
             return "vendor-leaflet";
+          }
+          if (id.includes("node_modules/maplibre-gl") || id.includes("node_modules/@maplibre/")) {
+            return "vendor-maplibre";
           }
           if (id.includes("node_modules/@undecaf/barcode-detector-polyfill")) {
             return "vendor-barcode";
