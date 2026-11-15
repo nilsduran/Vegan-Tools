@@ -13,6 +13,7 @@ import {
 } from "lucide-react";
 import type { RestaurantCandidate } from "@vegan-tools/domain";
 import { useAuth } from "../auth";
+import { submitRestaurantEdit } from "../api";
 import { tx } from "../i18n";
 import {
   getWeeklyEditQuota,
@@ -33,7 +34,7 @@ export function EditRestaurantModal({
   onClose: () => void;
   onSaved?: (updated: RestaurantCandidate) => void;
 }) {
-  const { user } = useAuth();
+  const { user, token } = useAuth();
   const [showAuthDialog, setShowAuthDialog] = useState(false);
 
   const [name, setName] = useState(restaurant.name || "");
@@ -91,17 +92,12 @@ export function EditRestaurantModal({
 
       const updated = saveRestaurantEdit(submission, user.id);
 
-      // Also fire-and-forget to API endpoint
-      try {
-        void fetch(`/v1/restaurants/${encodeURIComponent(restaurant.id)}/edit`, {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify(submission),
-        }).catch(() => {
-          // Offline/local persistence already succeeded
+      // Also send to the API (authenticated); local persistence already succeeded.
+      if (token) {
+        const { restaurantId: _restaurantId, ...edit } = submission;
+        void submitRestaurantEdit(restaurant.id, edit, token).catch((error) => {
+          console.warn("Failed to sync restaurant edit:", error);
         });
-      } catch {
-        // Silently continue
       }
 
       setSuccessMessage(

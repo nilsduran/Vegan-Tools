@@ -19,6 +19,7 @@ import { lookupOpenFoodFacts } from "../open-food-facts.js";
 import { lookupOpenBeautyFacts } from "../open-beauty-facts.js";
 import type { IngredientExtractor } from "../ingredient-extractor.js";
 import { globalEdgeClassifier } from "../edge-classifier.js";
+import { authenticateRequest, createTokenVerifier, type TokenVerifier } from "../auth.js";
 
 async function withTimeout<T>(
   promise: Promise<T>,
@@ -39,10 +40,12 @@ async function withTimeout<T>(
 export interface ProductRoutesOptions {
   repo: Repository;
   ingredientExtractor: IngredientExtractor;
+  verifyToken?: TokenVerifier;
 }
 
 export async function productRoutes(app: FastifyInstance, options: ProductRoutesOptions) {
   const { repo, ingredientExtractor } = options;
+  const verifyToken = options.verifyToken ?? createTokenVerifier();
 
   app.get<{ Params: { gtin: string } }>("/v1/products/:gtin", async (request, reply) => {
     const gtin = normalizeGtin(request.params.gtin);
@@ -86,7 +89,7 @@ export async function productRoutes(app: FastifyInstance, options: ProductRoutes
     Params: { gtin: string };
     Body: { ingredientsText?: string; market?: string; verifiedVeganClaim?: boolean };
   }>("/v1/products/:gtin/evidence", async (request, reply) => {
-    if (!request.headers.authorization?.startsWith("Bearer ")) {
+    if (!(await authenticateRequest(request, verifyToken))) {
       return reply.code(401).send({ code: "AUTH_REQUIRED", message: "Sign in to submit evidence." });
     }
     const gtin = normalizeGtin(request.params.gtin);

@@ -9,6 +9,7 @@ import Fastify, { type FastifyError } from "fastify";
 import cors from "@fastify/cors";
 import multipart from "@fastify/multipart";
 import rateLimit from "@fastify/rate-limit";
+import { createTokenVerifier, type TokenVerifier } from "./auth.js";
 import etag from "@fastify/etag";
 import swagger from "@fastify/swagger";
 import swaggerUi from "@fastify/swagger-ui";
@@ -79,6 +80,8 @@ export interface AppDependencies {
   visitStore?: RestaurantVisitStore;
   disableRateLimit?: boolean;
   rateLimitMax?: number;
+  /** Overrides bearer-token verification (tests). Defaults to Supabase Auth. */
+  verifyToken?: TokenVerifier;
 }
 
 export async function buildApp(
@@ -124,6 +127,7 @@ export async function buildApp(
   const dishFeedbackPolisher = deps.dishFeedbackPolisher ?? new GeminiDishFeedbackPolisher();
   const reviewStore = deps.reviewStore ?? createRestaurantReviewStore();
   const visitStore = deps.visitStore ?? createRestaurantVisitStore();
+  const verifyToken = deps.verifyToken ?? createTokenVerifier();
 
   const app = Fastify({
     logger: true,
@@ -267,9 +271,9 @@ export async function buildApp(
   // Register modular route plugins
   await locationRoutes(app);
   await recipeRoutes(app);
-  await productRoutes(app, { repo, ingredientExtractor });
-  await reviewRoutes(app, { reviewStore });
-  await restaurantRoutes(app, { restaurantWebsiteFinder, restaurantMenuCache });
+  await productRoutes(app, { repo, ingredientExtractor, verifyToken });
+  await reviewRoutes(app, { reviewStore, verifyToken });
+  await restaurantRoutes(app, { restaurantWebsiteFinder, restaurantMenuCache, verifyToken });
   await menuRoutes(app, {
     repo,
     menuAnalyzer,
@@ -278,8 +282,9 @@ export async function buildApp(
     restaurantMenuCache,
     menuSourceStore,
     dishFeedbackPolisher,
+    verifyToken,
   });
-  await visitRoutes(app, { visitStore });
+  await visitRoutes(app, { visitStore, verifyToken });
 
   return app;
 }

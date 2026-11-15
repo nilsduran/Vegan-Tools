@@ -11,61 +11,16 @@ import {
   type RestaurantReview,
 } from "@vegan-tools/domain";
 import type { RestaurantReviewStore } from "../restaurant-review-store.js";
-
-interface AuthUser {
-  id: string;
-  name: string;
-  avatarUrl?: string;
-  lifestyle?: "vegan" | "vegetarian" | "non-veg" | "non_veg";
-}
-
-export function extractUserFromAuthHeader(authHeader?: string): AuthUser | undefined {
-  if (!authHeader || !authHeader.startsWith("Bearer ")) return undefined;
-  const token = authHeader.slice(7).trim();
-  if (!token) return undefined;
-
-  try {
-    const parts = token.split(".");
-    if (parts.length < 2) return undefined;
-    const payloadJson = Buffer.from(parts[1]!, "base64url").toString("utf8");
-    const payload = JSON.parse(payloadJson);
-    if (!payload.sub) return undefined;
-
-    const name =
-      payload.user_metadata?.name ||
-      payload.user_metadata?.full_name ||
-      payload.user_metadata?.user_name ||
-      (payload.email ? payload.email.split("@")[0] : undefined) ||
-      "Anònim";
-
-    const avatarUrl =
-      payload.user_metadata?.avatar_url ||
-      payload.user_metadata?.picture ||
-      undefined;
-
-    const rawLifestyle = payload.user_metadata?.lifestyle || payload.user_metadata?.diet;
-    const lifestyle =
-      rawLifestyle === "vegan" || rawLifestyle === "vegetarian" || rawLifestyle === "non-veg" || rawLifestyle === "non_veg"
-        ? rawLifestyle
-        : undefined;
-
-    return {
-      id: String(payload.sub),
-      name: String(name),
-      avatarUrl: avatarUrl ? String(avatarUrl) : undefined,
-      lifestyle,
-    };
-  } catch {
-    return undefined;
-  }
-}
+import { authenticateRequest, createTokenVerifier, type TokenVerifier } from "../auth.js";
 
 export interface ReviewRoutesOptions {
   reviewStore: RestaurantReviewStore;
+  verifyToken?: TokenVerifier;
 }
 
 export async function reviewRoutes(app: FastifyInstance, options: ReviewRoutesOptions) {
   const { reviewStore } = options;
+  const verifyToken = options.verifyToken ?? createTokenVerifier();
 
   // 1. Get Reviews and Stats for a Restaurant (Public)
   app.get<{ Params: { id: string } }>(
@@ -95,7 +50,7 @@ export async function reviewRoutes(app: FastifyInstance, options: ReviewRoutesOp
   app.post<{ Params: { id: string }; Body: unknown }>(
     "/v1/restaurants/:id/reviews",
     async (request, reply) => {
-      const user = extractUserFromAuthHeader(request.headers.authorization);
+      const user = await authenticateRequest(request, verifyToken);
       if (!user) {
         return reply.code(401).send({
           code: "UNAUTHORIZED",
@@ -152,7 +107,7 @@ export async function reviewRoutes(app: FastifyInstance, options: ReviewRoutesOp
   app.delete<{ Params: { id: string } }>(
     "/v1/restaurants/:id/reviews",
     async (request, reply) => {
-      const user = extractUserFromAuthHeader(request.headers.authorization);
+      const user = await authenticateRequest(request, verifyToken);
       if (!user) {
         return reply.code(401).send({
           code: "UNAUTHORIZED",
@@ -180,7 +135,7 @@ export async function reviewRoutes(app: FastifyInstance, options: ReviewRoutesOp
 
   // 4. Get Current User's Reviews (Authenticated)
   app.get("/v1/users/me/reviews", async (request, reply) => {
-    const user = extractUserFromAuthHeader(request.headers.authorization);
+    const user = await authenticateRequest(request, verifyToken);
     if (!user) {
       return reply.code(401).send({
         code: "UNAUTHORIZED",

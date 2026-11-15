@@ -621,3 +621,27 @@ export async function saveUserTop4Api(
 }
 
 
+
+export async function submitRestaurantEdit(
+  restaurantId: string,
+  edit: {
+    name?: string;
+    address?: string;
+    websiteUrl?: string;
+    openingHours?: string;
+    isVegan?: boolean;
+    isVegetarian?: boolean;
+    permanentlyClosed?: boolean;
+    notes?: string;
+  },
+  token: string,
+): Promise<void> {
+  await checkedFetch(`/v1/restaurants/${encodeURIComponent(restaurantId)}/edit`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${token}`,
+    },
+    body: JSON.stringify(edit),
+  });
+}

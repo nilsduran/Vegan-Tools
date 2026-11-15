@@ -20,6 +20,7 @@ import {
 } from "../restaurant-website-finder.js";
 import type { RestaurantMenuCache } from "../restaurant-menu-cache.js";
 import { CURATED_MENUS } from "../curated-menus.js";
+import { authenticateRequest, createTokenVerifier, type TokenVerifier } from "../auth.js";
 
 export function cleanShortAddress(
   formattedAddress?: string,
@@ -52,6 +53,15 @@ export function cleanShortAddress(
     return `${deduped[0]}, ${deduped[deduped.length - 1]}`;
   }
   return deduped.join(", ") || formattedAddress;
+}
+
+function isHttpsUrl(value: unknown): boolean {
+  if (typeof value !== "string") return false;
+  try {
+    return new URL(value).protocol === "https:";
+  } catch {
+    return false;
+  }
 }
 
 export function haversineMeters(lat1: number, lon1: number, lat2: number, lon2: number): number {
@@ -492,6 +502,7 @@ async function fetchOverpassRestaurants(
 export interface RestaurantRoutesOptions {
   restaurantWebsiteFinder: RestaurantWebsiteFinder;
   restaurantMenuCache?: RestaurantMenuCache;
+  verifyToken?: TokenVerifier;
 }
 
 export async function restaurantRoutes(
@@ -499,6 +510,7 @@ export async function restaurantRoutes(
   options: RestaurantRoutesOptions,
 ) {
   const { restaurantWebsiteFinder, restaurantMenuCache } = options;
+  const verifyToken = options.verifyToken ?? createTokenVerifier();
 
   // Restaurant menu endpoint
   app.get<{ Params: { id: string } }>("/v1/restaurants/:id/menu", async (request, reply) => {
@@ -1727,12 +1739,26 @@ export async function restaurantRoutes(
       });
     }
 
+    const user = await authenticateRequest(request, verifyToken);
+    if (!user) {
+      return reply.code(401).send({
+        code: "AUTH_REQUIRED",
+        message: "Sign in to edit restaurant details.",
+      });
+    }
+
     const edit = request.body || {};
-    request.log.info({ restaurantId: id, edit }, "Received community restaurant edit");
+    if (edit.websiteUrl !== undefined && edit.websiteUrl !== "" && !isHttpsUrl(edit.websiteUrl)) {
+      return reply.code(400).send({
+        code: "INVALID_WEBSITE_URL",
+        message: "Website URL must be a valid https:// address.",
+      });
+    }
+    request.log.info({ restaurantId: id, userId: user.id, edit }, "Received community restaurant edit");
 
     const venueStore = getVenueStore();
     if (edit.permanentlyClosed) {
-      await venueStore.markVenueClosed(id, "community-user", edit.notes || "Reported closed by community");
+      await venueStore.markVenueClosed(id, user.id, edit.notes || "Reported closed by community");
       return {
         success: true,
         message: "Restaurant marked as permanently closed and tombstoned.",
@@ -1751,7 +1777,7 @@ export async function restaurantRoutes(
           isVegan: edit.isVegan ?? existing.isVegan,
           isVegetarian: edit.isVegetarian ?? existing.isVegetarian,
         },
-        "community-user",
+        user.id,
         "DETAILS_EDITED",
       );
     }

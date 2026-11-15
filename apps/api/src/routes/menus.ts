@@ -22,6 +22,7 @@ import {
 import type { RestaurantMenuCache } from "../restaurant-menu-cache.js";
 import { loadSourcesFromStore, type MenuSourceStore } from "../menu-source-store.js";
 import type { DishFeedbackPolisher } from "../dish-feedback-polisher.js";
+import { authenticateRequest, createTokenVerifier, type TokenVerifier } from "../auth.js";
 
 async function withTimeout<T>(
   promise: Promise<T>,
@@ -64,6 +65,7 @@ export interface MenuRoutesOptions {
   restaurantMenuCache: RestaurantMenuCache;
   menuSourceStore: MenuSourceStore;
   dishFeedbackPolisher: DishFeedbackPolisher;
+  verifyToken?: TokenVerifier;
 }
 
 export async function menuRoutes(app: FastifyInstance, options: MenuRoutesOptions) {
@@ -76,6 +78,7 @@ export async function menuRoutes(app: FastifyInstance, options: MenuRoutesOption
     menuSourceStore,
     dishFeedbackPolisher,
   } = options;
+  const verifyToken = options.verifyToken ?? createTokenVerifier();
 
   app.get<{ Params: { menuId: string; storedName: string } }>(
     "/v1/menu-sources/:menuId/:storedName",
@@ -432,9 +435,14 @@ export async function menuRoutes(app: FastifyInstance, options: MenuRoutesOption
   app.post<{
     Params: { id: string };
     Querystring: { token?: string; highAccuracy?: string };
-  }>("/v1/menus/:id/reanalyze", async (request, reply) => {
+  }>("/v1/menus/:id/reanalyze", { config: { rateLimit: { max: 5, timeWindow: "1 minute" } } }, async (request, reply) => {
     let menu = await repo.getMenu(request.params.id, request.query.token ?? "");
     if (!menu) {
+      // Without the draft edit token, re-running an already public menu costs AI quota
+      // and temporarily replaces it, so it requires a verified account.
+      if (!(await authenticateRequest(request, verifyToken))) {
+        return reply.code(401).send({ code: "AUTH_REQUIRED", message: "Sign in to reanalyze a published menu." });
+      }
       menu = await repo.getPublicMenu(request.params.id);
     }
     if (!menu) {

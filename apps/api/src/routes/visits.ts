@@ -12,14 +12,16 @@ import {
   type RestaurantVisitLog,
 } from "@vegan-tools/domain";
 import type { RestaurantVisitStore } from "../restaurant-visit-store.js";
-import { extractUserFromAuthHeader } from "./reviews.js";
+import { authenticateRequest, createTokenVerifier, type TokenVerifier } from "../auth.js";
 
 export interface VisitRoutesOptions {
   visitStore: RestaurantVisitStore;
+  verifyToken?: TokenVerifier;
 }
 
 export async function visitRoutes(app: FastifyInstance, options: VisitRoutesOptions) {
   const { visitStore } = options;
+  const verifyToken = options.verifyToken ?? createTokenVerifier();
 
   // 1. Get user visits: GET /v1/users/:userId/visits
   app.get<{ Params: { userId: string } }>(
@@ -40,7 +42,7 @@ export async function visitRoutes(app: FastifyInstance, options: VisitRoutesOpti
     "/v1/users/:userId/visits",
     async (request, reply) => {
       const { userId } = request.params;
-      const user = extractUserFromAuthHeader(request.headers.authorization);
+      const user = await authenticateRequest(request, verifyToken);
 
       if (!user) {
         return reply.code(401).send({
@@ -94,7 +96,7 @@ export async function visitRoutes(app: FastifyInstance, options: VisitRoutesOpti
     "/v1/users/:userId/visits/:visitId",
     async (request, reply) => {
       const { userId, visitId } = request.params;
-      const user = extractUserFromAuthHeader(request.headers.authorization);
+      const user = await authenticateRequest(request, verifyToken);
 
       if (!user) {
         return reply.code(401).send({
@@ -130,7 +132,7 @@ export async function visitRoutes(app: FastifyInstance, options: VisitRoutesOpti
     "/v1/users/:userId/top4",
     async (request, reply) => {
       const { userId } = request.params;
-      const user = extractUserFromAuthHeader(request.headers.authorization);
+      const user = await authenticateRequest(request, verifyToken);
 
       if (!user) {
         return reply.code(401).send({
