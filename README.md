@@ -120,7 +120,7 @@ The production web and API deployments require the following environment variabl
 
 | Surface | Required variables | Optional variables |
 | --- | --- | --- |
-| Web | `VITE_API_URL`, `VITE_SUPABASE_URL`, `VITE_SUPABASE_ANON_KEY` | `VITE_GEOAPIFY_API_KEY`, `VITE_CARTO_API_KEY` |
+| Web | `VITE_API_URL`, `VITE_SUPABASE_URL`, `VITE_SUPABASE_ANON_KEY` | — |
 | API | `PORT`, `WEB_ORIGIN` | `GEMINI_API_KEY`, `SUPABASE_URL`, `SUPABASE_SECRET_KEY`, `GEOAPIFY_API_KEY` |
 
 Public browser variables must use the `VITE_` prefix and must never contain a Supabase service-role key or any provider secret. The API must receive secrets only through the hosting provider's environment configuration; do not commit `.env` files.

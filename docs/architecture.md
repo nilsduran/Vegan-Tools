@@ -19,6 +19,7 @@ vegan-tools/
 │   │                 # - Supabase PostgreSQL + Storage persistence
 │   └── web/          # React 19 + Vite + TailwindCSS frontend
 │                     # - Leaflet interactive map with custom clustering & anchor pins
+│                     # - OpenFreeMap vector basemap (MapLibre GL bridge, light/dark)
 │                     # - PWA service worker with offline precaching
 │                     # - Bilingual i18n (Catalan & English)
 │                     # - Adaptive 420ms search debouncing & bottom sheet UX
@@ -102,6 +103,14 @@ flowchart TD
 - **Zero-Tracking & GDPR Compliance**: User GPS coordinates and search queries are processed ephemerally in-memory and never stored in user profiles or sold to advertisers.
 - **SSRF (Server-Side Request Forgery) Defense**: The web crawler strictly blocks private IP ranges, local loopbacks, and non-HTTP protocols.
 - **Storage Lifecycle**: User-uploaded raw menu originals in Supabase Storage are automatically marked with an expiration retention policy.
+
+### Basemap (Map Tiles)
+
+- **Source**: [OpenFreeMap](https://openfreemap.org) vector tiles (`tiles.openfreemap.org`): free, no API key, no usage limits. Styles: `positron` (light, no POI icons competing with our pins) and `dark`, switched live with the app theme (`apps/web/src/theme.ts`).
+- **Rendering**: Leaflet stays the map engine (pins, clustering, popups, zoom). The vector style is drawn by MapLibre GL inside Leaflet's tile pane via `@maplibre/maplibre-gl-leaflet`. Both are `import()`ed on map mount into the `vendor-maplibre` chunk, so they never load with the main bundle.
+- **Fallback**: Only on devices without WebGL, raster `tile.openstreetmap.org` tiles are used (CSS-inverted in dark mode). This is never the default, keeping us within the OSM tile usage policy.
+- **Attribution**: "OpenFreeMap © OpenMapTiles, Data from OpenStreetMap" in Leaflet's attribution control.
+- **Offline**: Workbox caches styles/TileJSON (`StaleWhileRevalidate`) and versioned tiles, fonts and sprites (`CacheFirst`) in `apps/web/vite.config.ts`.
 
 ---
 
