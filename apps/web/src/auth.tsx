@@ -5,7 +5,7 @@ import {
   useState,
   type ReactNode,
 } from "react";
-import { createClient, type SupabaseClient, type User, type Session } from "@supabase/supabase-js";
+import type { SupabaseClient, User, Session } from "@supabase/supabase-js";
 import { normalizeUsername, validateUsername } from "@vegan-tools/domain";
 import { generateSafeUUID } from "./utils/uuid";
 import { tx } from "./i18n";
@@ -54,8 +54,19 @@ const supabaseKey = (
   (import.meta.env.VITE_SUPABASE_ANON_KEY as string | undefined)
 )?.trim();
 
-export const supabase: SupabaseClient | null =
-  supabaseUrl && supabaseKey ? createClient(supabaseUrl, supabaseKey) : null;
+const hasSupabase = Boolean(supabaseUrl && supabaseKey);
+
+// The Supabase SDK is large, so it is loaded on demand in its own chunk.
+let supabasePromise: Promise<SupabaseClient> | null = null;
+function loadSupabase(): Promise<SupabaseClient> {
+  supabasePromise ??= import("@supabase/supabase-js")
+    .then(({ createClient }) => createClient(supabaseUrl, supabaseKey!))
+    .catch((error: unknown) => {
+      supabasePromise = null;
+      throw error;
+    });
+  return supabasePromise;
+}
 
 function userFromSupabaseUser(user: User, fallbackUsername?: string): AuthUser {
   const metadata = user.user_metadata || {};
@@ -157,8 +168,25 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   // Initialize Supabase session or restore persistent user session from localStorage
   useEffect(() => {
-    if (supabase) {
+    if (!hasSupabase) {
+      // Local persistent session restore
+      const local = getStoredLocalSession();
+      if (local) {
+        setUser(local.user);
+        setToken(local.token);
+      }
+      setLoading(false);
+      return;
+    }
+
+    let cancelled = false;
+    let unsubscribe: (() => void) | undefined;
+
+    void loadSupabase().then((supabase) => {
+      if (cancelled) return;
+
       void supabase.auth.getSession().then(({ data: { session: currentSession } }) => {
+        if (cancelled) return;
         if (currentSession?.user) {
           setSession(currentSession);
           setToken(currentSession.access_token);
@@ -199,26 +227,29 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           setLoading(false);
         }
       );
-
-      return () => {
-        authListener.subscription.unsubscribe();
-      };
-    } else {
-      // Local persistent session restore
+      unsubscribe = () => authListener.subscription.unsubscribe();
+    }).catch(() => {
+      // Supabase chunk failed to load (e.g. offline): fall back to the local session.
+      if (cancelled) return;
       const local = getStoredLocalSession();
       if (local) {
         setUser(local.user);
         setToken(local.token);
       }
       setLoading(false);
-    }
+    });
+
+    return () => {
+      cancelled = true;
+      unsubscribe?.();
+    };
   }, []);
 
   const signInWithGoogle = async (): Promise<{ error?: string }> => {
-    if (!supabase) {
+    if (!hasSupabase) {
       return { error: tx("Social login is unavailable without Supabase credentials.") };
     }
-    const { error } = await supabase.auth.signInWithOAuth({
+    const { error } = await (await loadSupabase()).auth.signInWithOAuth({
       provider: "google",
       options: {
         redirectTo: window.location.href,
@@ -228,10 +259,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   };
 
   const signInWithApple = async (): Promise<{ error?: string }> => {
-    if (!supabase) {
+    if (!hasSupabase) {
       return { error: tx("Social login is unavailable without Supabase credentials.") };
     }
-    const { error } = await supabase.auth.signInWithOAuth({
+    const { error } = await (await loadSupabase()).auth.signInWithOAuth({
       provider: "apple",
       options: {
         redirectTo: window.location.href,
@@ -243,10 +274,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const signInWithMagicLink = async (
     email: string,
   ): Promise<{ error?: string; message?: string }> => {
-    if (!supabase) {
+    if (!hasSupabase) {
       return requestPasswordReset(email);
     }
-    const { error } = await supabase.auth.signInWithOtp({
+    const { error } = await (await loadSupabase()).auth.signInWithOtp({
       email: email.trim(),
       options: {
         emailRedirectTo: window.location.href,
@@ -265,7 +296,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       return { error: tx("Invalid email or password.") };
     }
 
-    if (!supabase) {
+    if (!hasSupabase) {
       const users = getStoredUsers();
       const existing = users.find((u) => u.email.toLowerCase() === cleanEmail);
       if (!existing) {
@@ -306,7 +337,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       return {};
     }
 
-    const { data, error } = await supabase.auth.signInWithPassword({
+    const { data, error } = await (await loadSupabase()).auth.signInWithPassword({
       email: cleanEmail,
       password,
     });
@@ -340,7 +371,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
     const cleanUser = normalizeUsername(username);
 
-    if (!supabase) {
+    if (!hasSupabase) {
       const users = getStoredUsers();
       if (users.some((u) => u.email.toLowerCase() === cleanEmail)) {
         return { error: tx("An account with this email already exists.") };
@@ -391,7 +422,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       return { message: tx("Account created successfully!") };
     }
 
-    const { data, error } = await supabase.auth.signUp({
+    const { data, error } = await (await loadSupabase()).auth.signUp({
       email: cleanEmail,
       password,
       options: {
@@ -420,8 +451,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       return { error: tx("Invalid email format.") };
     }
 
-    if (supabase) {
-      const { error } = await supabase.auth.resetPasswordForEmail(cleanEmail, {
+    if (hasSupabase) {
+      const { error } = await (await loadSupabase()).auth.resetPasswordForEmail(cleanEmail, {
         redirectTo: window.location.href,
       });
       if (error) return { error: error.message };
@@ -458,7 +489,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       return { error: tx("Rate limit exceeded: maximum 2 username changes per month.") };
     }
 
-    if (!supabase) {
+    if (!hasSupabase) {
       const users = getStoredUsers();
       if (
         users.some(
@@ -492,7 +523,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       return {};
     }
 
-    const { error } = await supabase.auth.updateUser({
+    const { error } = await (await loadSupabase()).auth.updateUser({
       data: {
         username: cleanUser,
         full_name: cleanUser,
@@ -522,8 +553,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setUser(null);
     setSession(null);
     setToken(null);
-    if (supabase) {
-      await supabase.auth.signOut().catch(() => {});
+    if (hasSupabase) {
+      await loadSupabase().then((supabase) => supabase.auth.signOut()).catch(() => {});
     }
   };
 
