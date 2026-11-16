@@ -167,10 +167,11 @@ Vegan Tools supports optional social sign-in (Google) and passwordless/email acc
 
 ## 📚 Technical Documentation Pillars
 
-For complete engineering and ethical standards, refer to our three core documentation pillars:
+For complete engineering and ethical standards, refer to our core documentation:
 - 🗺️ [Project Roadmap & Backlog](docs/roadmap.md) — 4-level prioritization matrix and active development progress.
 - 🏛️ [Architecture & Engineering Guide](docs/architecture.md) — Detailed workflows, Gemini prompting, SSRF security, caching, and API contracts.
 - 💚 [Ethical Manifesto & Safe Space Policy](docs/values.md) — Ethical principles, safe space guidelines, and zero-tracking privacy policy.
+- 🧠 [Decision Log](docs/decisions.md) — What was decided, why, and what was ruled out.
 
 ---
 
