@@ -31,6 +31,8 @@ import {
   RestaurantBadgeIcon,
 } from "../components/DietIcons";
 import { FlagCatalonia, FlagUK } from "../components/FlagIcons";
+import { clearLocalDiaryData, getDiaryLogs, getUserTop4 } from "../utils/diary";
+import { clearUserLists, loadUserLists } from "../utils/userLists";
 
 export function SettingsPage() {
   const language = useLanguage();
@@ -88,9 +90,9 @@ export function SettingsPage() {
         lifestyle: localStorage.getItem("vegan_tools_lifestyle_identity") || "vegan",
         theme: localStorage.getItem("vegan-tools-theme") || "system",
         language: localStorage.getItem("vegan-tools-language") || "ca",
-        top4Restaurants: JSON.parse(localStorage.getItem(`vegan_tools_top4_${user?.id || "guest"}`) || "[]"),
-        diaryLogs: JSON.parse(localStorage.getItem(`vegan_tools_diary_${user?.id || "guest"}`) || "[]"),
-        userLists: JSON.parse(localStorage.getItem("vegan_tools_user_lists") || "[]"),
+        top4Restaurants: getUserTop4(user?.id),
+        diaryLogs: getDiaryLogs(user?.id),
+        userLists: loadUserLists(),
       };
       const blob = new Blob([JSON.stringify(exportPayload, null, 2)], {
         type: "application/json",
@@ -115,11 +117,8 @@ export function SettingsPage() {
     if (!confirmation) return;
 
     try {
-      if (user?.id) {
-        localStorage.removeItem(`vegan_tools_diary_${user.id}`);
-        localStorage.removeItem(`vegan_tools_top4_${user.id}`);
-      }
-      localStorage.removeItem("vegan_tools_user_lists");
+      if (user?.id) clearLocalDiaryData(user.id);
+      clearUserLists();
       void signOut();
       navigate("/");
     } catch {
