@@ -23,6 +23,7 @@
     "test": "vitest run",
     "test:watch": "vitest",
     "test:coverage": "tsx scripts/benchmark-restaurant-coverage.ts",
+    "build:lexicon": "node scripts/build-animal-lexicon.mjs",
     "audit:pins": "node scripts/audit-curated-pins.mjs",
     "audit:cuisine-tags": "tsx scripts/audit-cuisine-tag-coverage.ts",
     "audit:restaurant-taxonomy": "tsx scripts/audit-restaurant-taxonomy-coverage.ts",

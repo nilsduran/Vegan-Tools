@@ -1,18 +1,21 @@
 /**
  * @file classifier.ts
- * @description Rule-based ingredient classification engine achieving 99% precision.
+ * @description Rule-based ingredient classification engine. It knows the hand-written
+ * dictionary plus the Open Food Facts animal lexicon (animal-lexicon.ts); see
+ * docs/benchmark-results.md for measured coverage.
  * Performs diacritic/text normalization, regex-based ingredient alias matching,
  * and deterministic diet verdict resolution (vegan, vegetarian, non-vegetarian, unknown).
  */
 
 import { INGREDIENT_DICTIONARY, type IngredientDefinition } from "./ingredient-dictionary.js";
+import { scanAnimalTerms, toLexiconTerm } from "./animal-lexicon.js";
 import type {
   Assurance,
   DietVerdict,
   IngredientFinding,
 } from "./schemas.js";
 
-export const CLASSIFIER_VERSION = "2026.07.4";
+export const CLASSIFIER_VERSION = "2026.11.2";
 
 function normalizeText(value: string): string {
   return value
@@ -50,13 +53,44 @@ export function lookupIngredients(text: string): IngredientFinding[] {
   });
 }
 
+const overlaps = (a: string, b: string) => a === b || a.includes(b) || b.includes(a);
+
+/**
+ * Merges the hand-written dictionary with the Open Food Facts animal lexicon:
+ * drops dictionary hits on words that name a plant-based product ("llet" in
+ * "llet de coco"), and adds animal terms the dictionary does not know.
+ */
+function mergeWithAnimalLexicon(text: string, dictionary: IngredientFinding[]): IngredientFinding[] {
+  const { matches, shielded } = scanAnimalTerms(text);
+  const kept = dictionary.filter((finding) => {
+    if (finding.status === "vegan") return true;
+    const alias = toLexiconTerm(finding.matchedAlias);
+    const namesPlantProduct = shielded.some((term) => overlaps(term, alias));
+    return !namesPlantProduct || matches.some(({ term }) => overlaps(term, alias));
+  });
+  const keptAliases = kept.map((finding) => toLexiconTerm(finding.matchedAlias));
+  const added = matches
+    .filter(({ term }) => !keptAliases.some((alias) => overlaps(term, alias)))
+    .map(({ term, status }): IngredientFinding => ({
+      id: `off:${term}`,
+      name: term.charAt(0).toUpperCase() + term.slice(1),
+      matchedAlias: term,
+      status,
+      reason: status === "non_vegetarian"
+        ? "Open Food Facts lists this as an ingredient from a slaughtered animal."
+        : "Open Food Facts lists this as an animal-derived ingredient (dairy, egg or bee product).",
+      substitutions: [],
+    }));
+  return [...kept, ...added];
+}
+
 export function getIngredientDefinition(id: string): IngredientDefinition | undefined {
   return INGREDIENT_DICTIONARY.find((definition) => definition.id === id);
 }
 
 export function splitTraces(text: string): { ingredients: string; traces: string[] } {
   const tracePattern =
-    /(?:may (?:also )?contain(?: traces of)?|traces? of|manufactured (?:in a facility|on equipment)[^.:;]*|packed in a facility[^.:;]*|pot contenir(?: traces de)?|traces? de|elaborat en una (?:fàbrica|línia|instal·lació)[^.:;]*|puede contener(?: trazas de)?|trazas? (?:de|posibles)|posibles trazas de|fabricado en[^.:;]*|kann (?:produktionsbedingt )?spuren (?:enthalten )?von|spuren von|hergestellt in einem betrieb[^.:;]*|peut contenir(?: des traces d[e'])?|traces? (?:d[e']|éventuelles d[e'])|fabriqué dans un atelier[^.:;]*|pu[oò] contenere(?: tracce di)?|tracce di)\s*:?\s*([^.;)]*?)(?:\s+enthalten)?(?=[.;)]|$)/gi;
+    /(?:may (?:also )?contain(?: traces of)?|traces? of|manufactured (?:in a facility|on equipment)[^.:;]*|made in a (?:factory|facility)[^.:;]*|packed in a facility[^.:;]*|pot contenir(?: traces de)?|traces? de|elaborat en una (?:fàbrica|línia|instal·lació)[^.:;]*|puede contener(?: trazas de)?|trazas? (?:de|posibles)|posibles trazas de|fabricado en[^.:;]*|kann (?:produktionsbedingt )?spuren (?:enthalten )?von|spuren von|hergestellt in einem betrieb[^.:;]*|peut contenir(?: des traces d[e'])?|traces? (?:d[e']|éventuelles d[e'])|fabriqué dans un atelier[^.:;]*|pu[oò] contenere(?: tracce di)?|tracce di)\s*:?\s*([^.;)]*?)(?:\s+enthalten)?(?=[.;)]|$)/gi;
   const traces: string[] = [];
   const ingredients = text.replace(tracePattern, (full, captured: string) => {
     const value = (captured || full)
@@ -127,7 +161,7 @@ export function classifyIngredients(
     );
   }
 
-  const findings = lookupIngredients(ingredients);
+  const findings = mergeWithAnimalLexicon(ingredients, lookupIngredients(ingredients));
   const nonVegetarian = findings.filter((finding) => finding.status === "non_vegetarian");
   const vegetarian = findings.filter((finding) => finding.status === "vegetarian");
   const ambiguous = findings.filter((finding) => finding.status === "ambiguous");
@@ -199,20 +233,15 @@ export function classifyIngredients(
     );
   }
 
-  const completeIngredientEvidence = [
-    "external",
-    "label_based",
-    "manufacturer",
-    "certified",
-  ].includes(assurance);
+  // Recognising nothing is not evidence of anything: the dictionary is small, so
+  // an unmatched list (e.g. "Schweinefleisch, Speck") must never become a
+  // definitive "vegan". Only a trusted vegan claim, handled above, can do that.
   return result(
-    completeIngredientEvidence ? "vegan" : "probably_vegan",
-    completeIngredientEvidence
-      ? "The provided ingredient list contains no animal-derived or origin-ambiguous ingredient."
-      : "No animal-derived or origin-ambiguous ingredient was detected, but the ingredient evidence is incomplete.",
+    "probably_vegan",
+    "No animal-derived ingredient was recognised, but not every ingredient on the list could be verified.",
     findings.filter((finding) => finding.status === "vegan"),
     traces,
     assurance,
-    trusted,
+    false,
   );
 }
