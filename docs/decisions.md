@@ -10,6 +10,14 @@ Memòria del projecte entre sessions: **què es va decidir, per què i què es v
 
 ---
 
+## 2026-11-16 — Avaluació del stack: què es manté, què es retira
+- **Retirat**: tot el camí del model propi. `edge-classifier.ts`, les dependències `onnxruntime-node` i `@huggingface/transformers` (~430 MB a `node_modules`, instal·lats a cada build de Render i a cada job de la CI), els 19 scripts de Python d'entrenament i avaluació, l'índex antic `taxonomy.json` (793 kB, cap ús) i `ingredient-normalizer.ts`. El repositori passa a ser només TypeScript. Tot és a l'historial de git. **(deduït; Nils va dir que el model no es va pujar perquè no funcionava)**
+- **Retirat**: Tailwind CSS. Les pantalles no fan servir cap classe d'utilitat; només aportava el reset (preflight) i generava classes a partir de paraules soltes del codi (`.hidden`, `.border`, `.transition`). El reset és ara a `apps/web/src/base.css`, a les mateixes capes de cascada, i `.animate-spin` és l'única utilitat que es conserva. **(deduït)**
+- **Desfet**: cinc cartes reals de restaurants (PDF i text rastrejat) que eren a `apps/api/data/menu-sources/` per error, tot i estar al `.gitignore`. Es mantenen al disc local, no al repositori. **(deduït)**
+- **Es manté**: React 19 + Vite 7, Fastify 5, Zod 4, Supabase, `@google/genai`, TanStack Query, Vitest. Són actuals i no hi ha cap problema que justifiqui canviar-los.
+- **Pendent, al roadmap**: mapa només amb MapLibre (dos motors de mapa avui) i treure les arrencades en fred de l'API abans de la beta. No es van fer ara perquè el primer és una reescriptura visual que cal provar a mòbil i el segon depèn del compte de Render.
+- **Descartat**: migrar el frontend de Render a Cloudflare Pages. El lloc estàtic de Render ja serveix des de CDN i no s'adorm; el guany no compensa la feina.
+
 ## 2026-11-16 — Cobertura del classificador: lèxic generat des d'Open Food Facts
 - **Decisió**: el classificador combina el diccionari escrit a mà (32 entrades, amb explicacions i substitucions) amb un lèxic de ~4.250 termes animals en català, castellà, anglès, francès, alemany i italià, generat amb `npm run build:lexicon` des de la taxonomia d'OFF. Versió `2026.11.2`. **(Nils va triar aquesta via)**
 - **Per què**: determinista, gratuït, offline i funciona també al classificador local del web. **Descartat**: delegar a Gemini els textos no reconeguts (cost, latència, xarxa) i reprendre el model ONNX.
@@ -27,9 +35,8 @@ Memòria del projecte entre sessions: **què es va decidir, per què i què es v
 - **No resolia**: la cobertura, que era la prioritat número 1 **(Nils)**. Resolta el mateix dia amb l'entrada de sobre.
 
 ## 2026-11-16 — El model ONNX no és a producció
-- **Decisió**: l'Edge Classifier queda fora de producció i aparcat fins que es decideixi si es reprèn o es retira.
+- **Decisió**: l'Edge Classifier queda fora de producció. Retirat del repositori el mateix dia (vegeu «Avaluació del stack»).
 - **Per què**: no es va pujar perquè els resultats no eren prou bons **(Nils)**. L'informe de benchmark antic i el roadmap el donaven per completat i això era incorrecte: llindar de carn a 0,02, macro F1 de 0,12–0,29, cap `.onnx` exportat.
-- **Compte**: el codi d'integració (`edge-classifier.ts`, `routes/products.ts`) segueix al repositori. Si algú hi posés el model actual, marcaria gairebé tot com a no vegetarià.
 
 ## 2026-11-16 — L'abast ampli és deliberat
 - **Decisió**: no es retallen ni es congelen superfícies del producte. **(Nils)**

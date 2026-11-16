@@ -46,23 +46,25 @@ Backlog viu en tres blocs: **Ara** (màxim 5 ítems), **Després** (ordenat) i *
 4. 🟠 **Proves E2E dels fluxos nuclears (Playwright)**: cerca → fitxa → carta, escaneig d'un codi de barres i registre al diari.
 5. 🟡 **Perfils de Liberapay i GitHub Sponsors** enllaçats des de `/about` (vegeu [`funding/funding-options.md`](./funding/funding-options.md)).
 6. 🟡 **Reclutar 20 persones de prova** i fer 5 converses de feedback abans de planificar la fase 2.
+7. 🟠 **API sense arrencades en fred abans de la beta**: el pla gratuït de Render adorm el servei després d'uns minuts d'inactivitat i la primera petició triga desenes de segons. Opció més simple: passar el servei de l'API a un pla de pagament de Render (sense migrar res). Alternativa si es vol cost zero: un servei que escali a zero amb arrencades ràpides (p. ex. Cloud Run). Comprovar preus i condicions actuals abans de decidir.
 
 ### Fase 2 — Catalunya
-7. 🟠 **Pàgines de ciutat prerenderitzades** (`/barcelona`, `/girona`, …) amb JSON-LD `Restaurant` i entrada al sitemap.
-8. 🟡 **Ampliar el receptari de 13 a 30–40 receptes**, cobrint les categories existents, amb fonts acreditades i fotografies d'Espai Segur.
-9. 🟡 **Glossari d'additius i ingredients** (`/glossari`), generat des de `ingredient-dictionary.ts`: contingut indexable i offline.
-10. 🟡 **Instagram (`@vegan_tools`)**: publicar contingut i després enllaçar-lo al peu, a la capçalera i a `/recursos`.
-11. 🟡 **Adhesius QR «Verificat per Vegan Tools»** per a locals 100 % vegans.
-12. 🟠 **Capa de santuaris i refugis al mapa** (`type: "sanctuary"`), amb pin propi, filtre i fitxa orientada a visita respectuosa, donacions i apadrinament.
-13. 🟠 **Taxonomia de tags i filtres, segona fase**: separar categories gastronòmiques d'atributs, unificar sinònims i aplicar-ho a dades, filtres i etiquetes (auditoria feta amb `npm run audit:cuisine-tags`).
-14. 🟡 **Capa «Desats» al mapa** per a la llista «Vull anar-hi», amb sincronització al compte i accés des del perfil.
-15. 🟠 **Auditoria d'accessibilitat (WCAG 2.2 AA)**: contrast, teclat, lectors de pantalla i alternativa en llista al mapa.
-16. 🟠 **Racionalització de proveïdors de cerca** (`restaurant-search.ts`): de 4 proveïdors a un flux primari/secundari, mesurant cobertura abans i després.
-17. 🟡 **Historial d'escaneig local** (`/scanner`), només a `localStorage`.
-18. 🟡 **Unificar `AddRestaurantModal` i `EditRestaurantModal`** en un sol formulari.
+8. 🟠 **Pàgines de ciutat prerenderitzades** (`/barcelona`, `/girona`, …) amb JSON-LD `Restaurant` i entrada al sitemap.
+9. 🟡 **Ampliar el receptari de 13 a 30–40 receptes**, cobrint les categories existents, amb fonts acreditades i fotografies d'Espai Segur.
+10. 🟡 **Glossari d'additius i ingredients** (`/glossari`), generat des de `ingredient-dictionary.ts`: contingut indexable i offline.
+11. 🟡 **Instagram (`@vegan_tools`)**: publicar contingut i després enllaçar-lo al peu, a la capçalera i a `/recursos`.
+12. 🟡 **Adhesius QR «Verificat per Vegan Tools»** per a locals 100 % vegans.
+13. 🟠 **Capa de santuaris i refugis al mapa** (`type: "sanctuary"`), amb pin propi, filtre i fitxa orientada a visita respectuosa, donacions i apadrinament.
+14. 🟠 **Taxonomia de tags i filtres, segona fase**: separar categories gastronòmiques d'atributs, unificar sinònims i aplicar-ho a dades, filtres i etiquetes (auditoria feta amb `npm run audit:cuisine-tags`).
+15. 🟡 **Capa «Desats» al mapa** per a la llista «Vull anar-hi», amb sincronització al compte i accés des del perfil.
+16. 🟠 **Auditoria d'accessibilitat (WCAG 2.2 AA)**: contrast, teclat, lectors de pantalla i alternativa en llista al mapa.
+17. 🟠 **Racionalització de proveïdors de cerca** (`restaurant-search.ts`): de 4 proveïdors a un flux primari/secundari, mesurant cobertura abans i després.
+18. 🟡 **Historial d'escaneig local** (`/scanner`), només a `localStorage`.
+19. 🟡 **Unificar `AddRestaurantModal` i `EditRestaurantModal`** en un sol formulari.
+20. 🟠 **Mapa només amb MapLibre GL** (`RestaurantMap.tsx`): ara es carreguen dos motors de mapa (Leaflet per als pins i MapLibre per a les rajoles vectorials, units per `@maplibre/maplibre-gl-leaflet` 0.1.x). Amb MapLibre sol, es treu Leaflet (~43 kB gzip), el pont i una capa d'incompatibilitats. Cal reescriure pins, agrupació i finestres emergents, i provar-ho a mòbil.
 
 ### Fase 3 — Sostenibilitat
-19. 🟠 **Sol·licituds a EA Animal Welfare Fund i ACE Movement Grants** amb dades d'ús reals de les fases 1 i 2.
+21. 🟠 **Sol·licituds a EA Animal Welfare Fund i ACE Movement Grants** amb dades d'ús reals de les fases 1 i 2.
 
 ---
 
@@ -74,7 +76,6 @@ Sense data. No és una prohibició: es puja a «Després» quan tingui sentit.
 - 🟠 Alternatives veganes per a productes no vegans (Open Food Facts).
 - 🟠 Cosmètica i higiene (Open Beauty Facts).
 - 🟠 Moda, calçat i materials.
-- 🟠 Model propi ONNX: fora de producció; el lèxic d'Open Food Facts cobreix ara el que havia de cobrir; decidir si es retira el codi d'integració.
 - 🔵 Historial d'escaneig sincronitzat i base de dades global de productes.
 
 **Mapa i restaurants**

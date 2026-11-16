@@ -1,14 +1,13 @@
 # Vegan Tools — Estat real de la classificació d'ingredients
 
 *Mesurat el 2026-11-16 sobre `classifyIngredients` de producció (`packages/domain`), abans (versió `2026.07.4`) i després (versió `2026.11.2`).*
-*Compte: `scripts/benchmark-ml-classifier.py` sobreescriu aquest fitxer si es torna a executar, amb una plantilla antiga que marca la latència com a ✅ sense comprovar-la.*
 
 ## Què decideix un veredicte en producció
 
 - **Escàner per codi de barres** (`GET /v1/products/:gtin`): classificador de domini sobre el text d'ingredients d'Open Food Facts, corregit per les etiquetes d'anàlisi d'OFF (`non-vegetarian`, `non-vegan`, `vegan`). El resultat mai és `definitive`.
 - **Etiqueta fotografiada o escrita**: el web classifica en local amb el mateix codi (`apps/web/src/api.ts`, `assurance: "label_based"`).
 - **Cartes de restaurant**: Gemini; no passen per aquí.
-- **Model ONNX**: no intervé. No existeix cap `.onnx` exportat i `/data/` és a `.gitignore`. Tampoc hi ha cap fallback a Gemini en aquest flux; Gemini només fa l'OCR.
+- **Model ONNX**: retirat del repositori el 2026-11-16 (vegeu més avall). Tampoc hi ha cap fallback a Gemini en aquest flux; Gemini només fa l'OCR.
 
 ## Com funciona ara el classificador
 
@@ -59,13 +58,13 @@ Etiquetes escrites després de construir el lèxic, sense mirar-ne el resultat a
 - **Falsos positius**: «lecitina de gira-sol», «lecitina de soja» i «aroma natural de vainilla» surten com a dubtosos pel diccionari antic, tot i declarar origen vegetal. «Iogurt vegetal de soja» amb «ferments de iogurt» surt com a vegetarià.
 - **Col·lisions entre idiomes**: un mot animal en un idioma pot ser un mot corrent en un altre. Hi ha una llista d'exclusions a `scripts/build-animal-lexicon.mjs`; n'apareixeran més.
 
-## Model ML: no és utilitzable
+## Model ML: retirat
 
 - Llindars a `data/models/decision_config.json`: 0,02 (carn), 0,05 (lactis), 0,10 (dual). Amb 0,02 gairebé tot es marca com a carn; d'aquí venia el 100 % de recall de l'informe antic.
 - Macro F1 de validació 0,29 (criteri ≥ 0,92); F1 de lactis i d'additius 0,00 al test antic. Latència p50 de 45 ms (criteri < 25 ms).
-- El codi d'integració (`edge-classifier.ts`, `routes/products.ts`) segueix al repositori. Amb el model actual, passaria gairebé qualsevol llista a `non_vegetarian` definitiu.
+- El codi d'integració, els scripts de Python i el disseny (`ml-classifier-design.md`) es van retirar el 2026-11-16. Són a l'historial de git, al commit anterior a la retirada.
 
 ## Scripts
 
 - `npm run build:lexicon` regenera el lèxic (necessita `data/dataset/raw/ingredients.json`, que no és al repositori).
-- `scripts/evaluate-golden-benchmark.py` avalua un regex propi en Python, no el codi de producció. La prova bona és `golden-benchmark.test.ts`.
+- `packages/domain/src/golden-benchmark.test.ts` és la prova del conjunt daurat sobre el codi de producció.

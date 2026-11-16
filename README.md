@@ -66,7 +66,7 @@ VeganTools/
 │   │   ├── gemini       # AI menu parsing & recipe veganization
 │   │   ├── off          # Open Food Facts barcode client
 │   │   └── db           # Supabase persistence & memory fallback
-│   └── web/             # React 18 + Vite + TypeScript PWA
+│   └── web/             # React 19 + Vite + TypeScript PWA
 │       ├── components/  # Map, reviews, menus, recipe cards, modals
 │       ├── pages/       # Home, MenuReader, Recipes, Scanner, Diary, Resources, About
 │       └── utils/       # Supabase client, offline sync, i18n
