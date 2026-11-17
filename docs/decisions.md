@@ -10,6 +10,21 @@ Memòria del projecte entre sessions: **què es va decidir, per què i què es v
 
 ---
 
+## 2026-11-16 — Hosting i base de dades: els límits no són el problema, les arrencades en fred sí
+- **Context**: Nils va preguntar si 500 MB de DB (Supabase gratuït) i 512 MB de RAM (Render gratuït) eren massa justos i si calia buscar opcions més generoses i fiables. També que Supabase «sovint falla i es para».
+- **Mesures** (deduït):
+  - L'API, sense el model ONNX, ocupa uns **70 MB de RAM** després de servir peticions. Les pujades de PDF i fotos (fins a 10 MB) l'apugen puntualment, però queda molt lluny de 512 MB.
+  - Una carta analitzada són uns 3–5 kB de JSON (les curades); amb un marge generós de 50 kB per carta, 500 MB donen per a **unes 10.000 cartes**. L'objectiu de la fase 2 són 500 (≈25 MB). El que pot créixer més és la memòria cau de productes d'Open Food Facts.
+- **El problema real**: el pla gratuït de Render adorm l'API després de 15 minuts i tarda prop d'un minut a tornar; Supabase gratuït es pausa després de 7 dies sense activitat (cobert pel workflow de keep-alive).
+- **Decisió**: **cap quota mensual de moment (Nils)**. Es queda Supabase gratuït i Render gratuït. «Si el que hi ha ara és la millor opció gratuïta, seguim així.»
+  - Supabase va avisar de pausa el novembre de 2026 tot i que el keep-alive s'executava cada dia amb èxit: feia **una sola consulta** diària, i Supabase demana «unes quantes peticions d'usuari a la base de dades cada dia». Ara s'executa cada 4 hores i llegeix quatre taules públiques (unes 24 consultes al dia). Si tot i així es pausa, es pot reactivar des del tauler durant 90 dies.
+  - Quan es vulgui pagar: Render Starter (~7 $/mes) per a l'API i Supabase Pro (~25 $/mes) per a la DB. Alternativa gratuïta per a l'API: Cloud Run (cal compte de facturació).
+- **Descartat**:
+  - **Oracle Cloud Always Free**: molt generós sobre el paper, però el 2026 hi ha informes de retallada de la quota ARM i reclama instàncies que considera inactives. No és «fiable».
+  - **Neon** (1 GB gratuït): només dobla l'espai, i deixar Supabase vol dir substituir també l'Auth, les polítiques RLS i l'Storage.
+  - **VPS propi (Hetzner, ~4–6 €/mes, 4 GB)**: maquinari generós, però afegeix manteniment (actualitzacions, TLS, còpies de seguretat) per a un sol desenvolupador, i les gammes més barates tenen disponibilitat irregular el 2026.
+- **Preus**: tots de fonts de tercers de novembre de 2026; cal confirmar-los a les pàgines oficials.
+
 ## 2026-11-16 — Avaluació del stack: què es manté, què es retira
 - **Retirat**: tot el camí del model propi. `edge-classifier.ts`, les dependències `onnxruntime-node` i `@huggingface/transformers` (~430 MB a `node_modules`, instal·lats a cada build de Render i a cada job de la CI), els 19 scripts de Python d'entrenament i avaluació, l'índex antic `taxonomy.json` (793 kB, cap ús) i `ingredient-normalizer.ts`. El repositori passa a ser només TypeScript. Tot és a l'historial de git. **(deduït; Nils va dir que el model no es va pujar perquè no funcionava)**
 - **Retirat**: Tailwind CSS. Les pantalles no fan servir cap classe d'utilitat; només aportava el reset (preflight) i generava classes a partir de paraules soltes del codi (`.hidden`, `.border`, `.transition`). El reset és ara a `apps/web/src/base.css`, a les mateixes capes de cascada, i `.animate-spin` és l'única utilitat que es conserva. **(deduït)**
