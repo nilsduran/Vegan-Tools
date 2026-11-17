@@ -178,6 +178,12 @@ const exactGeneratedCa: Record<string, string> = {
     "La llista d'ingredients proporcionada no conté cap ingredient d'origen animal ni d'origen ambigu.",
   "No animal-derived or origin-ambiguous ingredient was detected, but the ingredient evidence is incomplete.":
     "No s'ha detectat cap ingredient d'origen animal ni d'origen ambigu, però la informació dels ingredients és incompleta.",
+  "No animal-derived ingredient was recognised, but not every ingredient on the list could be verified.":
+    "No s'ha reconegut cap ingredient d'origen animal, però no s'han pogut verificar tots els ingredients de la llista.",
+  "Open Food Facts lists this as an ingredient from a slaughtered animal.":
+    "Open Food Facts el classifica com un ingredient procedent d'un animal sacrificat.",
+  "Open Food Facts lists this as an animal-derived ingredient (dairy, egg or bee product).":
+    "Open Food Facts el classifica com un ingredient d'origen animal (lacti, ou o producte de les abelles).",
   "No trustworthy product evidence was found. Scan the current ingredient label.":
     "No s'ha trobat cap informació fiable del producte. Escaneja l'etiqueta d'ingredients actual.",
   "This is an unprocessed fruit or vegetable.":

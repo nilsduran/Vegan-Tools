@@ -1,4 +1,4 @@
-@import "tailwindcss";
+@import "./base.css";
 @import "./menu.css";
 
 :root {

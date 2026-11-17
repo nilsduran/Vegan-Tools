@@ -2,42 +2,58 @@ name: Supabase Keep-Alive
 
 on:
   schedule:
-    # Generate daily database activity; Supabase may pause free projects after
-    # seven days with too little activity.
-    - cron: '0 7 * * *'
+    # Supabase pauses Free projects without "sufficient user database activity"
+    # over a week; its docs say "a few user requests to the database each day"
+    # is typically enough. One request a day was not: the project still got a
+    # pause warning in November 2026. Run every 4 hours (GitHub often delays
+    # scheduled runs, so some slots will slip) and read several tables each time.
+    # The odd minute avoids the top-of-hour queue on GitHub's scheduler.
+    - cron: '23 */4 * * *'
   workflow_dispatch: # Allows manual trigger anytime from GitHub Actions tab
+
+permissions:
+  contents: read
 
 jobs:
   ping:
     name: Ping Supabase Database & API
     runs-on: ubuntu-24.04
+    timeout-minutes: 5
     steps:
       - name: Ping Supabase Project
         env:
           SUPABASE_URL: ${{ secrets.SUPABASE_URL || 'https://ictqmbgzaxmixhkazdce.supabase.co' }}
           SUPABASE_PUBLISHABLE_KEY: ${{ secrets.SUPABASE_PUBLISHABLE_KEY }}
           SUPABASE_ANON_KEY: ${{ secrets.SUPABASE_ANON_KEY }}
-          SUPABASE_SECRET_KEY: ${{ secrets.SUPABASE_SECRET_KEY }}
         run: |
-          API_KEY="${SUPABASE_PUBLISHABLE_KEY:-${SUPABASE_ANON_KEY:-$SUPABASE_SECRET_KEY}}"
-
-          echo "Connecting to Supabase at: $SUPABASE_URL"
-
-          if [ -n "$API_KEY" ]; then
-            echo "Sending authenticated database and Auth health requests..."
-
-            REST_CODE=$(curl --fail-with-body -sS -o /dev/null -w "%{http_code}" \
-              -H "apikey: $API_KEY" \
-              "$SUPABASE_URL/rest/v1/venues?select=id&limit=1")
-            echo "Venues endpoint response HTTP code: $REST_CODE"
-
-            AUTH_CODE=$(curl --fail-with-body -sS -o /dev/null -w "%{http_code}" \
-              -H "apikey: $API_KEY" \
-              "$SUPABASE_URL/auth/v1/health")
-            echo "Auth health endpoint response HTTP code: $AUTH_CODE"
-
-            echo "Keep-alive ping completed successfully."
-          else
+          API_KEY="${SUPABASE_PUBLISHABLE_KEY:-$SUPABASE_ANON_KEY}"
+          if [ -z "$API_KEY" ]; then
             echo "::error::Set SUPABASE_PUBLISHABLE_KEY (or SUPABASE_ANON_KEY) in GitHub repository secrets."
             exit 1
           fi
+
+          echo "Connecting to Supabase at: $SUPABASE_URL"
+          ok=0
+          # Publicly readable tables (RLS allows anonymous select), so each
+          # request runs a real database query.
+          for table in venues restaurant_menu_cache products restaurant_reviews; do
+            code=$(curl -sS -o /dev/null -w "%{http_code}" \
+              -H "apikey: $API_KEY" \
+              -H "Authorization: Bearer $API_KEY" \
+              "$SUPABASE_URL/rest/v1/$table?select=*&limit=1" || echo "000")
+            echo "$table: HTTP $code"
+            if [ "$code" = "200" ]; then
+              ok=$((ok + 1))
+            else
+              echo "::warning::$table returned HTTP $code"
+            fi
+          done
+
+          auth=$(curl -sS -o /dev/null -w "%{http_code}" -H "apikey: $API_KEY" "$SUPABASE_URL/auth/v1/health" || echo "000")
+          echo "auth health: HTTP $auth"
+
+          if [ "$ok" -eq 0 ]; then
+            echo "::error::No table query succeeded; the project may already be paused."
+            exit 1
+          fi
+          echo "Keep-alive completed: $ok table queries succeeded."

@@ -213,6 +213,16 @@ export function deleteVisitLog(id: string, userId: string, token?: string): void
   }
 }
 
+/** Removes this user's diary and Top 4 from this device. */
+export function clearLocalDiaryData(userId: string): void {
+  try {
+    localStorage.removeItem(getDiaryKey(userId));
+    localStorage.removeItem(getTop4Key(userId));
+  } catch {
+    // Storage unavailable (private mode): nothing to clear.
+  }
+}
+
 export function getRatingHistogram(logs: RestaurantVisitLog[]): RatingHistogramBin[] {
   // 10 half-star bins: 0.5, 1.0, 1.5, 2.0, 2.5, 3.0, 3.5, 4.0, 4.5, 5.0
   const scores = [0.5, 1.0, 1.5, 2.0, 2.5, 3.0, 3.5, 4.0, 4.5, 5.0];

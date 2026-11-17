@@ -6,14 +6,16 @@ Aquest document estableix les directrius tècniques, els principis d'arquitectur
 
 ## 🧭 1. Documents de Referència i Filosofia de Documentació
 
-Per evitar la dispersió en múltiples fitxers obsolets o secundaris, el repositori concentra el coneixement clau en **3 pilars documentals actius**:
+Per evitar la dispersió en múltiples fitxers obsolets o secundaris, el repositori concentra el coneixement clau en **4 pilars documentals actius**:
 
 1. 🗺️ **Full de Ruta i Backlog Prioritzat**: [`docs/roadmap.md`](./docs/roadmap.md)
-   - L'única font de veritat sobre l'estat del desenvolupament, deute tècnic i tasques pendents, ordenades estrictament pels 4 nivells de priorització.
+   - L'única font de veritat sobre l'estat del desenvolupament, deute tècnic i tasques pendents, organitzades en tres blocs (Ara / Després / Aparcat) i etiquetades amb els 4 nivells de priorització.
 2. 🏛️ **Guia d'Arquitectura i Descoberta**: [`docs/architecture.md`](./docs/architecture.md)
    - Diagrames de flux, resolució de dominis amb IA, jerarquia d'evidències i principi de màxima precaució, seguretat SSRF i referència de l'API.
 3. 💚 **Manifest Ètic i Carta de Valors**: [`docs/values.md`](./docs/values.md)
    - Principis morals antiespecistes, política estricta d'espai segur (tolerància zero amb imatges d'explotació animal) i privacitat zero-tracking.
+4. 🧠 **Registre de Decisions**: [`docs/decisions.md`](./docs/decisions.md)
+   - Memòria entre sessions: què es va decidir, per què i què es va descartar. **Llegeix-lo abans de proposar canvis d'abast o de reobrir un tema.**
 
 *(Tots els documents secundaris anteriors com `bugs.md`, `reliability.md`, `osm-audit-results.md` i `market-research.md` s'han integrat i eliminat per mantenir la documentació neta i sense duplicitats).*
 
@@ -51,7 +53,7 @@ Qualsevol tasca, millora o correcció s'ha de classificar i abordar seguint aque
 
 ---
 
-## 📏 3. Regles de Treball i Bones Praxis
+## 📏 4. Regles de Treball i Bones Praxis
 
 1. **Polítiques de Git**:
    - Desenvolupar a la branca de funcionalitat activa (`feature/interactive-map` o la corresponent) abans de fer merge a `main`.
@@ -85,5 +87,10 @@ Qualsevol tasca, millora o correcció s'ha de classificar i abordar seguint aque
    - Qualsevol cadena nova d'interfície ha d'estar traduïda a `i18n.ts` (`ca` i `en`).
    - Usar la terminologia normalitzada: `Carta` (no "Menú"), `No vegà` (no "Carnista"), `Indicacions` (no "Com arribar").
 
-6. **Evitar Optimitzacions Prematures (Pushback Proactiu)**:
+6. **Conservar el context entre sessions**:
+   - Abans de tancar una sessió on s'hagi pres una decisió no òbvia (què es fa, què es descarta, per què), afegir una entrada breu a `docs/decisions.md` indicant si ho ha dit l'usuari o si és una deducció.
+   - Quan una tasca del roadmap es completa, esborrar-la de `docs/roadmap.md`; si deixa alguna cosa pendent o un motiu que calgui recordar, va al registre de decisions.
+   - Si un document contradiu el codi, corregir el document a la mateixa sessió.
+
+7. **Evitar Optimitzacions Prematures (Pushback Proactiu)**:
    - *Premature optimization is the root of all evil*: L'agent ha d'oferir pushback constructiu i dissuadir activament quan sorgeixi la temptació d'afegir complexitat innecessària abans d'hora (com filtres manuals d'ofensivitat de noms, sistemes de moderació massiva, esquemes hiper-complexos o micro-optimitzacions abans de tenir un problema o escala real). Prioritzar sempre la màxima senzillesa, el flux nuclear del producte i les necessitats reals i tangibles dels usuaris.

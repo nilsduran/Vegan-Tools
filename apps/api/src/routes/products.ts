@@ -1,7 +1,7 @@
 /**
  * @file products.ts
  * @description API routes for product queries, Open Food Facts integration, OCR label extraction, and ingredient classification.
- * Supports barcode verification, user evidence submissions, and 99% accuracy rule-based classification.
+ * Supports barcode verification, user evidence submissions, and rule-based ingredient classification.
  */
 
 import type { FastifyInstance } from "fastify";
@@ -18,7 +18,6 @@ import type { Repository } from "../store.js";
 import { lookupOpenFoodFacts } from "../open-food-facts.js";
 import { lookupOpenBeautyFacts } from "../open-beauty-facts.js";
 import type { IngredientExtractor } from "../ingredient-extractor.js";
-import { globalEdgeClassifier } from "../edge-classifier.js";
 import { authenticateRequest, createTokenVerifier, type TokenVerifier } from "../auth.js";
 
 async function withTimeout<T>(
@@ -148,30 +147,11 @@ export async function productRoutes(app: FastifyInstance, options: ProductRoutes
         message: "Paste a readable ingredient list.",
       });
     }
-    const text = request.body.ingredientsText;
-    const regexResult = classifyIngredients(text, {
+    return classifyIngredients(request.body.ingredientsText, {
       assurance: "label_based",
       verifiedVeganClaim: request.body.verifiedVeganClaim,
       verifiedVegetarianClaim: request.body.verifiedVegetarianClaim,
     });
-
-    if (globalEdgeClassifier.isConfigured()) {
-      try {
-        const edge = await globalEdgeClassifier.classify(text);
-        if (edge && edge.verdict === "non_vegetarian" && regexResult.verdict !== "non_vegetarian") {
-          return {
-            ...regexResult,
-            verdict: "non_vegetarian",
-            reason: `Detectat possible derivat d'origen animal pel model Edge en local (${Math.round(edge.probabilities.slaughter * 100)}% certesa).`,
-            definitive: true,
-          };
-        }
-      } catch (err) {
-        request.log.warn({ err }, "Error running EdgeClassifier");
-      }
-    }
-
-    return regexResult;
   });
 
   app.post("/v1/ingredients/extract", { config: { rateLimit: { max: 15, timeWindow: "1 minute" } } }, async (request, reply) => {

@@ -51,13 +51,13 @@ describe("deterministic ingredient classification", () => {
     expect(result.traces).toEqual(["milk and egg"]);
   });
 
-  it("preserves vegan status despite multilingual allergen traces (German, French, Italian, Catalan, Spanish)", () => {
+  it("does not downgrade for multilingual allergen traces (German, French, Italian, Catalan, Spanish)", () => {
     // German (Kann Spuren von Milch enthalten)
     const deResult = classifyIngredients(
       "Zutaten: Soja, Wasser, Salz. Kann Spuren von Milch und Eiern enthalten.",
       { assurance: "external" },
     );
-    expect(deResult.verdict).toBe("vegan");
+    expect(deResult.verdict).toBe("probably_vegan");
     expect(deResult.traces).toEqual(["Milch und Eiern"]);
 
     // French (Peut contenir des traces de lait)
@@ -65,7 +65,7 @@ describe("deterministic ingredient classification", () => {
       "Ingrédients: Cacao, sucre, lécithine de soja. Peut contenir des traces de lait.",
       { assurance: "external" },
     );
-    expect(frResult.verdict).toBe("vegan");
+    expect(frResult.verdict).toBe("probably_vegan");
     expect(frResult.traces).toEqual(["lait"]);
 
     // Italian (Può contenere tracce di latte)
@@ -73,7 +73,7 @@ describe("deterministic ingredient classification", () => {
       "Ingredienti: Pomodoro, basilico, sale. Può contenere tracce di latte e uova.",
       { assurance: "external" },
     );
-    expect(itResult.verdict).toBe("vegan");
+    expect(itResult.verdict).toBe("probably_vegan");
     expect(itResult.traces).toEqual(["latte e uova"]);
 
     // Catalan (Pot contenir traces de llet)
@@ -81,7 +81,7 @@ describe("deterministic ingredient classification", () => {
       "Ingredients: Oli d'oliva, farina, sucre. Pot contenir traces de llet.",
       { assurance: "external" },
     );
-    expect(caResult.verdict).toBe("vegan");
+    expect(caResult.verdict).toBe("probably_vegan");
     expect(caResult.traces).toEqual(["llet"]);
 
     // Spanish (Puede contener trazas de leche)
@@ -89,7 +89,7 @@ describe("deterministic ingredient classification", () => {
       "Ingredientes: Harina de trigo, agua, sal. Puede contener trazas de leche.",
       { assurance: "external" },
     );
-    expect(esResult.verdict).toBe("vegan");
+    expect(esResult.verdict).toBe("probably_vegan");
     expect(esResult.traces).toEqual(["leche"]);
   });
 
@@ -108,9 +108,53 @@ describe("deterministic ingredient classification", () => {
       .toBe("probably_vegetarian");
   });
 
-  it("returns vegan for a complete ingredient list without red flags", () => {
+  it("never returns a definitive vegan just because nothing was recognised", () => {
     expect(classifyIngredients("Water, tomatoes, salt", { assurance: "external" }).verdict)
-      .toBe("vegan");
+      .toBe("probably_vegan");
+  });
+
+  it.each([
+    ["Zutaten: Schweinefleisch, Speck, Salz", "non_vegetarian"],
+    ["Zutaten: Weizenmehl, Wasser, Leberwurst", "non_vegetarian"],
+    ["farina de blat, bacallà, sal", "non_vegetarian"],
+    ["aigua, botifarra, sal", "non_vegetarian"],
+    ["harina, chorizo, sal", "non_vegetarian"],
+    ["tonno, olio di oliva, sale", "non_vegetarian"],
+    ["riso, vongole, prezzemolo", "non_vegetarian"],
+    ["farine, filets de maquereaux, sel", "non_vegetarian"],
+    ["water, cheddar, salt", "vegetarian"],
+    ["Zutaten: Haferflocken, Joghurt, Honig", "vegetarian"],
+    ["farina, ricotta, zucchero", "vegetarian"],
+  ])("recognises animal ingredients from the Open Food Facts lexicon: %s", (text, verdict) => {
+    expect(classifyIngredients(text, { assurance: "label_based" }).verdict).toBe(verdict);
+  });
+
+  it.each([
+    "Beguda de llet d'ametlles: aigua, ametlles, sucre de canya",
+    "llet de coco, sucre, cacau",
+    "rice milk, peanut butter, cocoa butter",
+    "formatge vegetal, mantega de karité",
+    "carne de soja texturizada, sal",
+    "plant-based meat, vegan cheese",
+    "pomodori secchi al sole, olio di oliva",
+    "lemon rind, sun-dried tomatoes",
+    "Tomatenfruchtfleisch, Zwiebeln, Kokosmilch, Kakaobutter",
+    "tomate en polvo, ajo en polvo, sal",
+    "farina de blat, àcid làctic, aigua de cocció",
+  ])("does not flag plant products named after animal ones: %s", (text) => {
+    const result = classifyIngredients(text, { assurance: "label_based" });
+    expect(result.verdict).toBe("probably_vegan");
+  });
+
+  it("still flags real dairy next to a plant milk", () => {
+    expect(classifyIngredients("llet de coco, llet, sucre", { assurance: "label_based" }).verdict)
+      .toBe("vegetarian");
+  });
+
+  it("never returns a definitive vegan for a list it cannot fully verify", () => {
+    const result = classifyIngredients("aigua, ingredient inventat, sal", { assurance: "label_based" });
+    expect(result.verdict).toBe("probably_vegan");
+    expect(result.definitive).toBe(false);
   });
 
   it("keeps unknown for a missing ingredient list", () => {
@@ -147,7 +191,7 @@ describe("deterministic ingredient classification", () => {
       "Cocoa mass, cocoa butter, oat milk, vegan cheese",
       { assurance: "label_based" },
     );
-    expect(result.verdict).toBe("vegan");
+    expect(result.verdict).toBe("probably_vegan");
   });
 
   it("suggests replacements for a recipe", () => {

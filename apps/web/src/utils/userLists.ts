@@ -79,6 +79,15 @@ export function saveUserLists(lists: UserRestaurantList[]): void {
   }
 }
 
+/** Removes all saved lists from this device. */
+export function clearUserLists(): void {
+  try {
+    localStorage.removeItem(STORAGE_KEY);
+  } catch {
+    // Storage unavailable (private mode): nothing to clear.
+  }
+}
+
 export function isRestaurantInList(listId: string, restaurantId: string): boolean {
   const lists = loadUserLists();
   const list = lists.find((l) => l.id === listId);
