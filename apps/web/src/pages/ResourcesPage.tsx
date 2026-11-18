@@ -23,6 +23,7 @@ import {
 import { Link } from "react-router-dom";
 import { tx } from "../i18n";
 import { useDocumentHead } from "../utils/seo";
+import { VideoEmbed } from "../components/VideoEmbed";
 
 export function ResourcesPage() {
   useDocumentHead({
@@ -248,13 +249,7 @@ export function ResourcesPage() {
               {/* Video 1: Earthling Ed */}
               <article className="video-embed-card">
                 <div className="video-responsive-wrapper">
-                  <iframe
-                    src="https://www.youtube-nocookie.com/embed/Z3u7hXpOm58"
-                    title="You Will Never Look at Your Life in the Same Way Again — Earthling Ed"
-                    allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-                    allowFullScreen
-                    loading="lazy"
-                  />
+                  <VideoEmbed videoId="Z3u7hXpOm58" title="You Will Never Look at Your Life in the Same Way Again — Earthling Ed" />
                 </div>
                 <div className="video-card-info">
                   <h4>{tx("You Will Never Look at Your Life in the Same Way Again")}</h4>
@@ -270,13 +265,7 @@ export function ResourcesPage() {
               {/* Video 2: Jubilee Surrounded */}
               <article className="video-embed-card">
                 <div className="video-responsive-wrapper">
-                  <iframe
-                    src="https://www.youtube-nocookie.com/embed/tsNBKKRXqI4"
-                    title="1 Vegan vs 20 Meat Eaters — Jubilee ft. Jack Symes"
-                    allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-                    allowFullScreen
-                    loading="lazy"
-                  />
+                  <VideoEmbed videoId="tsNBKKRXqI4" title="1 Vegan vs 20 Meat Eaters — Jubilee ft. Jack Symes" />
                 </div>
                 <div className="video-card-info">
                   <h4>{tx("1 Vegan vs 20 Meat Eaters")}</h4>
@@ -292,13 +281,7 @@ export function ResourcesPage() {
               {/* Video 3: kodekai */}
               <article className="video-embed-card">
                 <div className="video-responsive-wrapper">
-                  <iframe
-                    src="https://www.youtube-nocookie.com/embed/Hcb6_44OjIo"
-                    title="i went vegan as a joke... it changed me — kodekai"
-                    allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-                    allowFullScreen
-                    loading="lazy"
-                  />
+                  <VideoEmbed videoId="Hcb6_44OjIo" title="i went vegan as a joke... it changed me — kodekai" />
                 </div>
                 <div className="video-card-info">
                   <h4>{tx("i went vegan as a joke... it changed me")}</h4>
@@ -314,13 +297,7 @@ export function ResourcesPage() {
               {/* Video 4: UnJaded Jade */}
               <article className="video-embed-card">
                 <div className="video-responsive-wrapper">
-                  <iframe
-                    src="https://www.youtube-nocookie.com/embed/KRF41taqVUI"
-                    title="The Truth: Why I Went Vegan — UnJaded Jade"
-                    allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-                    allowFullScreen
-                    loading="lazy"
-                  />
+                  <VideoEmbed videoId="KRF41taqVUI" title="The Truth: Why I Went Vegan — UnJaded Jade" />
                 </div>
                 <div className="video-card-info">
                   <h4>{tx("The Truth: Why I Went Vegan")}</h4>

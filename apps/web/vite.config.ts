@@ -2,8 +2,19 @@ import react from "@vitejs/plugin-react";
 import { defineConfig } from "vite";
 import { VitePWA } from "vite-plugin-pwa";
 
+// The barcode polyfill imports its ZBar engine from cdn.jsdelivr.net at
+// runtime. Point that import at the local copy (same version) so the scanner
+// works offline and makes no third-party request; Vite then bundles the engine
+// and emits zbar.wasm next to it.
+const ZBAR_CDN_URL = "https://cdn.jsdelivr.net/npm/@undecaf/zbar-wasm@0.9.16/dist/main.js";
+
 export default defineConfig({
   envDir: "../../",
+  resolve: {
+    alias: {
+      [ZBAR_CDN_URL]: "@undecaf/zbar-wasm",
+    },
+  },
   plugins: [
     react(),
     VitePWA({
@@ -26,6 +37,8 @@ export default defineConfig({
         ],
       },
       workbox: {
+        // Default patterns plus the barcode engine, so scanning works offline.
+        globPatterns: ["**/*.{js,css,html,wasm}"],
         runtimeCaching: [
           // OpenFreeMap style + TileJSON are unversioned: serve cached, refresh in background.
           {
@@ -80,13 +93,19 @@ export default defineConfig({
     rollupOptions: {
       output: {
         manualChunks: (id) => {
+          // Vite's module-preload helper is used by every lazy route. Left to
+          // Rollup it can land in whichever vendor chunk first needs it (it
+          // ended up in vendor-barcode), making every page download that chunk.
+          if (id.includes("vite/preload-helper")) {
+            return "vite-preload";
+          }
           if (id.includes("node_modules/leaflet") || id.includes("node_modules/react-leaflet")) {
             return "vendor-leaflet";
           }
           if (id.includes("node_modules/maplibre-gl") || id.includes("node_modules/@maplibre/")) {
             return "vendor-maplibre";
           }
-          if (id.includes("node_modules/@undecaf/barcode-detector-polyfill")) {
+          if (id.includes("node_modules/@undecaf/")) {
             return "vendor-barcode";
           }
           if (id.includes("node_modules/lucide-react")) {

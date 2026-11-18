@@ -18,7 +18,7 @@ import {
 import { searchRestaurants } from "../api";
 import { useAuth } from "../auth";
 import { tx } from "../i18n";
-import { getCuisineIcon } from "./RestaurantMap";
+import { getCuisineIcon } from "../utils/cuisine-icon";
 
 export function Top4Restaurants() {
   const { user, token } = useAuth();

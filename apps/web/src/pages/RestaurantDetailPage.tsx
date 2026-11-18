@@ -39,7 +39,7 @@ import {
   getRestaurantMenu,
   searchRestaurants,
 } from "../api";
-import { getCuisineIcon } from "../components/RestaurantMap";
+import { getCuisineIcon } from "../utils/cuisine-icon";
 import { getCuisineTags } from "../components/RestaurantDetailPane";
 import {
   VeganBadgeIcon,
