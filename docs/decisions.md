@@ -10,6 +10,13 @@ Memòria del projecte entre sessions: **què es va decidir, per què i què es v
 
 ---
 
+## 2026-11-18 — PostGIS retirat per l'avís crític de seguretat de Supabase
+- **Context**: el Security Advisor de Supabase va marcar com a crític `rls_disabled_in_public` (14-11-2026). La causa és `public.spatial_ref_sys`, la taula de PostGIS: és de `supabase_admin`, així que no s'hi pot activar RLS (les migracions de l'octubre ho intentaven i s'empassaven l'error), i la clau pública hi podia escriure. Comprovat el 18-11 amb escriptures que no afecten cap fila: no donen error de permís. **(deduït)**
+- **Risc real**: no exposava dades d'usuaris (són definicions de sistemes de coordenades), però qualsevol podia esborrar-les i trencar les consultes espacials.
+- **Decisió**: treure PostGIS i `btree_gist` del tot (`202611180001_drop_postgis.sql`). L'única columna que el feia servir, `venues.location`, s'escrivia però no es consultava mai; la ubicació real són `latitude` i `longitude`.
+- **Descartat**: moure PostGIS a l'esquema `extensions`, que és el que recomana Supabase. Amb una columna `geography` cal esborrar-la i refer-la, o demanar-ho al suport, per a una extensió que no s'usa.
+- **Si algun dia calen consultes espacials al servidor**: instal·lar PostGIS a `extensions` des del principi (`create extension postgis with schema extensions`), mai a `public`.
+
 ## 2026-11-16 — Hosting i base de dades: els límits no són el problema, les arrencades en fred sí
 - **Context**: Nils va preguntar si 500 MB de DB (Supabase gratuït) i 512 MB de RAM (Render gratuït) eren massa justos i si calia buscar opcions més generoses i fiables. També que Supabase «sovint falla i es para».
 - **Mesures** (deduït):
