@@ -10,6 +10,15 @@ Memòria del projecte entre sessions: **què es va decidir, per què i què es v
 
 ---
 
+## 2026-11-18 — Velocitat: cap canvi de producte sense validar-lo
+- **Decisió**: els objectius de velocitat estan bé, però no es canvia la interfície, els serveis ni els proveïdors només perquè potencialment siguin més ràpids sense comentar-ho abans. **(Nils)**
+- **Com s'aplica**: si una mesura suggereix un canvi visible o de servei, es proposa amb la xifra i s'espera el sí. Els arranjaments interns invisibles i els bugs no cal consultar-los. Regla a `AGENTS.md` §4.7.
+- **Revisió del que ja es va fer el mateix dia**:
+  - Els vídeos de `/recursos` ara es carreguen en prémer «Reprodueix». És un canvi visible fet per velocitat i privacitat (YouTube enviava la IP de cada visitant a Google), ja desplegat i pendent que en Nils el validi.
+  - Motor de l'escàner compilat amb l'app en lloc de baixar-lo de jsdelivr: canvi intern, sense efecte visible; arregla el funcionament sense connexió i la petició a tercers.
+  - Fragments del build i la funció d'icones de cuina en un mòdul a part: interns.
+  - «Mapa ràpid al mòbil» i «Portada més lleugera» queden al roadmap com a propostes pendents de validar.
+
 ## 2026-11-18 — Proves de mòbil i escriptori, i un estàndard de velocitat
 - **Context**: Nils va trobar que la càmera no funcionava a l'escàner de codis (com si no tingués permís) però sí a la foto d'ingredients, i que hi ha processos lents. Va demanar que les proves ho tinguessin en compte i que hi hagués un estàndard de qualitat i de velocitat. **(Nils)**
 - **Causa del bug** (deduït): des del 29-10-2026 (`db9efd8`) l'escàner demanava formats (aztec, data_matrix, pdf417) que el polyfill ZBar no suporta, i el seu constructor llança un error. Afectava tots els dispositius sense `BarcodeDetector` natiu (iPhone, Firefox, Chrome de Windows). L'error es capturava amb els de permís i mostrava «No es pot accedir a la càmera». L'única prova que hi havia simulava el component sencer.
