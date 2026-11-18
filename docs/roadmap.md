@@ -65,8 +65,8 @@ Backlog viu en tres blocs: **Ara** (màxim 5 ítems), **Després** (ordenat) i *
 18. 🟠 **Racionalització de proveïdors de cerca** (`restaurant-search.ts`): de 4 proveïdors a un flux primari/secundari, mesurant cobertura abans i després.
 19. 🟡 **Historial d'escaneig local** (`/scanner`), només a `localStorage`.
 20. 🟡 **Unificar `AddRestaurantModal` i `EditRestaurantModal`** en un sol formulari.
-21. 🟠 **Mapa ràpid al mòbil** (`RestaurantMap.tsx`, `MenuReaderPage.tsx`): en un mòbil de gamma mitjana el mapa triga uns 5 s a aparèixer i el fons uns 9 s (objectiu: 3 s). La pàgina `/map` descarrega 665 kB de JavaScript, i 290 kB són MapLibre. Passar a MapLibre sol (treure Leaflet, ~43 kB, i el pont `@maplibre/maplibre-gl-leaflet` 0.1.x) i mirar per què el contenidor del mapa espera. Cal reescriure pins, agrupació i finestres emergents, i provar-ho a mòbil.
-22. 🟡 **Portada més lleugera**: LCP de 3,7 s en un mòbil de gamma mitjana (objectiu: 2,5 s). Al paquet inicial hi ha el client de Supabase (diàleg d'inici de sessió), el classificador i les cartes curades, i la portada no els necessita per pintar-se.
+21. 🟠 **Mapa ràpid al mòbil** *(proposta, pendent que en Nils la validi: canvia el motor del mapa)* (`RestaurantMap.tsx`, `MenuReaderPage.tsx`): en un mòbil de gamma mitjana el mapa triga uns 5 s a aparèixer i el fons uns 9 s (objectiu: 3 s). La pàgina `/map` descarrega 665 kB de JavaScript, i 290 kB són MapLibre. Passar a MapLibre sol (treure Leaflet, ~43 kB, i el pont `@maplibre/maplibre-gl-leaflet` 0.1.x) i mirar per què el contenidor del mapa espera. Cal reescriure pins, agrupació i finestres emergents, i provar-ho a mòbil.
+22. 🟡 **Portada més lleugera** *(proposta, pendent que en Nils la validi)*: LCP de 3,7 s en un mòbil de gamma mitjana (objectiu: 2,5 s). Al paquet inicial hi ha el client de Supabase (diàleg d'inici de sessió), el classificador i les cartes curades, i la portada no els necessita per pintar-se.
 
 ### Fase 3 — Sostenibilitat
 23. 🟠 **Sol·licituds a EA Animal Welfare Fund i ACE Movement Grants** amb dades d'ús reals de les fases 1 i 2.
