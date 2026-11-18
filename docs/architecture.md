@@ -213,7 +213,54 @@ Ingredient lists (barcode products and photographed labels) are classified deter
 
 ---
 
-## 🚀 8. Production Deployment
+## ✅ 8. Quality & Speed Standard
+
+What "good enough to ship" means, and which check enforces each part. `npm run check` runs all of it locally; CI runs the same gates.
+
+### Test layers
+
+| Layer | Tool | Catches | Runs in |
+| :--- | :--- | :--- | :--- |
+| Unit and component | Vitest (+ jsdom) | Logic, rendering, error states of one component | `npm test`, CI `Tests` |
+| Golden classification set | Vitest (`golden-benchmark.test.ts`) | Any animal product read as vegan; classifier speed | `npm test` |
+| End to end | Playwright (`e2e/`) | Real browser flows on a **desktop** and a **mobile** (Pixel 7, touch) profile, the scanner through a fake camera, speed budgets | `npm run test:e2e`, CI `E2E` |
+| Live providers | `npm run smoke:api` | Deployed API and provider keys work | Before a deploy, by hand |
+
+Rules:
+
+- **A feature that uses a device API** (camera, geolocation, file pickers) needs an E2E test in both profiles. Mocking the component in a page test is not coverage of that component: the scanner camera broke in October 2026 on every device without a native `BarcodeDetector`, and the only test mocked `BarcodeCamera` away.
+- **E2E tests start with the API unreachable** and mock only what they need. Pages must render, and throw no uncaught error, when the API is down or cold.
+- **Known gap**: the fake camera exists only in Chromium, so iPhone Safari is covered through the same code path (the ZBar polyfill, which Chromium on Linux and Windows also uses) but not by a real WebKit run.
+
+### Speed targets
+
+Measured on a mid-range phone profile (Pixel 7 with 4x CPU throttling). *Target* is what users should get; *CI ceiling* is the loose limit that fails the build, so a slow CI machine does not make tests flaky.
+
+| Measure | Target | CI ceiling | Nov 2026 |
+| :--- | :--- | :--- | :--- |
+| Home largest contentful paint | ≤ 2.5 s | 6 s | 3.7 s |
+| Map visible (`/map`) | ≤ 3 s | 12 s | 5.2 s |
+| Barcode scan to product shown | ≤ 3 s | 15 s | ~2 s |
+| API, warm, search and product lookup | ≤ 1 s | — | 0.3–1.0 s |
+| Ingredient classification, one label | ≤ 5 ms | 182 labels < 1 s | ~0.9 ms |
+
+JavaScript downloaded per route (gzip) is the hard gate, because it is deterministic and is what makes a phone slow:
+
+| Route | Budget | Nov 2026 |
+| :--- | :--- | :--- |
+| `/` | 320 kB | 304 kB |
+| `/scanner` | 290 kB | 273 kB |
+| `/recipes` | 305 kB | 289 kB |
+| `/resources` | 290 kB | 200 kB |
+| `/map` | 700 kB | 665 kB (MapLibre is ~290 kB of it) |
+
+Raising a budget is allowed, in the same change that needs it, with the reason in the commit message. Measures below target are in the roadmap.
+
+Not covered yet: Render cold starts (about a minute after 15 idle minutes on the free plan) and menu analysis with Gemini, which depends on the restaurant's website and is not run in CI to avoid spending quota.
+
+---
+
+## 🚀 9. Production Deployment
 
 ### Frontend (Render Static Site / Cloudflare Pages)
 - **Root Directory**: `/`

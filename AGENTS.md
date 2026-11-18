@@ -66,11 +66,13 @@ Qualsevol tasca, millora o correcció s'ha de classificar i abordar seguint aque
      - **Desenvolupament continu**: Utilitzar `npx vitest --changed` (només re-executa els tests dels fitxers modificats a Git).
    - **Tests Unitaris vs Tests d'Integració Real**:
      - `npm test`: Suite unitària ràpida amb repositoris en memòria per validar la lògica interna del codi sense consumir quota externa.
-     - `npm run test:integration` / benchmark: Smoke tests reals de connectivitat amb Geoapify, Gemini i Nominatim per verificar que els proveïdors externs i les claus d'API funcionen abans de desplegar.
+     - `npm run test:e2e`: proves de navegador (Playwright) en un perfil d'escriptori i un de mòbil, amb l'escàner a través d'una càmera simulada i els pressupostos de velocitat. Necessita el build (`npm run build`) i, la primera vegada, `npx playwright install chromium`.
+     - `npm run smoke:api`: comprovació real de l'API desplegada i dels proveïdors abans de desplegar.
+   - **Estàndard de qualitat i velocitat**: [`docs/architecture.md` §8](./docs/architecture.md). Qualsevol funcionalitat que faci servir la càmera, la geolocalització o fitxers necessita una prova E2E als dos perfils; simular el component dins d'una prova de pàgina no compta. Si un canvi fa passar una ruta del seu pressupost de JavaScript, s'apuja el pressupost al mateix canvi i se n'explica el motiu.
    - **Abans de finalitzar la sessió o concloure una fase sencera**, executar la suite completa:
      ```bash
      npm run check
-     # Executa: pretypecheck -> typecheck -> test -> build -> check:secrets
+     # Executa: typecheck -> test -> audit:pins -> build -> check:secrets -> test:e2e
      ```
 
 3. **Interfície, UX i Mapa**:
