@@ -14,7 +14,7 @@ Memòria del projecte entre sessions: **què es va decidir, per què i què es v
 - **Decisió**: els objectius de velocitat estan bé, però no es canvia la interfície, els serveis ni els proveïdors només perquè potencialment siguin més ràpids sense comentar-ho abans. **(Nils)**
 - **Com s'aplica**: si una mesura suggereix un canvi visible o de servei, es proposa amb la xifra i s'espera el sí. Els arranjaments interns invisibles i els bugs no cal consultar-los. Regla a `AGENTS.md` §4.7.
 - **Revisió del que ja es va fer el mateix dia**:
-  - Els vídeos de `/recursos` ara es carreguen en prémer «Reprodueix». És un canvi visible fet per velocitat i privacitat (YouTube enviava la IP de cada visitant a Google), ja desplegat i pendent que en Nils el validi.
+  - Els vídeos de `/recursos` ara es carreguen en prémer «Reprodueix». És un canvi visible fet per velocitat i privacitat (YouTube enviava la IP de cada visitant a Google). Validat per en Nils el mateix dia: es manté. **(Nils)**
   - Motor de l'escàner compilat amb l'app en lloc de baixar-lo de jsdelivr: canvi intern, sense efecte visible; arregla el funcionament sense connexió i la petició a tercers.
   - Fragments del build i la funció d'icones de cuina en un mòdul a part: interns.
   - «Mapa ràpid al mòbil» i «Portada més lleugera» queden al roadmap com a propostes pendents de validar.
