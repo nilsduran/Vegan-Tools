@@ -303,7 +303,6 @@ export class SupabaseVenueStore implements VenueStore {
         address: venue.address,
         latitude: venue.latitude,
         longitude: venue.longitude,
-        location: `POINT(${venue.longitude} ${venue.latitude})`,
         classification: venue.isVegan ? "100_percent_vegan" : venue.isVegetarian ? "vegetarian" : "veg_friendly",
         is_featured: venue.isFeatured ?? false,
         status: venue.status,
