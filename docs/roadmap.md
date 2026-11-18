@@ -43,7 +43,7 @@ Backlog viu en tres blocs: **Ara** (màxim 5 ítems), **Després** (ordenat) i *
    - Falsos positius coneguts: lecitina i aromes amb origen vegetal declarat («lecitina de gira-sol») surten com a dubtosos.
 2. 🟠 **Pre-analitzar 100 cartes de Barcelona** perquè la primera visita trobi contingut a la memòria cau.
 3. 🟠 **Lector universal de codis a l'escàner** (`/scanner`): QR i qualsevol codi de barres en un sol lector; els codis numèrics van al flux de productes, les URL i QR de cartes al descobridor de cartes.
-4. 🟠 **Proves E2E dels fluxos nuclears (Playwright)**: cerca → fitxa → carta, escaneig d'un codi de barres i registre al diari.
+4. 🟠 **Proves E2E dels fluxos que falten** (`e2e/`): ja hi ha l'escàner amb càmera simulada, la comprovació d'ingredients i les pàgines principals, en mòbil i escriptori. Falten cerca → fitxa → carta i el registre al diari.
 5. 🟡 **Perfils de Liberapay i GitHub Sponsors** enllaçats des de `/about` (vegeu [`funding/funding-options.md`](./funding/funding-options.md)).
 6. 🟡 **Reclutar 20 persones de prova** i fer 5 converses de feedback abans de planificar la fase 2.
 7. 🟠 **API sense arrencades en fred abans de la beta**: el pla gratuït de Render adorm l'API després de 15 minuts sense trànsit i la primera petició triga prop d'un minut. La RAM no és el problema (l'API ocupa uns 70 MB dels 512 MB).
@@ -65,10 +65,11 @@ Backlog viu en tres blocs: **Ara** (màxim 5 ítems), **Després** (ordenat) i *
 18. 🟠 **Racionalització de proveïdors de cerca** (`restaurant-search.ts`): de 4 proveïdors a un flux primari/secundari, mesurant cobertura abans i després.
 19. 🟡 **Historial d'escaneig local** (`/scanner`), només a `localStorage`.
 20. 🟡 **Unificar `AddRestaurantModal` i `EditRestaurantModal`** en un sol formulari.
-21. 🟠 **Mapa només amb MapLibre GL** (`RestaurantMap.tsx`): ara es carreguen dos motors de mapa (Leaflet per als pins i MapLibre per a les rajoles vectorials, units per `@maplibre/maplibre-gl-leaflet` 0.1.x). Amb MapLibre sol, es treu Leaflet (~43 kB gzip), el pont i una capa d'incompatibilitats. Cal reescriure pins, agrupació i finestres emergents, i provar-ho a mòbil.
+21. 🟠 **Mapa ràpid al mòbil** (`RestaurantMap.tsx`, `MenuReaderPage.tsx`): en un mòbil de gamma mitjana el mapa triga uns 5 s a aparèixer i el fons uns 9 s (objectiu: 3 s). La pàgina `/map` descarrega 665 kB de JavaScript, i 290 kB són MapLibre. Passar a MapLibre sol (treure Leaflet, ~43 kB, i el pont `@maplibre/maplibre-gl-leaflet` 0.1.x) i mirar per què el contenidor del mapa espera. Cal reescriure pins, agrupació i finestres emergents, i provar-ho a mòbil.
+22. 🟡 **Portada més lleugera**: LCP de 3,7 s en un mòbil de gamma mitjana (objectiu: 2,5 s). Al paquet inicial hi ha el client de Supabase (diàleg d'inici de sessió), el classificador i les cartes curades, i la portada no els necessita per pintar-se.
 
 ### Fase 3 — Sostenibilitat
-22. 🟠 **Sol·licituds a EA Animal Welfare Fund i ACE Movement Grants** amb dades d'ús reals de les fases 1 i 2.
+23. 🟠 **Sol·licituds a EA Animal Welfare Fund i ACE Movement Grants** amb dades d'ús reals de les fases 1 i 2.
 
 ---
 

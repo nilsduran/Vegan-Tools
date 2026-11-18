@@ -48,3 +48,14 @@ describe("golden ingredient benchmark", () => {
     expect(plantOnly.filter((sample) => !readsAsVegan(sample)).length).toBeLessThanOrEqual(6);
   });
 });
+
+describe("classifier speed", () => {
+  // Runs on every scan and keystroke in the browser: 182 labels take about
+  // 160 ms on a laptop. The ceiling leaves room for slow CI machines.
+  it("classifies the 182 golden labels in under a second", () => {
+    classifyIngredients("warm-up", { assurance: "external" });
+    const started = performance.now();
+    for (const sample of samples) classifyIngredients(sample.text, { assurance: "external" });
+    expect(performance.now() - started).toBeLessThan(1_000);
+  });
+});

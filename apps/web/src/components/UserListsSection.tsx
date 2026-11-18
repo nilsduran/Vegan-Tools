@@ -30,7 +30,7 @@ import {
 import { getCachedRestaurant, getCachedRestaurantsMap } from "../utils/restaurantCache";
 import { FEATURED_RESTAURANTS, type RestaurantCandidate } from "@vegan-tools/domain";
 import { tx } from "../i18n";
-import { getCuisineIcon } from "./RestaurantMap";
+import { getCuisineIcon } from "../utils/cuisine-icon";
 
 export function UserListsSection() {
   const [lists, setLists] = useState<UserRestaurantList[]>(() => loadUserLists());

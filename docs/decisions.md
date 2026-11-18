@@ -10,6 +10,19 @@ Memòria del projecte entre sessions: **què es va decidir, per què i què es v
 
 ---
 
+## 2026-11-18 — Proves de mòbil i escriptori, i un estàndard de velocitat
+- **Context**: Nils va trobar que la càmera no funcionava a l'escàner de codis (com si no tingués permís) però sí a la foto d'ingredients, i que hi ha processos lents. Va demanar que les proves ho tinguessin en compte i que hi hagués un estàndard de qualitat i de velocitat. **(Nils)**
+- **Causa del bug** (deduït): des del 29-10-2026 (`db9efd8`) l'escàner demanava formats (aztec, data_matrix, pdf417) que el polyfill ZBar no suporta, i el seu constructor llança un error. Afectava tots els dispositius sense `BarcodeDetector` natiu (iPhone, Firefox, Chrome de Windows). L'error es capturava amb els de permís i mostrava «No es pot accedir a la càmera». L'única prova que hi havia simulava el component sencer.
+- **Decisions**:
+  - Proves E2E amb Playwright en un perfil d'escriptori i un de mòbil, contra el build de producció i amb l'API simulada. L'escàner es prova amb una càmera falsa que mostra un EAN-13 real.
+  - Pressupostos de JavaScript per ruta com a porta dura (són deterministes), i límits de temps amplis a la CI perquè les proves no siguin inestables. Estàndard a `architecture.md` §8.
+  - E2E a `npm run check` i a la CI. **(deduït del que va demanar Nils)**
+- **Trobat i arreglat de passada** (deduït):
+  - El polyfill carregava el motor ZBar des de `cdn.jsdelivr.net` a cada visita a l'escàner: no funcionava sense connexió i feia una petició a tercers. Ara es compila amb l'app i es pre-carrega.
+  - Els vídeos de `/recursos` (YouTube) es carregaven sempre, tot i `loading="lazy"`: 1,4 MB de JavaScript i la IP del visitant enviada a Google. Ara només es carreguen en prémer «Reprodueix»; la pàgina baixa a 200 kB.
+  - La portada i la fitxa de restaurant carregaven Leaflet per una funció d'icones, i totes les pàgines carregaven l'escàner per culpa de l'ajudant de precàrrega de Vite.
+- **Descartat per ara**: WebKit (iPhone) a la CI. La càmera falsa només existeix a Chromium, i el camí del polyfill és el mateix.
+
 ## 2026-11-18 — PostGIS retirat per l'avís crític de seguretat de Supabase
 - **Context**: el Security Advisor de Supabase va marcar com a crític `rls_disabled_in_public` (14-11-2026). La causa és `public.spatial_ref_sys`, la taula de PostGIS: és de `supabase_admin`, així que no s'hi pot activar RLS (les migracions de l'octubre ho intentaven i s'empassaven l'error), i la clau pública hi podia escriure. Comprovat el 18-11 amb escriptures que no afecten cap fila: no donen error de permís. **(deduït)**
 - **Risc real**: no exposava dades d'usuaris (són definicions de sistemes de coordenades), però qualsevol podia esborrar-les i trencar les consultes espacials.

@@ -9,7 +9,7 @@ type Detector = {
   detect(source: CanvasImageSource): Promise<Array<{ rawValue: string }>>;
 };
 
-type NativeBarcodeDetector = {
+type BarcodeDetectorClass = {
   new (options: { formats: string[] }): Detector;
   getSupportedFormats?: () => Promise<string[]>;
 };
@@ -30,9 +30,29 @@ const UNIVERSAL_BARCODE_FORMATS = [
   "upc_e",
 ];
 
+/**
+ * Creates a detector for every format the reader in use actually supports.
+ *
+ * The native BarcodeDetector exists on Android Chrome and macOS. Elsewhere
+ * (iPhone Safari, Firefox, Chrome on Windows) the ZBar polyfill is used, and
+ * its constructor throws on formats it does not know (aztec, data_matrix,
+ * pdf417). Asking it for the full list broke the scanner on those devices.
+ */
+export async function createBarcodeDetector(): Promise<Detector> {
+  const NativeDetector = (globalThis as unknown as { BarcodeDetector?: BarcodeDetectorClass })
+    .BarcodeDetector;
+  const DetectorClass = NativeDetector ?? (BarcodeDetectorPolyfill as unknown as BarcodeDetectorClass);
+  const available = DetectorClass.getSupportedFormats
+    ? await DetectorClass.getSupportedFormats()
+    : UNIVERSAL_BARCODE_FORMATS;
+  const formats = UNIVERSAL_BARCODE_FORMATS.filter((format) => available.includes(format));
+  return new DetectorClass({ formats: formats.length > 0 ? formats : ["qr_code"] });
+}
+
 export function BarcodeCamera({ onDetected }: { onDetected: (value: string) => void }) {
   const videoRef = useRef<HTMLVideoElement>(null);
   const [error, setError] = useState("");
+  const [readerFailed, setReaderFailed] = useState(false);
   const [started, setStarted] = useState(true);
   const [showPermissionModal, setShowPermissionModal] = useState(false);
   const [canShowPermissionHelp, setCanShowPermissionHelp] = useState(false);
@@ -48,6 +68,7 @@ export function BarcodeCamera({ onDetected }: { onDetected: (value: string) => v
 
     const start = async () => {
       setError("");
+      setReaderFailed(false);
       setCanShowPermissionHelp(false);
       try {
         const permissionState = await getCameraPermissionState();
@@ -61,48 +82,53 @@ export function BarcodeCamera({ onDetected }: { onDetected: (value: string) => v
           video: { facingMode: "environment", width: { ideal: 1280 } },
         });
         if (!active || !videoRef.current) return;
-        const NativeDetector = (globalThis as unknown as {
-          BarcodeDetector?: NativeBarcodeDetector;
-        }).BarcodeDetector;
-        const supportedFormats = NativeDetector?.getSupportedFormats
-          ? (await NativeDetector.getSupportedFormats()).filter((format) => UNIVERSAL_BARCODE_FORMATS.includes(format))
-          : UNIVERSAL_BARCODE_FORMATS;
-        const DetectorClass = NativeDetector ?? (BarcodeDetectorPolyfill as unknown as NativeBarcodeDetector);
-        const detector = new DetectorClass({
-          formats: supportedFormats.length > 0 ? supportedFormats : ["qr_code"],
-        });
         videoRef.current.srcObject = stream;
         await videoRef.current.play();
-
-        const detect = async () => {
-          if (!active || !videoRef.current) return;
-          try {
-            const results = await detector.detect(videoRef.current);
-            const value = results[0]?.rawValue ?? "";
-            if (value && value === lastValue) hits += 1;
-            else {
-              lastValue = value;
-              hits = value ? 1 : 0;
-            }
-            if (hits >= 2) {
-              navigator.vibrate?.(100);
-              onDetected(value);
-              return;
-            }
-          } catch {
-            // A partially decoded frame is expected; continue scanning.
-          }
-          window.setTimeout(() => {
-            frame = requestAnimationFrame(detect);
-          }, 180);
-        };
-        frame = requestAnimationFrame(detect);
       } catch (error) {
+        console.error("[BarcodeCamera] Camera could not start", error);
+        stream?.getTracks().forEach((track) => track.stop());
         setError(tx("Camera access is unavailable. Enter the barcode below."));
-        const permissionError = isCameraPermissionError(error);
-        setCanShowPermissionHelp(permissionError);
+        setCanShowPermissionHelp(isCameraPermissionError(error));
         setShowPermissionModal(false);
+        return;
       }
+
+      // The camera works from here on: a failure now is the barcode reader,
+      // not a permission problem, and the message must say so.
+      let detector: Detector;
+      try {
+        detector = await createBarcodeDetector();
+      } catch (error) {
+        console.error("[BarcodeCamera] Barcode reader could not start", error);
+        stream?.getTracks().forEach((track) => track.stop());
+        setReaderFailed(true);
+        setError(tx("The barcode reader could not start on this device. Enter the barcode below."));
+        return;
+      }
+
+      const detect = async () => {
+        if (!active || !videoRef.current) return;
+        try {
+          const results = await detector.detect(videoRef.current);
+          const value = results[0]?.rawValue ?? "";
+          if (value && value === lastValue) hits += 1;
+          else {
+            lastValue = value;
+            hits = value ? 1 : 0;
+          }
+          if (hits >= 2) {
+            navigator.vibrate?.(100);
+            onDetected(value);
+            return;
+          }
+        } catch {
+          // A partially decoded frame is expected; continue scanning.
+        }
+        window.setTimeout(() => {
+          frame = requestAnimationFrame(detect);
+        }, 180);
+      };
+      frame = requestAnimationFrame(detect);
     };
     void start();
 
@@ -115,17 +141,7 @@ export function BarcodeCamera({ onDetected }: { onDetected: (value: string) => v
 
   const handleNativeCapture = async (file: File) => {
     try {
-      const NativeDetector = (globalThis as unknown as {
-        BarcodeDetector?: NativeBarcodeDetector;
-      }).BarcodeDetector;
-      const supportedFormats = NativeDetector?.getSupportedFormats
-        ? (await NativeDetector.getSupportedFormats()).filter((format) => UNIVERSAL_BARCODE_FORMATS.includes(format))
-        : UNIVERSAL_BARCODE_FORMATS;
-      const DetectorClass = NativeDetector ?? (BarcodeDetectorPolyfill as unknown as NativeBarcodeDetector);
-      const detector = new DetectorClass({
-        formats: supportedFormats.length > 0 ? supportedFormats : ["qr_code"],
-      });
-
+      const detector = await createBarcodeDetector();
       const img = new Image();
       img.src = URL.createObjectURL(file);
       await img.decode();
@@ -135,8 +151,8 @@ export function BarcodeCamera({ onDetected }: { onDetected: (value: string) => v
         navigator.vibrate?.(100);
         onDetected(results[0].rawValue);
       }
-    } catch {
-      // Continue without breaking
+    } catch (error) {
+      console.error("[BarcodeCamera] Could not read a barcode from the photo", error);
     }
   };
 
@@ -161,7 +177,7 @@ export function BarcodeCamera({ onDetected }: { onDetected: (value: string) => v
             <span>{error}</span>
           </div>
           <div style={{ display: "flex", gap: "0.5rem", flexWrap: "wrap", justifyContent: "center" }}>
-            {canShowPermissionHelp && (
+            {canShowPermissionHelp && !readerFailed && (
               <button
                 type="button"
                 className="secondary-button"

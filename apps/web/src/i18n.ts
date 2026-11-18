@@ -175,6 +175,10 @@ export const caPhrases = {
   "Capture label": "Captura l'etiqueta",
   "Camera access is unavailable. Enter the barcode below.":
     "No es pot accedir a la càmera. Introdueix el codi de barres a continuació.",
+  "The barcode reader could not start on this device. Enter the barcode below.":
+    "El lector de codis no s'ha pogut iniciar en aquest dispositiu. Introdueix el codi de barres a continuació.",
+  "Play video": "Reprodueix el vídeo",
+  "Loads YouTube": "Es carrega des de YouTube",
   "Camera access is unavailable. Upload an image below instead.":
     "No es pot accedir a la càmera. Puja una imatge a continuació.",
   "Use your camera to scan a barcode.": "Utilitza la càmera per escanejar un codi de barres.",

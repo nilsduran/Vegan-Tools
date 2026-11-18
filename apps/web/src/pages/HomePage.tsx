@@ -20,7 +20,7 @@ import {
 import { Link } from "react-router-dom";
 import { tx } from "../i18n";
 import { useDocumentHead } from "../utils/seo";
-import { getCuisineIcon } from "../components/RestaurantMap";
+import { getCuisineIcon } from "../utils/cuisine-icon";
 import { getCuisineTags } from "../components/RestaurantDetailPane";
 import { CityPickerModal, type SelectedCity } from "../components/CityPickerModal";
 

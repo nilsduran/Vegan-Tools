@@ -22,6 +22,7 @@
     "pretest": "npm run build -w @vegan-tools/domain",
     "test": "vitest run",
     "test:watch": "vitest",
+    "test:e2e": "playwright test",
     "test:coverage": "tsx scripts/benchmark-restaurant-coverage.ts",
     "build:lexicon": "node scripts/build-animal-lexicon.mjs",
     "audit:pins": "node scripts/audit-curated-pins.mjs",
@@ -29,10 +30,11 @@
     "audit:restaurant-taxonomy": "tsx scripts/audit-restaurant-taxonomy-coverage.ts",
     "check:secrets": "node scripts/check-bundle-secrets.mjs",
     "smoke:api": "node scripts/smoke-api.mjs",
-    "check": "npm run typecheck && npm test && npm run audit:pins && npm run build && npm run check:secrets",
+    "check": "npm run typecheck && npm test && npm run audit:pins && npm run build && npm run check:secrets && npm run test:e2e",
     "clean": "node scripts/clean.mjs"
   },
   "devDependencies": {
+    "@playwright/test": "^1.62.1",
     "@types/node": "^22.15.0",
     "concurrently": "^9.1.2",
     "playwright": "^1.62.1",

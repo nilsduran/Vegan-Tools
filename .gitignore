@@ -18,3 +18,4 @@ apps/web/ios/
 *.log
 *.tsbuildinfo
 brain-screenshots/
+.e2e-cache/
