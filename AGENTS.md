@@ -56,7 +56,9 @@ Qualsevol tasca, millora o correcció s'ha de classificar i abordar seguint aque
 ## 📏 4. Regles de Treball i Bones Praxis
 
 1. **Polítiques de Git**:
-   - Desenvolupar a la branca de funcionalitat activa (`feature/interactive-map` o la corresponent) abans de fer merge a `main`.
+   - `main` està protegida a GitHub: no s'hi pot pujar directament (tampoc com a administrador). Tot entra per una PR, i només es pot fusionar quan passen els cinc jobs de la CI (Typecheck, Tests, Audits, Production build, E2E).
+   - Flux: branca (`feature/*`, `fix/*`, `docs/*`) → commits atòmics → `git push -u origin <branca>` → `gh pr create` → esperar la CI → `gh pr merge --merge`. La branca remota s'esborra sola en fusionar.
+   - Pujar una branca i obrir la PR és una acció visible: cal el vistiplau d'en Nils, igual que per fusionar-la.
    - Mantenir commits atòmics amb missatges clars i descriptius en català o anglès.
 
 2. **Cicle de Verificació, Recursos i Piràmide de Tests**:
