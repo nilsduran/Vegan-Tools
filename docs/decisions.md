@@ -10,6 +10,12 @@ Memòria del projecte entre sessions: **què es va decidir, per què i què es v
 
 ---
 
+## 2026-11-21 — `main` protegida: tot entra per PR amb la CI en verd
+- **Decisió**: protecció de branca a GitHub sobre `main`, també per a administradors: cal una PR (sense aprovació obligatòria, perquè és un sol desenvolupador) i que passin Typecheck, Tests, Audits, Production build i E2E. Sense force-push ni esborrat de `main`. Les branques remotes s'esborren en fusionar. **(Nils va dir que sí)**
+- **Per què**: el 15-11-2026 una fusió d'una sessió d'agent (`ccb8f9b`) va trencar `main` perquè es va pujar sense esperar la CI. Amb diversos agents treballant en paral·lel, és el control que atura un error abans de producció. **(deduït)**
+- **Alternativa descartada**: construir arquitectura d'IA pròpia (orquestració d'agents, indexació del codi). Els problemes reals havien estat de verificació i de context, no de falta d'eines. **(deduït; Nils ho havia preguntat)**
+- **Conseqüència**: la CI només s'executa en PR i en pujades a `main`, així que el flux és sempre branca → PR → fusió. `strict` desactivat: no cal rebasar una PR si `main` ha avançat.
+
 ## 2026-11-18 — Velocitat: cap canvi de producte sense validar-lo
 - **Decisió**: els objectius de velocitat estan bé, però no es canvia la interfície, els serveis ni els proveïdors només perquè potencialment siguin més ràpids sense comentar-ho abans. **(Nils)**
 - **Com s'aplica**: si una mesura suggereix un canvi visible o de servei, es proposa amb la xifra i s'espera el sí. Els arranjaments interns invisibles i els bugs no cal consultar-los. Regla a `AGENTS.md` §4.7.
