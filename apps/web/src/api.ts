@@ -299,6 +299,28 @@ export async function discoverMenuByUrl(
   return menuDraftSchema.parse(await response.json());
 }
 
+/** Polls a menu analysis until it leaves the "processing" state (about 90 s at most). */
+export async function waitForMenuDraft(
+  initialDraft: MenuDraft,
+  isCancelled: () => boolean,
+): Promise<MenuDraft> {
+  if (initialDraft.status !== "processing" || !initialDraft.editToken) {
+    return initialDraft;
+  }
+  let current = initialDraft;
+  for (let poll = 0; poll < 45; poll++) {
+    await new Promise((resolve) => setTimeout(resolve, 2000));
+    if (isCancelled()) return current;
+    try {
+      current = await getMenuDraft(current.id, current.editToken);
+      if (current.status !== "processing") break;
+    } catch {
+      // Keep polling
+    }
+  }
+  return current;
+}
+
 export interface CachedRestaurantMenu {
   restaurant: RestaurantCandidate;
   menu: MenuDraft;
@@ -513,6 +535,30 @@ export async function deleteRestaurantReview(
   };
 }
 
+export interface AccountExport {
+  exportedAt: string;
+  reviews: RestaurantReview[];
+  visits: RestaurantVisitLog[];
+  top4: RestaurantCandidate[];
+}
+
+/** Everything the server holds about the signed-in user (GDPR portability). */
+export async function exportAccountApi(token: string): Promise<AccountExport> {
+  const response = await checkedFetch("/v1/users/me/export", {
+    method: "GET",
+    headers: { Authorization: `Bearer ${token}` },
+  });
+  return (await response.json()) as AccountExport;
+}
+
+/** Permanently deletes the signed-in user's reviews, diary, Top 4 and account. */
+export async function deleteAccountApi(token: string): Promise<void> {
+  await checkedFetch("/v1/users/me", {
+    method: "DELETE",
+    headers: { Authorization: `Bearer ${token}` },
+  });
+}
+
 export async function getUserReviews(token: string): Promise<RestaurantReview[]> {
   const response = await checkedFetch("/v1/users/me/reviews", {
     method: "GET",
@@ -528,10 +574,11 @@ export async function getUserReviews(token: string): Promise<RestaurantReview[]>
   });
 }
 
-export async function fetchUserVisits(userId: string): Promise<RestaurantVisitLog[]> {
+export async function fetchUserVisits(userId: string, token: string): Promise<RestaurantVisitLog[]> {
   try {
     const response = await checkedFetch(`/v1/users/${encodeURIComponent(userId)}/visits`, {
       method: "GET",
+      headers: { Authorization: `Bearer ${token}` },
     });
     const json = (await response.json()) as { visits: unknown[] };
     if (!Array.isArray(json.visits)) return [];

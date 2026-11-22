@@ -58,8 +58,8 @@ export function updateDocumentMetadata(options: DocumentHeadOptions, language: "
 
   const defaultDesc =
     language === "ca"
-      ? "Eines útils i basades en evidències per al dia a dia vegà: cerca de restaurants, escàner de productes i receptari."
-      : "Evidence-led tools for navigating a non-vegan world: vegan restaurant discovery, product scanner, and recipes.";
+      ? "Eines útils i basades en evidències per al dia a dia vegà: cerca de restaurants, cartes analitzades i escàner de productes."
+      : "Evidence-led tools for navigating a non-vegan world: vegan restaurant discovery, analysed menus and a product scanner.";
 
   const effectiveTitle = options.title
     ? `${options.title} · ${SITE_NAME}`

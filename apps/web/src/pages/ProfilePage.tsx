@@ -47,7 +47,7 @@ export function ProfilePage() {
     type: "profile",
   });
   const { user, token, signOut } = useAuth();
-  const diaryLogs = useDiaryLogs(user?.id);
+  const diaryLogs = useDiaryLogs(user?.id, token);
   const { lifestyle } = useLifestyle();
 
   const [reviews, setReviews] = useState<RestaurantReview[]>([]);

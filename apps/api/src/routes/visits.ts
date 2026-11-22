@@ -32,6 +32,21 @@ export async function visitRoutes(app: FastifyInstance, options: VisitRoutesOpti
         return reply.code(400).send({ message: "User ID is required." });
       }
 
+      // The diary holds personal notes: only its owner can read it.
+      const user = await authenticateRequest(request, verifyToken);
+      if (!user) {
+        return reply.code(401).send({
+          code: "UNAUTHORIZED",
+          message: "You must be authenticated to read visit logs.",
+        });
+      }
+      if (user.id !== userId) {
+        return reply.code(403).send({
+          code: "FORBIDDEN",
+          message: "You cannot read visit logs of another user.",
+        });
+      }
+
       const visits = await visitStore.getUserVisits(userId);
       return reply.send({ visits });
     }

@@ -17,3 +17,4 @@ export * from "./cookbook.js";
 export * from "./user.js";
 export * from "./curated-menus.js";
 export * from "./closed-venues.js";
+export * from "./scanned-code.js";

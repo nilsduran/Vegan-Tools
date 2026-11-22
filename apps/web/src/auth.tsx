@@ -56,6 +56,9 @@ const supabaseKey = (
 
 const hasSupabase = Boolean(supabaseUrl && supabaseKey);
 
+/** True when accounts live in Supabase (production); false in the local demo mode. */
+export const isCloudAuthEnabled = hasSupabase;
+
 // The Supabase SDK is large, so it is loaded on demand in its own chunk.
 let supabasePromise: Promise<SupabaseClient> | null = null;
 function loadSupabase(): Promise<SupabaseClient> {

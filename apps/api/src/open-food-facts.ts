@@ -177,5 +177,6 @@ export async function lookupOpenFoodFacts(gtin: string): Promise<ProductResult |
     verifiedAt: capturedAt,
     revision: 1,
     evidence: [evidence],
+    category: "food",
   };
 }

@@ -18,8 +18,8 @@ describe("HomePage Spotlight Cards", () => {
       </MemoryRouter>,
     );
 
-    // Recipe card
-    expect(screen.getByRole("heading", { name: /Recipes/i })).toBeDefined();
+    // Recipes are switched off (features.ts): no recipe card on the home page
+    expect(screen.queryByRole("heading", { name: /Recipes/i })).toBeNull();
 
     // Resources card in English
     expect(screen.getByRole("heading", { name: /Understand veganism/i })).toBeDefined();
@@ -38,7 +38,7 @@ describe("HomePage Spotlight Cards", () => {
       </MemoryRouter>,
     );
 
-    expect(screen.getByRole("heading", { name: /Receptes/i })).toBeDefined();
+    expect(screen.queryByRole("heading", { name: /Receptes/i })).toBeNull();
     expect(screen.getByRole("heading", { name: /Comprendre el veganisme/i })).toBeDefined();
     expect(screen.getByText(/Història des dels orígens antics fins a pensadores modernes/i)).toBeDefined();
 

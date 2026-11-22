@@ -3,6 +3,7 @@ import type {
   DietVerdict,
   MenuItemModification,
 } from "@vegan-tools/domain";
+import { recordGeminiCall } from "./usage-counters.js";
 
 export interface PolishedDishFeedback {
   reason: string;
@@ -152,6 +153,7 @@ Rules for evaluation:
             },
           },
         });
+        recordGeminiCall("feedback", response);
 
         const text = response.text;
         if (!text) continue;
@@ -232,6 +234,7 @@ Task:
             },
           },
         });
+        recordGeminiCall("feedback", response);
 
         const text = response.text;
         if (!text) continue;

@@ -14,6 +14,7 @@ import {
   visibleMenuDescription,
   type MenuDraft,
 } from "@vegan-tools/domain";
+import { recordGeminiCall } from "./usage-counters.js";
 
 interface Upload {
   filename: string;
@@ -175,6 +176,7 @@ Return JSON matching the supplied schema.${options?.highAccuracy ? "\nExtract wi
         if (delay) await new Promise((resolve) => setTimeout(resolve, delay));
         try {
           response = await generate(model);
+          recordGeminiCall("menu", response);
           selectedModel = model;
           break;
         } catch (error) {

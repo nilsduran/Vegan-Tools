@@ -15,7 +15,6 @@ import { expect, test } from "./support/app";
 const JS_BUDGET_KB: Record<string, number> = {
   "/": 320,
   "/scanner": 290,
-  "/recipes": 305,
   "/resources": 290,
   "/map": 700, // includes the MapLibre vector basemap (~290 kB gzip)
 };

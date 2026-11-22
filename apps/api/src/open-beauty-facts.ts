@@ -148,6 +148,7 @@ export async function lookupOpenBeautyFacts(gtin: string): Promise<ProductResult
       verifiedAt: capturedAt,
       revision: 1,
       evidence: [evidence],
+      category: "beauty",
       isBeautyProduct: true,
       crueltyFree: isCrueltyFree,
       crueltyFreeCertifications: detectedCertifications,

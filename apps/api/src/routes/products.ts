@@ -17,6 +17,7 @@ import {
 import type { Repository } from "../store.js";
 import { lookupOpenFoodFacts } from "../open-food-facts.js";
 import { lookupOpenBeautyFacts } from "../open-beauty-facts.js";
+import { lookupOpenProductsFacts } from "../open-products-facts.js";
 import type { IngredientExtractor } from "../ingredient-extractor.js";
 import { authenticateRequest, createTokenVerifier, type TokenVerifier } from "../auth.js";
 
@@ -55,17 +56,24 @@ export async function productRoutes(app: FastifyInstance, options: ProductRoutes
     const cached = await repo.getProduct(gtin);
     if (cached?.classifierVersion === CLASSIFIER_VERSION) return cached;
 
-    try {
-      let product = await lookupOpenFoodFacts(gtin);
-      if (!product) {
-        product = await lookupOpenBeautyFacts(gtin);
+    // The three databases are asked at once (a barcode is in at most one of
+    // them in practice) and food wins over cosmetics over other products.
+    const lookups = await Promise.allSettled([
+      lookupOpenFoodFacts(gtin),
+      lookupOpenBeautyFacts(gtin),
+      lookupOpenProductsFacts(gtin),
+    ]);
+    for (const lookup of lookups) {
+      if (lookup.status === "rejected") {
+        request.log.warn({ error: lookup.reason }, "Open Facts lookup failed");
       }
-      if (product) {
-        await repo.saveProduct(product);
-        return product;
-      }
-    } catch (error) {
-      request.log.warn({ error }, "Open Food / Beauty Facts lookup failed");
+    }
+    const product = lookups
+      .map((lookup) => (lookup.status === "fulfilled" ? lookup.value : undefined))
+      .find((candidate): candidate is ProductResult => Boolean(candidate));
+    if (product) {
+      await repo.saveProduct(product);
+      return product;
     }
 
     const unknown: ProductResult = {

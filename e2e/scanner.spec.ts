@@ -46,3 +46,55 @@ test("explains how to enable a denied camera and still allows typing ingredients
   await page.getByRole("button", { name: /Check ingredients/ }).click();
   await expect(page.locator(".verdict-non_vegetarian").first()).toBeVisible();
 });
+
+test("a restaurant menu QR code leads to the dishes I can order", async ({ page }) => {
+  // Keep the fake camera from reading its barcode and leaving the page.
+  await page.addInitScript(() => {
+    navigator.mediaDevices.getUserMedia = () =>
+      Promise.reject(new DOMException("Permission denied", "NotAllowedError"));
+  });
+  await mockJson(page, /\/v1\/menus\/discover$/, {
+    id: "menu-e2e",
+    editToken: "token",
+    status: "ready",
+    restaurantName: "Bar E2E",
+    sourceLabel: "Website",
+    sourceUrl: "https://bar-e2e.example/carta",
+    sourceFiles: [],
+    sourceCapturedAt: new Date().toISOString(),
+    originalLanguage: "ca",
+    sections: [
+      {
+        id: "s1",
+        name: "Plats",
+        items: [
+          { id: "d1", originalName: "Amanida de cigrons", name: "Amanida de cigrons", verdict: "vegan", reason: "" },
+          { id: "d2", originalName: "Croquetes de pernil", name: "Croquetes de pernil", verdict: "non_vegetarian", reason: "" },
+        ],
+      },
+    ],
+    createdAt: new Date().toISOString(),
+    originalDeleteAt: new Date().toISOString(),
+  });
+
+  await page.goto("/scanner");
+  await page.locator("#barcode").fill("https://bar-e2e.example/carta");
+  await page.locator("#barcode").press("Enter");
+  await page.getByRole("button", { name: /See what I can order|Mira què puc demanar/ }).click();
+
+  await expect(page).toHaveURL(/\/scan\/menu\?url=/);
+  await expect(page.getByText("Amanida de cigrons")).toBeVisible();
+  await expect(page.getByText(/classified automatically|classificats automàticament/)).toBeVisible();
+});
+
+test("a misread barcode number is rejected instead of looked up", async ({ page }) => {
+  await page.addInitScript(() => {
+    navigator.mediaDevices.getUserMedia = () =>
+      Promise.reject(new DOMException("Permission denied", "NotAllowedError"));
+  });
+  await page.goto("/scanner");
+  await page.locator("#barcode").fill("3017620422004");
+  await page.locator("#barcode").press("Enter");
+  await expect(page.getByRole("alert")).toContainText(/not valid|no és vàlid/);
+  await expect(page).toHaveURL(/\/scanner$/);
+});

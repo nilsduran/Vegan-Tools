@@ -20,7 +20,8 @@ import {
   Trash2,
   User as UserIcon,
 } from "lucide-react";
-import { useAuth } from "../auth";
+import { isCloudAuthEnabled, useAuth } from "../auth";
+import { deleteAccountApi, exportAccountApi } from "../api";
 import { setLanguage, tx, useLanguage } from "../i18n";
 import { useDocumentHead } from "../utils/seo";
 import { useLifestyle, type LifestyleIdentity } from "../lifestyle";
@@ -78,8 +79,13 @@ export function SettingsPage() {
     }
   };
 
-  const handleExportData = () => {
+  const [accountError, setAccountError] = useState<string | null>(null);
+  const [deletingAccount, setDeletingAccount] = useState(false);
+
+  const handleExportData = async () => {
+    setAccountError(null);
     try {
+      const cloud = isCloudAuthEnabled && user && token ? await exportAccountApi(token) : null;
       const exportPayload = {
         exportedAt: new Date().toISOString(),
         user: {
@@ -93,6 +99,7 @@ export function SettingsPage() {
         top4Restaurants: getUserTop4(user?.id),
         diaryLogs: getDiaryLogs(user?.id),
         userLists: loadUserLists(),
+        cloud,
       };
       const blob = new Blob([JSON.stringify(exportPayload, null, 2)], {
         type: "application/json",
@@ -106,23 +113,29 @@ export function SettingsPage() {
       document.body.removeChild(a);
       URL.revokeObjectURL(url);
     } catch {
-      alert("Error exporting data");
+      setAccountError(tx("Your data could not be exported. Please try again."));
     }
   };
 
-  const handleDeleteAccount = () => {
+  const handleDeleteAccount = async () => {
     const confirmation = confirm(
       tx("Are you sure you want to delete your account? All your personal logs and reviews will be permanently deleted.")
     );
     if (!confirmation) return;
 
+    setAccountError(null);
+    setDeletingAccount(true);
     try {
+      // Server first: if it fails, nothing is cleared and the person is told.
+      if (isCloudAuthEnabled && token) await deleteAccountApi(token);
       if (user?.id) clearLocalDiaryData(user.id);
       clearUserLists();
-      void signOut();
+      await signOut();
       navigate("/");
     } catch {
-      alert("Error deleting account.");
+      setAccountError(tx("Your account could not be deleted. Nothing has been removed; please try again."));
+    } finally {
+      setDeletingAccount(false);
     }
   };
 
@@ -533,7 +546,7 @@ export function SettingsPage() {
           <button
             type="button"
             className="secondary-button"
-            onClick={handleExportData}
+            onClick={() => void handleExportData()}
             style={{
               display: "inline-flex",
               alignItems: "center",
@@ -575,13 +588,19 @@ export function SettingsPage() {
             <button
               type="button"
               className="settings-delete-btn"
-              onClick={handleDeleteAccount}
+              onClick={() => void handleDeleteAccount()}
+              disabled={deletingAccount}
             >
               <Trash2 size={16} />
               <span>{tx("Delete account and data")}</span>
             </button>
           )}
         </div>
+        {accountError && (
+          <p className="settings-error" role="alert">
+            {accountError}
+          </p>
+        )}
       </section>
     </div>
   );

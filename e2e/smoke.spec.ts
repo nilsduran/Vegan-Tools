@@ -2,7 +2,7 @@ import { expect, test } from "./support/app";
 
 // Each main page must render its heading on desktop and mobile, even with the
 // API unreachable.
-const routes = ["/", "/scanner", "/recipes", "/resources", "/about"];
+const routes = ["/", "/scanner", "/resources", "/about"];
 
 for (const route of routes) {
   test(`renders ${route}`, async ({ page }) => {

@@ -86,6 +86,8 @@ export const productResultSchema = z.object({
   verifiedAt: z.string().optional(),
   revision: z.number().int().positive().default(1),
   evidence: z.array(evidenceSchema).default([]),
+  /** Which database identified the product: food, cosmetics, or anything else. */
+  category: z.enum(["food", "beauty", "other"]).optional(),
   isBeautyProduct: z.boolean().optional(),
   crueltyFree: z.boolean().optional(),
   crueltyFreeCertifications: z.array(z.string()).optional(),

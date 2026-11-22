@@ -82,6 +82,7 @@ import {
   findClosestCityHub,
   type RestaurantCandidate,
 } from "@vegan-tools/domain";
+import { RECIPES_ENABLED } from "../features";
 
 export function HomePage() {
   useDocumentHead({
@@ -189,7 +190,9 @@ export function HomePage() {
           </div>
           <p className="home-greeting-subtitle">
             {tx(
-              "Check ingredients in seconds, discover vegan-friendly restaurants on the map and veganize any recipe with ease.",
+              RECIPES_ENABLED
+                ? "Check ingredients in seconds, discover vegan-friendly restaurants on the map and veganize any recipe with ease."
+                : "Check ingredients in seconds and find out what you can order at any restaurant.",
             )}
           </p>
         </header>
@@ -296,6 +299,7 @@ export function HomePage() {
         </section>
 
         {/* Recipes Quick Card */}
+        {RECIPES_ENABLED && (
         <section className="home-section">
           <Link to="/recipes" className="home-recipe-card">
             <div className="home-recipe-card-icon-wrap" aria-hidden="true">
@@ -316,6 +320,7 @@ export function HomePage() {
             </div>
           </Link>
         </section>
+        )}
 
         {/* Resources & Ethics Quick Card */}
         <section className="home-section">

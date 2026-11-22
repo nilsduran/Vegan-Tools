@@ -6,6 +6,7 @@
 
 import { GoogleGenAI } from "@google/genai";
 import type { RestaurantCandidate } from "@vegan-tools/domain";
+import { recordGeminiCall } from "./usage-counters.js";
 
 export interface RestaurantWebsiteFinder {
   find(
@@ -97,6 +98,7 @@ Return the official website URL if found, or NONE if no official website exists.
             temperature: 0,
           },
         });
+        recordGeminiCall("website", response);
         responseText = response.text;
         groundedUris = response.candidates?.flatMap((candidate) =>
           candidate.groundingMetadata?.groundingChunks?.flatMap(

@@ -26,8 +26,8 @@ import {
 import {
   createRestaurantMenuAnalysis,
   discoverMenuByUrl,
+  waitForMenuDraft,
   discoverRestaurantMenu,
-  getMenuDraft,
   getRestaurantById,
   getRestaurantMenu,
   resolveRestaurant,
@@ -57,27 +57,6 @@ function isSocialMediaUrl(url?: string): boolean {
   } catch {
     return false;
   }
-}
-
-async function waitForMenuProcessing(
-  initialDraft: MenuDraft,
-  isCancelled: () => boolean,
-): Promise<MenuDraft> {
-  if (initialDraft.status !== "processing" || !initialDraft.editToken) {
-    return initialDraft;
-  }
-  let current = initialDraft;
-  for (let poll = 0; poll < 45; poll++) {
-    await new Promise((resolve) => setTimeout(resolve, 2000));
-    if (isCancelled()) return current;
-    try {
-      current = await getMenuDraft(current.id, current.editToken);
-      if (current.status !== "processing") break;
-    } catch {
-      // Keep polling
-    }
-  }
-  return current;
 }
 
 export function RestaurantMenuPage() {
@@ -208,7 +187,7 @@ export function RestaurantMenuPage() {
             candidateWithWebsite.websiteUrl,
           );
           if (!isCancelled) {
-            const finalDraft = await waitForMenuProcessing(discDraft, () => isCancelled);
+            const finalDraft = await waitForMenuDraft(discDraft, () => isCancelled);
             if (!isCancelled && finalDraft.sections && finalDraft.sections.length > 0) {
               setMenuDraft(finalDraft);
               setLoadingMenu(false);
@@ -247,7 +226,7 @@ export function RestaurantMenuPage() {
     let cancelled = false;
     try {
       const res = await discoverMenuByUrl(url, restaurant?.name);
-      const finalDraft = await waitForMenuProcessing(res, () => cancelled);
+      const finalDraft = await waitForMenuDraft(res, () => cancelled);
       if (finalDraft.sections && finalDraft.sections.length > 0) {
         setMenuDraft(finalDraft);
       } else {
@@ -264,6 +243,27 @@ export function RestaurantMenuPage() {
     }
   };
 
+  const [isRefreshingMenu, setIsRefreshingMenu] = useState(false);
+  const handleRefreshFromSource = async () => {
+    const url = menuDraft?.sourceUrl;
+    if (!url) return;
+    setIsRefreshingMenu(true);
+    setMenuError(null);
+    try {
+      const res = await discoverMenuByUrl(url, restaurant?.name);
+      const finalDraft = await waitForMenuDraft(res, () => false);
+      if (finalDraft.sections && finalDraft.sections.length > 0) {
+        setMenuDraft(finalDraft);
+      } else {
+        setMenuError(finalDraft.error ? tx(finalDraft.error) : tx("Finding menu on website failed."));
+      }
+    } catch (err) {
+      setMenuError(err instanceof Error ? err.message : tx("Finding menu on website failed."));
+    } finally {
+      setIsRefreshingMenu(false);
+    }
+  };
+
   const handleCustomFileUpload = async (files: File[]) => {
     if (files.length === 0) return;
     setIsUploadingMenuFiles(true);
@@ -271,7 +271,7 @@ export function RestaurantMenuPage() {
     let cancelled = false;
     try {
       const draft = await createRestaurantMenuAnalysis(files, restaurant ?? undefined);
-      const finalDraft = await waitForMenuProcessing(draft, () => cancelled);
+      const finalDraft = await waitForMenuDraft(draft, () => cancelled);
       if (finalDraft.sections && finalDraft.sections.length > 0) {
         setMenuDraft(finalDraft);
       } else {
@@ -341,6 +341,8 @@ export function RestaurantMenuPage() {
         <MenuView
           menu={menuDraft}
           onUpdateMenu={(updated) => setMenuDraft(updated)}
+          onRefreshFromSource={menuDraft.sourceUrl ? () => void handleRefreshFromSource() : undefined}
+          isRefreshing={isRefreshingMenu}
         />
       )}
 

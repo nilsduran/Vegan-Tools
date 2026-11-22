@@ -66,7 +66,7 @@ export function RestaurantDetailPage() {
   const navigate = useNavigate();
   const location = useLocation();
   const language = useLanguage();
-  const { user } = useAuth();
+  const { user, token } = useAuth();
 
   const [restaurant, setRestaurant] = useState<RestaurantCandidate | null>(null);
   const [loading, setLoading] = useState(true);
@@ -91,7 +91,7 @@ export function RestaurantDetailPage() {
   });
 
   // Reactive diary logs scoped to user
-  useDiaryLogs(user?.id);
+  useDiaryLogs(user?.id, token);
   const visitLogs = id && user ? getLogsForRestaurant(id, user.id) : [];
   const datedVisitLogs = visitLogs.filter((log) => Boolean(log.visitDate));
 

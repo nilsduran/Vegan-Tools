@@ -14,6 +14,8 @@ export interface RestaurantVisitStore {
   deleteVisit(visitId: string, userId: string): Promise<boolean>;
   getUserTop4(userId: string): Promise<RestaurantCandidate[]>;
   saveUserTop4(userId: string, restaurants: RestaurantCandidate[]): Promise<void>;
+  /** Deletes every visit and the Top 4 of this user. Throws if the store cannot confirm it. */
+  deleteUserData(userId: string): Promise<number>;
 }
 
 export class MemoryRestaurantVisitStore implements RestaurantVisitStore {
@@ -72,6 +74,13 @@ export class MemoryRestaurantVisitStore implements RestaurantVisitStore {
 
   async saveUserTop4(userId: string, restaurants: RestaurantCandidate[]): Promise<void> {
     this.top4.set(userId, restaurants.slice(0, 4));
+  }
+
+  async deleteUserData(userId: string): Promise<number> {
+    const count = this.visits.get(userId)?.length ?? 0;
+    this.visits.delete(userId);
+    this.top4.delete(userId);
+    return count;
   }
 }
 
@@ -234,6 +243,19 @@ export class SupabaseRestaurantVisitStore implements RestaurantVisitStore {
     } catch {
       await this.memoryFallback.saveUserTop4(userId, list);
     }
+  }
+
+  async deleteUserData(userId: string): Promise<number> {
+    const visits = await this.client
+      .from("restaurant_visits")
+      .delete()
+      .eq("user_id", userId)
+      .select("id");
+    if (visits.error) throw new Error(`Failed to delete visits: ${visits.error.message}`);
+    const top4 = await this.client.from("user_top4").delete().eq("user_id", userId);
+    if (top4.error) throw new Error(`Failed to delete Top 4: ${top4.error.message}`);
+    const memoryCount = await this.memoryFallback.deleteUserData(userId);
+    return Math.max(visits.data?.length ?? 0, memoryCount);
   }
 }
 

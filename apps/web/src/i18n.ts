@@ -466,6 +466,8 @@ export const caPhrases = {
   "Scientific evidence hierarchy to verify ingredients.": "Jerarquia d'evidències contrastades per avalar cada ingredient.",
   "Check ingredients in seconds, discover vegan-friendly restaurants on the map and veganize any recipe with ease.":
     "Comprova ingredients amb la càmera, descobreix restaurants 100% vegans i adapta qualsevol recepta en segons.",
+  "Check ingredients in seconds and find out what you can order at any restaurant.":
+    "Comprova ingredients en segons i descobreix què pots demanar a qualsevol restaurant.",
   "Search restaurant, city or barcode…": "Cerca un restaurant, ciutat o codi de barres…",
   "Scan barcodes or take photos of ingredient labels to instantly flag animal derivatives and E-numbers.":
     "Escaneja el codi de barres o fes una foto a l'etiqueta d'ingredients per detectar additius i derivats animals.",
@@ -941,6 +943,43 @@ export const caPhrases = {
   "Are you sure you want to delete your account? All your personal logs and reviews will be permanently deleted.":
     "N'estàs segur que vols eliminar el teu compte? S'eliminaran permanentment totes les teves visites i ressenyes.",
   "Account deleted successfully": "Compte eliminat correctament",
+  "Menu analysed": "Carta analitzada",
+  "Source": "Font",
+  "Vegan certification": "Certificació vegana",
+  "A recognised vegan certification backs this result.": "Una certificació vegana reconeguda avala aquest resultat.",
+  "Manufacturer statement": "Declaració del fabricant",
+  "Based on the manufacturer's current statement.": "Basat en la declaració actual del fabricant.",
+  "Ingredient label": "Etiqueta d'ingredients",
+  "Based on the ingredient list you checked. Automatic reading, not a certification.":
+    "Basat en la llista d'ingredients que has comprovat. Lectura automàtica, no és una certificació.",
+  "Community database": "Base de dades comunitària",
+  "Based on open, community-maintained data. Check the package when it matters.":
+    "Basat en dades obertes mantingudes per la comunitat. Comprova el paquet quan sigui important.",
+  "No verified source": "Sense font verificada",
+  "No trustworthy source was found for this product.": "No s'ha trobat cap font fiable per a aquest producte.",
+  "Dishes classified automatically from the restaurant's website.":
+    "Plats classificats automàticament a partir del web del restaurant.",
+  "Dishes classified automatically from a photo or PDF of the menu.":
+    "Plats classificats automàticament a partir d'una foto o PDF de la carta.",
+  "Check with the staff when in doubt.": "Confirma-ho amb el personal si tens dubtes.",
+  "Food": "Alimentació",
+  "This barcode number is not valid. Check the digits and try again.":
+    "Aquest número de codi de barres no és vàlid. Revisa els dígits i torna-ho a provar.",
+  "Restaurant menu detected": "Carta de restaurant detectada",
+  "See what I can order": "Mira què puc demanar",
+  "Reading the menu…": "Llegint la carta…",
+  "This link does not look like a menu we can read.": "Aquest enllaç no sembla una carta que puguem llegir.",
+  "Scanned menu": "Carta escanejada",
+  "Other product": "Altres productes",
+  "Point at a barcode or QR code": "Apunta a un codi de barres o QR",
+  "Turn on the light": "Encén la llum",
+  "Turn off the light": "Apaga la llum",
+  "This menu may be out of date: restaurants change their dishes. Check with the staff before ordering.":
+    "Aquesta carta pot estar desactualitzada: els restaurants canvien els plats. Confirma-ho amb el personal abans de demanar.",
+  "Updating menu...": "Actualitzant la carta...",
+  "Your data could not be exported. Please try again.": "No s'han pogut exportar les teves dades. Torna-ho a provar.",
+  "Your account could not be deleted. Nothing has been removed; please try again.":
+    "No s'ha pogut eliminar el compte. No s'ha esborrat res; torna-ho a provar.",
   "Create your Vegan Tools profile": "Crea el teu perfil a Vegan Tools",
   "Personalize alerts and filters": "Personalitza alertes i filtres",
   "Dining Diary": "Diari de visites",

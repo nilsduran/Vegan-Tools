@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { BarcodeDetectorPolyfill } from "@undecaf/barcode-detector-polyfill";
-import { Camera, CameraOff, HelpCircle, RefreshCw } from "lucide-react";
+import { Camera, CameraOff, Flashlight, FlashlightOff, HelpCircle, RefreshCw } from "lucide-react";
+import { classifyScannedCode } from "@vegan-tools/domain";
 import { tx } from "../i18n";
 import { CameraPermissionModal } from "./CameraPermissionModal";
 import { getCameraPermissionState, isCameraPermissionError } from "../utils/camera";
@@ -57,6 +58,9 @@ export function BarcodeCamera({ onDetected }: { onDetected: (value: string) => v
   const [showPermissionModal, setShowPermissionModal] = useState(false);
   const [canShowPermissionHelp, setCanShowPermissionHelp] = useState(false);
   const [retryCount, setRetryCount] = useState(0);
+  const trackRef = useRef<MediaStreamTrack | null>(null);
+  const [torchAvailable, setTorchAvailable] = useState(false);
+  const [torchOn, setTorchOn] = useState(false);
 
   useEffect(() => {
     if (!started) return;
@@ -78,12 +82,25 @@ export function BarcodeCamera({ onDetected }: { onDetected: (value: string) => v
         if (!navigator.mediaDevices?.getUserMedia) {
           throw new DOMException("Camera access is unavailable in this browser.", "SecurityError");
         }
+        // Full HD reads small and dense barcodes from further away.
         stream = await navigator.mediaDevices.getUserMedia({
-          video: { facingMode: "environment", width: { ideal: 1280 } },
+          video: { facingMode: "environment", width: { ideal: 1920 }, height: { ideal: 1080 } },
         });
         if (!active || !videoRef.current) return;
         videoRef.current.srcObject = stream;
         await videoRef.current.play();
+        // Light and focus are extras: a device without them still scans.
+        try {
+          const track = stream.getVideoTracks?.()[0] ?? null;
+          trackRef.current = track;
+          const capabilities = (track?.getCapabilities?.() ?? {}) as { torch?: boolean; focusMode?: string[] };
+          setTorchAvailable(Boolean(capabilities.torch));
+          if (capabilities.focusMode?.includes("continuous")) {
+            void track?.applyConstraints({ advanced: [{ focusMode: "continuous" } as MediaTrackConstraintSet] }).catch(() => {});
+          }
+        } catch {
+          setTorchAvailable(false);
+        }
       } catch (error) {
         console.error("[BarcodeCamera] Camera could not start", error);
         stream?.getTracks().forEach((track) => track.stop());
@@ -110,7 +127,10 @@ export function BarcodeCamera({ onDetected }: { onDetected: (value: string) => v
         if (!active || !videoRef.current) return;
         try {
           const results = await detector.detect(videoRef.current);
-          const value = results[0]?.rawValue ?? "";
+          // A barcode whose check digit fails is a misread: keep scanning.
+          const value = results
+            .map((result) => result.rawValue)
+            .find((raw) => raw && classifyScannedCode(raw).kind !== "invalid_gtin") ?? "";
           if (value && value === lastValue) hits += 1;
           else {
             lastValue = value;
@@ -126,7 +146,7 @@ export function BarcodeCamera({ onDetected }: { onDetected: (value: string) => v
         }
         window.setTimeout(() => {
           frame = requestAnimationFrame(detect);
-        }, 180);
+        }, 120);
       };
       frame = requestAnimationFrame(detect);
     };
@@ -136,6 +156,8 @@ export function BarcodeCamera({ onDetected }: { onDetected: (value: string) => v
       active = false;
       cancelAnimationFrame(frame);
       stream?.getTracks().forEach((track) => track.stop());
+      trackRef.current = null;
+      setTorchOn(false);
     };
   }, [onDetected, started, retryCount]);
 
@@ -212,10 +234,33 @@ export function BarcodeCamera({ onDetected }: { onDetected: (value: string) => v
     );
   }
 
+  const toggleTorch = async () => {
+    const next = !torchOn;
+    try {
+      await trackRef.current?.applyConstraints({ advanced: [{ torch: next } as MediaTrackConstraintSet] });
+      setTorchOn(next);
+    } catch {
+      setTorchAvailable(false);
+    }
+  };
+
+  // No aiming box: the reader scans the whole picture, and a box only made
+  // people think the code had to fit inside it.
   return (
     <div className="camera-frame">
       <video ref={videoRef} muted playsInline aria-label={tx("Barcode")} />
-      <div className="scan-window" aria-hidden="true" />
+      <p className="camera-hint" aria-hidden="true">{tx("Point at a barcode or QR code")}</p>
+      {torchAvailable && (
+        <button
+          type="button"
+          className="camera-torch"
+          onClick={() => void toggleTorch()}
+          aria-pressed={torchOn}
+          aria-label={torchOn ? tx("Turn off the light") : tx("Turn on the light")}
+        >
+          {torchOn ? <FlashlightOff aria-hidden="true" /> : <Flashlight aria-hidden="true" />}
+        </button>
+      )}
     </div>
   );
 }

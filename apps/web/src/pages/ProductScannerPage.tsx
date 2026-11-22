@@ -17,6 +17,7 @@ import {
   RotateCcw,
   ScanBarcode,
   Type,
+  UtensilsCrossed,
 } from "lucide-react";
 import {
   classifyIngredientList,
@@ -35,9 +36,14 @@ import {
   localizeIngredientName,
   localizeIngredientReason,
 } from "../generated-i18n";
-import type { IngredientFinding } from "@vegan-tools/domain";
+import { classifyScannedCode, type IngredientFinding, type ProductResult } from "@vegan-tools/domain";
+import { EvidenceNote } from "../components/EvidenceNote";
 
 type CheckerMode = "barcode" | "ingredients";
+
+function productCategory(product: ProductResult): "food" | "beauty" | "other" {
+  return product.category ?? (product.isBeautyProduct ? "beauty" : "food");
+}
 
 function cleanBrand(brand: string | undefined, productName: string | undefined) {
   if (!brand) return "";
@@ -140,6 +146,9 @@ export function ProductScannerPage() {
   const [photoUrl, setPhotoUrl] = useState("");
   const [remotePhotoUrl, setRemotePhotoUrl] = useState("");
   const [scannedUrl, setScannedUrl] = useState("");
+  const [scannedIsMenu, setScannedIsMenu] = useState(false);
+  const [scannedText, setScannedText] = useState("");
+  const [codeError, setCodeError] = useState("");
   const [recentScans, setRecentScans] = useState<RecentScanItem[]>(getStoredRecentScans);
   const [revealedImages, setRevealedImages] = useState<Record<string, boolean>>({});
   const lookup = useQuery({
@@ -190,31 +199,35 @@ export function ProductScannerPage() {
     };
   }, [ingredientPhoto]);
 
+  // One reader for every code: products, restaurant menus, links and text.
   const runLookup = useCallback((value: string) => {
     const cleanValue = value.trim();
     if (!cleanValue) return;
-
-    try {
-      const url = new URL(cleanValue);
-      const isOpenFactsUrl =
-        url.hostname.endsWith("openfoodfacts.org") ||
-        url.hostname.endsWith("openbeautyfacts.org");
-      const productCode = url.pathname.match(/\d{8,14}/)?.[0];
-      if (!isOpenFactsUrl || !productCode) {
-        setScannedUrl(cleanValue);
-        return;
-      }
-      setScannedUrl("");
-      setCode(productCode);
-      void navigate(`/product/${encodeURIComponent(productCode)}`);
-      return;
-    } catch {
-      // Non-URL payloads are handled as product codes when possible.
-    }
-
     setScannedUrl("");
-    setCode(cleanValue);
-    void navigate(`/product/${encodeURIComponent(cleanValue)}`);
+    setScannedIsMenu(false);
+    setScannedText("");
+    setCodeError("");
+
+    const scanned = classifyScannedCode(cleanValue);
+    switch (scanned.kind) {
+      case "product":
+        setCode(scanned.gtin);
+        void navigate(`/product/${encodeURIComponent(scanned.gtin)}`);
+        return;
+      case "invalid_gtin":
+        setCodeError(tx("This barcode number is not valid. Check the digits and try again."));
+        return;
+      case "menu_url":
+        setScannedUrl(scanned.url);
+        setScannedIsMenu(true);
+        return;
+      case "url":
+        setScannedUrl(scanned.url);
+        return;
+      case "text":
+        setScannedText(scanned.text);
+        return;
+    }
   }, [navigate]);
 
   const readIngredientPhoto = (file: File) => {
@@ -272,14 +285,39 @@ export function ProductScannerPage() {
         <section className="checker-panel" aria-label={tx("Barcode checker")}>
           {!routeGtin && <BarcodeCamera onDetected={runLookup} />}
 
-          {scannedUrl && (
+          {codeError && <div className="error-banner" role="alert">{codeError}</div>}
+
+          {scannedText && (
             <div className="scanner-external-result" role="status">
               <strong>{tx("Code detected")}</strong>
+              <p className="muted scanned-text">{scannedText}</p>
+              <div className="not-found-actions">
+                <button type="button" className="secondary-button" onClick={() => setScannedText("")}>
+                  <RotateCcw aria-hidden="true" />
+                  <span>{tx("Scan another")}</span>
+                </button>
+              </div>
+            </div>
+          )}
+
+          {scannedUrl && (
+            <div className="scanner-external-result" role="status">
+              <strong>{scannedIsMenu ? tx("Restaurant menu detected") : tx("Code detected")}</strong>
               <p className="muted">{scannedUrl}</p>
               <div className="not-found-actions">
+                {scannedIsMenu && (
+                  <button
+                    type="button"
+                    className="primary-button"
+                    onClick={() => void navigate(`/scan/menu?url=${encodeURIComponent(scannedUrl)}`)}
+                  >
+                    <UtensilsCrossed aria-hidden="true" />
+                    <span>{tx("See what I can order")}</span>
+                  </button>
+                )}
                 <button
                   type="button"
-                  className="primary-button"
+                  className={scannedIsMenu ? "secondary-button" : "primary-button"}
                   onClick={() => window.open(scannedUrl, "_blank", "noopener,noreferrer")}
                 >
                   <ExternalLink aria-hidden="true" />
@@ -381,24 +419,9 @@ export function ProductScannerPage() {
               <div className="product-result-body">
                 <div style={{ display: "flex", flexWrap: "wrap", alignItems: "center", gap: "0.5rem", marginBottom: "0.4rem" }}>
                   <VerdictBadge verdict={lookup.data.verdict} />
-                  {lookup.data.isBeautyProduct && (
-                    <span
-                      style={{
-                        fontSize: "0.78rem",
-                        fontWeight: 600,
-                        padding: "0.2rem 0.55rem",
-                        borderRadius: "999px",
-                        background: "var(--bg-subtle)",
-                        border: "1px solid var(--line)",
-                        color: "var(--text-secondary)",
-                        display: "inline-flex",
-                        alignItems: "center",
-                        gap: "0.3rem",
-                      }}
-                    >
-                      🧴 {tx("Cosmetics & Care")}
-                    </span>
-                  )}
+                  <span className="product-category-chip">
+                    {{ food: tx("Food"), beauty: tx("Cosmetics & Care"), other: tx("Other product") }[productCategory(lookup.data)]}
+                  </span>
                   {lookup.data.crueltyFree && (
                     <span
                       style={{
@@ -464,6 +487,7 @@ export function ProductScannerPage() {
                 )}
                 <p className="result-reason">{localizeGeneratedText(lookup.data.reason, language)}</p>
                 <FlaggedIngredientChips findings={lookup.data.findings} language={language} />
+                <EvidenceNote assurance={lookup.data.assurance} evidence={lookup.data.evidence} />
                 {lookup.data.traces.length > 0 && (
                   <p className="trace-note">
                     {tx("Allergen trace warning")}: {lookup.data.traces.join(", ")}
@@ -647,6 +671,7 @@ export function ProductScannerPage() {
               <VerdictBadge verdict={ingredientAnalysis.data.verdict} />
               <h3>{localizeGeneratedText(ingredientAnalysis.data.reason, language)}</h3>
               <IngredientFindings findings={ingredientAnalysis.data.findings} compact />
+              <EvidenceNote assurance={ingredientAnalysis.data.assurance} />
               {ingredientAnalysis.data.traces.length > 0 && (
                 <p className="trace-note">
                   {tx("Allergen trace warning")}: {ingredientAnalysis.data.traces.join(", ")}

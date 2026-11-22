@@ -14,6 +14,7 @@ import { AuthProvider, useAuth } from "./auth";
 import { useTheme } from "./theme";
 import { OnboardingModal } from "./components/OnboardingModal";
 import { LanguageSwitcher } from "./components/LanguageSwitcher";
+import { RECIPES_ENABLED } from "./features";
 
 const HomePage = lazy(() => import("./pages/HomePage").then((m) => ({ default: m.HomePage })));
 const MenuReaderPage = lazy(() => import("./pages/MenuReaderPage").then((m) => ({ default: m.MenuReaderPage })));
@@ -29,6 +30,7 @@ const RecipeDetailPage = lazy(() => import("./pages/RecipeDetailPage").then((m) 
 const AboutPage = lazy(() => import("./pages/AboutPage").then((m) => ({ default: m.AboutPage })));
 const PrivacyPage = lazy(() => import("./pages/PrivacyPage").then((m) => ({ default: m.PrivacyPage })));
 const TermsPage = lazy(() => import("./pages/TermsPage").then((m) => ({ default: m.TermsPage })));
+const ScannedMenuPage = lazy(() => import("./pages/ScannedMenuPage").then((m) => ({ default: m.ScannedMenuPage })));
 const SettingsPage = lazy(() => import("./pages/SettingsPage").then((m) => ({ default: m.SettingsPage })));
 
 function PageLoader() {
@@ -92,7 +94,7 @@ export function App() {
     { to: "/", label: t("home"), icon: Home },
     { to: "/scanner", label: t("scanner"), icon: ScanBarcode },
     { to: "/map", label: t("map"), icon: MapPin },
-    { to: "/recipes", label: t("recipes"), icon: CookingPot },
+    ...(RECIPES_ENABLED ? [{ to: "/recipes", label: t("recipes"), icon: CookingPot }] : []),
     { to: "/profile", label: tx("Profile"), icon: User },
   ];
   return (
@@ -109,7 +111,7 @@ export function App() {
             <nav className="desktop-nav" aria-label={tx("Primary navigation")}>
               <NavLink to="/scanner">{t("scanner")}</NavLink>
               <NavLink to="/map">{t("map")}</NavLink>
-              <NavLink to="/recipes">{t("recipes")}</NavLink>
+              {RECIPES_ENABLED && <NavLink to="/recipes">{t("recipes")}</NavLink>}
               <NavLink to="/resources">{tx("Resources")}</NavLink>
               <NavLink to="/profile">{tx("Profile")}</NavLink>
             </nav>
@@ -125,9 +127,10 @@ export function App() {
               <Route path="/menus" element={<MenuReaderPage />} />
               <Route path="/scanner" element={<ProductScannerPage />} />
               <Route path="/product/:gtin" element={<ProductScannerPage />} />
-              <Route path="/recipes" element={<RecipeVeganizerPage />} />
-              <Route path="/recipes/:slug" element={<RecipeDetailPage />} />
-              <Route path="/receptes/:slug" element={<RecipeDetailPage />} />
+              <Route path="/scan/menu" element={<ScannedMenuPage />} />
+              <Route path="/recipes" element={RECIPES_ENABLED ? <RecipeVeganizerPage /> : <Navigate to="/" replace />} />
+              <Route path="/recipes/:slug" element={RECIPES_ENABLED ? <RecipeDetailPage /> : <Navigate to="/" replace />} />
+              <Route path="/receptes/:slug" element={RECIPES_ENABLED ? <RecipeDetailPage /> : <Navigate to="/" replace />} />
               <Route path="/profile" element={<ProfilePage />} />
               <Route path="/settings" element={<SettingsPage />} />
               <Route path="/configuracio" element={<SettingsPage />} />

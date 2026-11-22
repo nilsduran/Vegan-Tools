@@ -14,6 +14,8 @@ export interface RestaurantReviewStore {
   saveReview(review: RestaurantReview): Promise<RestaurantReview>;
   deleteReview(restaurantId: string, userId: string): Promise<boolean>;
   updateAuthorUsername(userId: string, newUsername: string): Promise<number>;
+  /** Deletes every review written by this user. Throws if the store cannot confirm it. */
+  deleteUserReviews(userId: string): Promise<number>;
 }
 
 export function calculateReviewStats(reviews: RestaurantReview[]): RestaurantReviewStats {
@@ -101,6 +103,14 @@ export class MemoryRestaurantReviewStore implements RestaurantReviewStore {
         review.updatedAt = new Date().toISOString();
         count++;
       }
+    }
+    return count;
+  }
+
+  async deleteUserReviews(userId: string): Promise<number> {
+    let count = 0;
+    for (const userMap of this.store.values()) {
+      if (userMap.delete(userId)) count++;
     }
     return count;
   }
@@ -256,6 +266,17 @@ export class SupabaseRestaurantReviewStore implements RestaurantReviewStore {
     } catch {
       return this.memoryFallback.updateAuthorUsername(userId, newUsername);
     }
+  }
+
+  async deleteUserReviews(userId: string): Promise<number> {
+    const { data, error } = await this.client
+      .from("restaurant_reviews")
+      .delete()
+      .eq("user_id", userId)
+      .select("id");
+    if (error) throw new Error(`Failed to delete reviews: ${error.message}`);
+    const memoryCount = await this.memoryFallback.deleteUserReviews(userId);
+    return Math.max(data?.length ?? 0, memoryCount);
   }
 }
 

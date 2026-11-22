@@ -56,6 +56,8 @@ import { reviewRoutes } from "./routes/reviews.js";
 import { restaurantRoutes } from "./routes/restaurants.js";
 import { menuRoutes } from "./routes/menus.js";
 import { visitRoutes } from "./routes/visits.js";
+import { accountRoutes, type AuthUserDeleter } from "./routes/account.js";
+import { usageCounters } from "./usage-counters.js";
 
 // Re-export routes and helpers for external consumers & tests
 export * from "./routes/location.js";
@@ -78,6 +80,7 @@ export interface AppDependencies {
   dishFeedbackPolisher?: DishFeedbackPolisher;
   reviewStore?: RestaurantReviewStore;
   visitStore?: RestaurantVisitStore;
+  deleteAuthUser?: AuthUserDeleter;
   disableRateLimit?: boolean;
   rateLimitMax?: number;
   /** Overrides bearer-token verification (tests). Defaults to Supabase Auth. */
@@ -138,6 +141,17 @@ export async function buildApp(
 
   app.addHook("onSend", async (request, reply) => {
     reply.header("x-request-id", request.id);
+  });
+
+  // Aggregate counts per route template ("/v1/menus/:id"), never the real URL.
+  app.addHook("onResponse", async (request, reply) => {
+    const route = request.routeOptions.url;
+    if (!route || !route.startsWith("/v1/")) return;
+    const outcome = reply.statusCode >= 500 ? "error" : reply.statusCode >= 400 ? "rejected" : "ok";
+    usageCounters.increment(`route.${request.method} ${route}.${outcome}`);
+  });
+  app.addHook("onClose", async () => {
+    await usageCounters.flush();
   });
 
   app.setErrorHandler((error: FastifyError, request, reply) => {
@@ -285,6 +299,7 @@ export async function buildApp(
     verifyToken,
   });
   await visitRoutes(app, { visitStore, verifyToken });
+  await accountRoutes(app, { reviewStore, visitStore, verifyToken, deleteAuthUser: deps.deleteAuthUser });
 
   return app;
 }
