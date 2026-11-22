@@ -32,6 +32,13 @@ export function normalizeCosmeticIngredients(text: string): string {
     .replace(/\bsnail\s+secretion\s+filtrate\b/gi, "snail mucin");
 }
 
+/** Name to show for a web source; search redirect links do not say which site they lead to. */
+function sourceLabel(source: { url: string; title?: string }): string {
+  if (source.title?.trim()) return source.title.trim();
+  const host = new URL(source.url).hostname;
+  return host.endsWith("vertexaisearch.cloud.google.com") ? "Web search" : host;
+}
+
 const SEVERITY: Record<ProductResult["verdict"], number> = {
   non_vegetarian: 5,
   vegetarian: 4,
@@ -127,7 +134,7 @@ export function applyResearch(gtin: string, base: ProductResult | undefined, res
     evidence.push({
       id: `web-${gtin}`,
       sourceType: "automated_extraction",
-      sourceName: webSource.title || new URL(webSource.url).hostname,
+      sourceName: sourceLabel(webSource),
       sourceUrl: webSource.url,
       capturedAt: new Date().toISOString(),
       market: "ES",
@@ -159,7 +166,7 @@ export function applyResearch(gtin: string, base: ProductResult | undefined, res
     evidence.push({
       id: `web-${gtin}`,
       sourceType: "automated_extraction",
-      sourceName: webSource.title || new URL(webSource.url).hostname,
+      sourceName: sourceLabel(webSource),
       sourceUrl: webSource.url,
       capturedAt: new Date().toISOString(),
       market: "ES",
@@ -206,7 +213,7 @@ function completeKnownProduct(base: ProductResult, research: ProductResearch): P
         {
           id: `web-${base.gtin}`,
           sourceType: "automated_extraction",
-          sourceName: webSource.title || new URL(webSource.url).hostname,
+          sourceName: sourceLabel(webSource),
           sourceUrl: webSource.url,
           capturedAt: new Date().toISOString(),
           market: "ES",

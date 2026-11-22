@@ -991,6 +991,7 @@ export const caPhrases = {
     "Trobat automàticament (foto, pàgina web o cerca web). No és una verificació: comprova l'etiqueta o pregunta quan sigui important.",
   "No database has this product's ingredients: searching the web…": "Cap base de dades té els ingredients d'aquest producte: buscant-los a la web…",
   "Sources": "Fonts",
+  "Web search": "Cerca web",
   "Checking whether the brand tests on animals…": "Comprovant si la marca experimenta amb animals…",
   "The brand does not test on animals": "La marca no experimenta amb animals",
   "The brand or its parent company tests on animals": "La marca o la seva empresa matriu experimenta amb animals",

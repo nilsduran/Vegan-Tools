@@ -529,7 +529,7 @@ export function ProductScannerPage() {
                     {tx("Sources")}:{" "}
                     {lookup.data.evidence.filter((item) => item.sourceUrl).slice(0, 3).map((item) => (
                       <a key={item.id} className="source-link" href={item.sourceUrl} target="_blank" rel="noreferrer">
-                        {item.sourceName} <ExternalLink />
+                        {tx(item.sourceName)} <ExternalLink />
                       </a>
                     ))}
                   </p>
