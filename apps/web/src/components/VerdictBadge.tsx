@@ -11,7 +11,8 @@ export function VerdictBadge({ verdict, context = "diet" }: { verdict: DietVerdi
     vegan: { label: t("vegan"), Icon: Leaf },
     probably_vegan: { label: t("probablyVegan"), Icon: SearchCheck },
     vegetarian: { label: context === "diet" ? t("vegetarian") : tx("Not vegan"), Icon: MilkOff },
-    probably_vegetarian: { label: context === "diet" ? t("probablyVegetarian") : tx("Probably not vegan"), Icon: SearchCheck },
+    // Outside food, "probably vegetarian" means an ingredient's origin is unconfirmed (glycerin, stearic acid).
+    probably_vegetarian: { label: context === "diet" ? t("probablyVegetarian") : tx("Doubtful"), Icon: SearchCheck },
     non_vegetarian: { label: context === "diet" ? t("nonVegetarian") : tx("Not vegan"), Icon: TriangleAlert },
     unknown: { label: t("unknown"), Icon: CircleHelp },
   };

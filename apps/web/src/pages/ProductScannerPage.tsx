@@ -460,7 +460,7 @@ export function ProductScannerPage() {
               )}
               <div className="product-result-body">
                 <div style={{ display: "flex", flexWrap: "wrap", alignItems: "center", gap: "0.5rem", marginBottom: "0.4rem" }}>
-                  <VerdictBadge verdict={lookup.data.verdict} />
+                  <VerdictBadge verdict={lookup.data.verdict} context={productCategory(lookup.data) === "food" ? "diet" : "general"} />
                   <span className="product-category-chip">
                     {{ food: tx("Food"), beauty: tx("Cosmetics & Care"), other: tx("Other product") }[productCategory(lookup.data)]}
                   </span>

@@ -10,7 +10,7 @@
  * "false vegan": something with animal use reported as vegan or probably vegan.
  *
  *   npm run eval:scan                # everything
- *   npm run eval:scan -- barcodes    # one group: barcodes | links | descriptions | brands | photos
+ *   npm run eval:scan -- coverage    # one group: coverage | barcodes | links | descriptions | brands | photos
  *   npm run eval:scan -- --json out.json
  */
 
@@ -90,6 +90,43 @@ async function main() {
   const app = await buildApp({ repo: new MemoryRepository(), universalAnalyzer: analyzer, disableRateLimit: true });
   const outcomes: Outcome[] = [];
   const run = (group: string) => !only || only === group;
+
+  if (run("coverage")) {
+    const { lookupOpenFoodFacts } = await import("../apps/api/src/open-food-facts.ts");
+    const { lookupOpenBeautyFacts } = await import("../apps/api/src/open-beauty-facts.ts");
+    const { lookupOpenProductsFacts } = await import("../apps/api/src/open-products-facts.ts");
+    const coverageRows: string[] = [];
+    for (const item of cases.coverage ?? []) {
+      await new Promise((resolve) => setTimeout(resolve, 1_500));
+      const databases = await Promise.all([
+        lookupOpenFoodFacts(item.gtin).catch(() => undefined),
+        lookupOpenBeautyFacts(item.gtin).catch(() => undefined),
+        lookupOpenProductsFacts(item.gtin).catch(() => undefined),
+      ]);
+      const names = ["OFF", "OBF", "OPF"];
+      const found = databases.flatMap((record, index) => (record ? [names[index]] : []));
+      const withIngredients = databases.flatMap((record, index) =>
+        record?.evidence.some((evidence) => evidence.ingredientsText?.trim()) ? [names[index]] : [],
+      );
+      const res = await app.inject({ method: "GET", url: `/v1/products/${item.gtin}` });
+      const body = res.json() as { verdict?: string; category?: string; reason?: string; evidence?: Array<{ sourceType: string }> };
+      const viaWeb = Boolean(body.evidence?.some((evidence) => evidence.sourceType === "automated_extraction"));
+      coverageRows.push(
+        `${item.gtin}  in: ${found.join("+") || "none"}  ingredients: ${withIngredients.join("+") || "none"}  web search: ${viaWeb ? "yes" : "no"}  category: ${body.category ?? "-"}  ${item.name}`,
+      );
+      outcomes.push({
+        group: "coverage",
+        name: item.name,
+        expect: item.expect,
+        got: body.verdict ?? `HTTP ${res.statusCode}`,
+        status: body.verdict ? score(item.expect, body.verdict, body.category === "beauty" ? "cosmetic" : undefined) : "error",
+        detail: body.reason,
+      });
+    }
+    console.log("Coverage (products chosen first, then looked up):");
+    for (const row of coverageRows) console.log(`  ${row}`);
+    console.log("");
+  }
 
   if (run("barcodes")) {
     for (const item of cases.barcodes) {

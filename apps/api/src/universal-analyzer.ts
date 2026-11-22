@@ -359,7 +359,7 @@ ${input.text.slice(0, 8_000)}
     const known = [input.productName && `Name in a product database: ${input.productName}`, input.brand && `Brand: ${input.brand}`]
       .filter(Boolean)
       .join("\n");
-    const response = await this.generate(
+    const params: [string, Omit<GenerateParams, "model">, string[]] = [
       "product_research",
       {
         contents: [`Use Google Search to identify the product with barcode (EAN/GTIN) ${input.gtin} and find its ingredient list.
@@ -376,8 +376,11 @@ Answer ONLY with JSON:
 Never guess or reconstruct an ingredient list. If neither the barcode nor the given name can be matched to a specific product, answer {"found": false}.`],
         config: { tools: [{ googleSearch: {} }], temperature: 0 },
       },
-      [process.env.GEMINI_WEBSITE_MODEL ?? "gemini-3.1-flash-lite", "gemini-3.5-flash"],
-    );
+      [process.env.GEMINI_WEBSITE_MODEL ?? "gemini-3.1-flash-lite", "gemini-3.5-flash"]
+    ];
+    // Search-grounded answers are sometimes empty: one more try before giving up.
+    let response = await this.generate(...params);
+    if (!response.text?.trim()) response = await this.generate(...params);
     if (!response.text?.trim()) {
       // Quota or search outage: a failure, not "no product found", so nothing gets cached.
       throw new Error("The product web search returned no answer.");

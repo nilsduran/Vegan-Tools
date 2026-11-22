@@ -981,6 +981,7 @@ export const caPhrases = {
   "Check this link": "Comprova aquest enllaç",
   "Not vegan": "No vegà",
   "Probably not vegan": "Probablement no vegà",
+  "Doubtful": "Dubtós",
   "Clothing and materials": "Roba i materials",
   "Activity": "Activitat",
   "Place": "Lloc",

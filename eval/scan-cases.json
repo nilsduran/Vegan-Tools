@@ -1,68 +1,378 @@
 {
   "about": "Real cases for the scanner. Run with `npm run eval:scan` (uses Gemini and the Open Facts APIs). Expected values: vegan | vegetarian | non_vegetarian (food) | not_vegan (any animal use, non-food) | doubtful (anything but a definitive or probable vegan). Brand cases: cruelty_free | not_cruelty_free. `review: true` marks expectations still to be confirmed by Nils.",
+  "coverage_about": "Products chosen FIRST (what people actually scan: products at home, a shopping list by category), then looked up. Measures whether each database knows the barcode, whether it has ingredients, and whether the final answer (including the web search) is right. Add products you own: gtin, what it is, category, expected verdict and `picked` (how it was chosen).",
+  "coverage": [
+    {
+      "gtin": "8719327023839",
+      "name": "Altruist Dermatologist SPF50 Face Fluid (sunscreen)",
+      "category": "cosmetic",
+      "expect": "vegan",
+      "picked": "real scan by Nils, 22-11-2026",
+      "note": "Brand states vegan and cruelty free. In Open Food Facts as food, without brand or ingredients."
+    }
+  ],
+  "barcodes_about": "Biased sample: these products were picked from Open Food Facts searches, so they are all in the database. Use `coverage` to measure coverage.",
   "barcodes": [
-    { "gtin": "5411188110835", "name": "Alpro almond drink", "expect": "vegan" },
-    { "gtin": "8000500426494", "name": "Nutella Plant-Based", "expect": "vegan" },
-    { "gtin": "20022464", "name": "Lidl Extra Dark 74% (vegan label)", "expect": "vegan" },
-    { "gtin": "20267605", "name": "Alesto cashews", "expect": "vegan" },
-    { "gtin": "7300400481595", "name": "Wasa rye crispbread (may contain milk)", "expect": "vegan" },
-    { "gtin": "20171841", "name": "Tastino rye tartine", "expect": "vegan" },
-    { "gtin": "8410376009392", "name": "Gullón Fibre Zero biscuits (vegan label)", "expect": "vegan" },
-    { "gtin": "8410076472953", "name": "Wraps with E471 and glycerol (origin not stated)", "expect": "doubtful" },
-    { "gtin": "3017620422003", "name": "Nutella (skimmed milk powder)", "expect": "vegetarian" },
-    { "gtin": "3033490004521", "name": "Danone natural yogurt", "expect": "vegetarian" },
-    { "gtin": "8480000213587", "name": "Mercadona light Greek yogurt", "expect": "vegetarian" },
-    { "gtin": "20416690", "name": "Milbona Greek style yogurt", "expect": "vegetarian" },
-    { "gtin": "8480000057105", "name": "Mercadona cooked turkey breast", "expect": "non_vegetarian" },
-    { "gtin": "8480000180186", "name": "Mercadona tuna in water", "expect": "non_vegetarian" },
-    { "gtin": "8480000180025", "name": "Mercadona tuna in olive oil", "expect": "non_vegetarian" },
-    { "gtin": "8421384012014", "name": "Serrano ham", "expect": "non_vegetarian" },
-    { "gtin": "8480000592569", "name": "Mercadona cooked ham slices", "expect": "non_vegetarian" },
-    { "gtin": "8410300349051", "name": "Gallina Blanca chicken stock", "expect": "non_vegetarian" },
-    { "gtin": "3103220044544", "name": "Haribo Tagada (gelatin)", "expect": "non_vegetarian" },
-    { "gtin": "3560070157198", "name": "Carrefour grated Parmesan (animal rennet, labelled 'cuajo')", "expect": "non_vegetarian" },
-    { "gtin": "4056489192923", "name": "Lidl Grana Padano (animal rennet)", "expect": "non_vegetarian" }
+    {
+      "gtin": "5411188110835",
+      "name": "Alpro almond drink",
+      "expect": "vegan"
+    },
+    {
+      "gtin": "8000500426494",
+      "name": "Nutella Plant-Based",
+      "expect": "vegan"
+    },
+    {
+      "gtin": "20022464",
+      "name": "Lidl Extra Dark 74% (vegan label)",
+      "expect": "vegan"
+    },
+    {
+      "gtin": "20267605",
+      "name": "Alesto cashews",
+      "expect": "vegan"
+    },
+    {
+      "gtin": "7300400481595",
+      "name": "Wasa rye crispbread (may contain milk)",
+      "expect": "vegan"
+    },
+    {
+      "gtin": "20171841",
+      "name": "Tastino rye tartine",
+      "expect": "vegan"
+    },
+    {
+      "gtin": "8410376009392",
+      "name": "Gullón Fibre Zero biscuits (vegan label)",
+      "expect": "vegan"
+    },
+    {
+      "gtin": "8410076472953",
+      "name": "Wraps with E471 and glycerol (origin not stated)",
+      "expect": "doubtful"
+    },
+    {
+      "gtin": "3017620422003",
+      "name": "Nutella (skimmed milk powder)",
+      "expect": "vegetarian"
+    },
+    {
+      "gtin": "3033490004521",
+      "name": "Danone natural yogurt",
+      "expect": "vegetarian"
+    },
+    {
+      "gtin": "8480000213587",
+      "name": "Mercadona light Greek yogurt",
+      "expect": "vegetarian"
+    },
+    {
+      "gtin": "20416690",
+      "name": "Milbona Greek style yogurt",
+      "expect": "vegetarian"
+    },
+    {
+      "gtin": "8480000057105",
+      "name": "Mercadona cooked turkey breast",
+      "expect": "non_vegetarian"
+    },
+    {
+      "gtin": "8480000180186",
+      "name": "Mercadona tuna in water",
+      "expect": "non_vegetarian"
+    },
+    {
+      "gtin": "8480000180025",
+      "name": "Mercadona tuna in olive oil",
+      "expect": "non_vegetarian"
+    },
+    {
+      "gtin": "8421384012014",
+      "name": "Serrano ham",
+      "expect": "non_vegetarian"
+    },
+    {
+      "gtin": "8480000592569",
+      "name": "Mercadona cooked ham slices",
+      "expect": "non_vegetarian"
+    },
+    {
+      "gtin": "8410300349051",
+      "name": "Gallina Blanca chicken stock",
+      "expect": "non_vegetarian"
+    },
+    {
+      "gtin": "3103220044544",
+      "name": "Haribo Tagada (gelatin)",
+      "expect": "non_vegetarian"
+    },
+    {
+      "gtin": "3560070157198",
+      "name": "Carrefour grated Parmesan (animal rennet, labelled 'cuajo')",
+      "expect": "non_vegetarian"
+    },
+    {
+      "gtin": "4056489192923",
+      "name": "Lidl Grana Padano (animal rennet)",
+      "expect": "non_vegetarian"
+    }
   ],
   "links": [
-    { "url": "https://www.zoobarcelona.cat/ca", "name": "Barcelona Zoo", "subject": ["activity", "place"], "expect": "not_vegan" },
-    { "url": "https://www.aquariumbcn.com/", "name": "Barcelona Aquarium", "subject": ["activity", "place"], "expect": "not_vegan" },
-    { "url": "http://www.fundacionsantuariogaia.org/", "name": "Fundació Santuari Gaia (vegan farm animal sanctuary)", "subject": ["place", "activity", "other"], "expect": "vegan" },
-    { "url": "https://ca.wikipedia.org/wiki/Equitaci%C3%B3", "name": "Horse riding (Wikipedia)", "subject": ["activity"], "expect": "not_vegan" },
-    { "url": "https://ca.wikipedia.org/wiki/Correbous", "name": "Correbous (Wikipedia)", "subject": ["activity"], "expect": "not_vegan" },
-    { "url": "https://es.wikipedia.org/wiki/Delfinario", "name": "Dolphinarium (Wikipedia)", "subject": ["activity", "place"], "expect": "not_vegan" },
-    { "url": "https://en.wikipedia.org/wiki/Rodeo", "name": "Rodeo (Wikipedia)", "subject": ["activity"], "expect": "not_vegan" },
-    { "url": "https://en.wikipedia.org/wiki/Fly_fishing", "name": "Fly fishing (Wikipedia)", "subject": ["activity"], "expect": "not_vegan" },
-    { "url": "https://en.wikipedia.org/wiki/Hiking", "name": "Hiking (Wikipedia)", "subject": ["activity"], "expect": "vegan" },
-    { "url": "https://ca.wikipedia.org/wiki/Escalada", "name": "Climbing (Wikipedia)", "subject": ["activity"], "expect": "vegan" },
-    { "url": "https://en.wikipedia.org/wiki/Kayaking", "name": "Kayaking (Wikipedia)", "subject": ["activity"], "expect": "vegan" },
-    { "url": "https://www.cirquedusoleil.com/", "name": "Cirque du Soleil (no animals)", "subject": ["activity"], "expect": "vegan" },
-    { "url": "https://www.rasoterra.cat/", "name": "Rasoterra (vegetarian restaurant)", "subject": ["menu", "place"] }
+    {
+      "url": "https://www.zoobarcelona.cat/ca",
+      "name": "Barcelona Zoo",
+      "subject": [
+        "activity",
+        "place"
+      ],
+      "expect": "not_vegan"
+    },
+    {
+      "url": "https://www.aquariumbcn.com/",
+      "name": "Barcelona Aquarium",
+      "subject": [
+        "activity",
+        "place"
+      ],
+      "expect": "not_vegan"
+    },
+    {
+      "url": "http://www.fundacionsantuariogaia.org/",
+      "name": "Fundació Santuari Gaia (vegan farm animal sanctuary)",
+      "subject": [
+        "place",
+        "activity",
+        "other"
+      ],
+      "expect": "vegan"
+    },
+    {
+      "url": "https://ca.wikipedia.org/wiki/Equitaci%C3%B3",
+      "name": "Horse riding (Wikipedia)",
+      "subject": [
+        "activity"
+      ],
+      "expect": "not_vegan"
+    },
+    {
+      "url": "https://ca.wikipedia.org/wiki/Correbous",
+      "name": "Correbous (Wikipedia)",
+      "subject": [
+        "activity"
+      ],
+      "expect": "not_vegan"
+    },
+    {
+      "url": "https://es.wikipedia.org/wiki/Delfinario",
+      "name": "Dolphinarium (Wikipedia)",
+      "subject": [
+        "activity",
+        "place"
+      ],
+      "expect": "not_vegan"
+    },
+    {
+      "url": "https://en.wikipedia.org/wiki/Rodeo",
+      "name": "Rodeo (Wikipedia)",
+      "subject": [
+        "activity"
+      ],
+      "expect": "not_vegan"
+    },
+    {
+      "url": "https://en.wikipedia.org/wiki/Fly_fishing",
+      "name": "Fly fishing (Wikipedia)",
+      "subject": [
+        "activity"
+      ],
+      "expect": "not_vegan"
+    },
+    {
+      "url": "https://en.wikipedia.org/wiki/Hiking",
+      "name": "Hiking (Wikipedia)",
+      "subject": [
+        "activity"
+      ],
+      "expect": "vegan"
+    },
+    {
+      "url": "https://ca.wikipedia.org/wiki/Escalada",
+      "name": "Climbing (Wikipedia)",
+      "subject": [
+        "activity"
+      ],
+      "expect": "vegan"
+    },
+    {
+      "url": "https://en.wikipedia.org/wiki/Kayaking",
+      "name": "Kayaking (Wikipedia)",
+      "subject": [
+        "activity"
+      ],
+      "expect": "vegan"
+    },
+    {
+      "url": "https://www.cirquedusoleil.com/",
+      "name": "Cirque du Soleil (no animals)",
+      "subject": [
+        "activity"
+      ],
+      "expect": "vegan"
+    },
+    {
+      "url": "https://www.rasoterra.cat/",
+      "name": "Rasoterra (vegetarian restaurant)",
+      "subject": [
+        "menu",
+        "place"
+      ]
+    }
   ],
   "descriptions": [
-    { "text": "Dr. Martens 1460 Smooth Leather Lace Up Boots. Upper: smooth leather.", "subject": ["clothing"], "expect": "not_vegan" },
-    { "text": "Dr. Martens 1460 Vegan Felix Rub Off Lace Up Boots. Upper: synthetic Felix Rub Off, 100% vegan.", "subject": ["clothing"], "expect": "vegan" },
-    { "text": "Canada Goose Expedition Parka. Fill: responsibly sourced duck down.", "subject": ["clothing"], "expect": "not_vegan" },
-    { "text": "Patagonia Better Sweater Fleece Jacket. 100% recycled polyester fleece.", "subject": ["clothing"], "expect": "vegan" },
-    { "text": "Icebreaker Merino 200 Oasis Long Sleeve Crewe Thermal Top. 100% merino wool.", "subject": ["clothing"], "expect": "not_vegan" },
-    { "text": "Veja V-10 C.W.L. sneakers. Upper: C.W.L., a vegan canvas coated with corn waste.", "subject": ["clothing"], "expect": "vegan" },
-    { "text": "Hermès Carré 90 scarf in silk twill. 100% silk.", "subject": ["clothing"], "expect": "not_vegan" },
-    { "text": "Excursió en camell per les dunes de Maspalomas. Reserva el teu passeig!", "subject": ["activity"], "expect": "not_vegan" },
-    { "text": "Ruta en bicicleta pel delta de l'Ebre, amb parada per veure flamencs des de l'observatori.", "subject": ["activity"], "expect": "vegan" },
-    { "text": "Granja escola: els nens aprenen a munyir les vaques i a recollir ous de les gallines.", "subject": ["activity", "place"], "expect": "not_vegan" },
-    { "text": "Jornada de voluntariat al santuari: netejarem les quadres i passarem el matí amb els animals rescatats.", "subject": ["activity", "place"], "expect": "vegan" },
-    { "text": "Concurs de pesca esportiva a l'embassament de Sau. Inscripcions obertes.", "subject": ["activity"], "expect": "not_vegan" },
-    { "text": "Taller de cuina vegana: aprèn a fer formatges de anacard i seitan casolà.", "subject": ["activity"], "expect": "vegan" },
-    { "text": "Passeig amb poni per als més petits a la fira de Nadal.", "subject": ["activity"], "expect": "not_vegan" }
+    {
+      "text": "Dr. Martens 1460 Smooth Leather Lace Up Boots. Upper: smooth leather.",
+      "subject": [
+        "clothing"
+      ],
+      "expect": "not_vegan"
+    },
+    {
+      "text": "Dr. Martens 1460 Vegan Felix Rub Off Lace Up Boots. Upper: synthetic Felix Rub Off, 100% vegan.",
+      "subject": [
+        "clothing"
+      ],
+      "expect": "vegan"
+    },
+    {
+      "text": "Canada Goose Expedition Parka. Fill: responsibly sourced duck down.",
+      "subject": [
+        "clothing"
+      ],
+      "expect": "not_vegan"
+    },
+    {
+      "text": "Patagonia Better Sweater Fleece Jacket. 100% recycled polyester fleece.",
+      "subject": [
+        "clothing"
+      ],
+      "expect": "vegan"
+    },
+    {
+      "text": "Icebreaker Merino 200 Oasis Long Sleeve Crewe Thermal Top. 100% merino wool.",
+      "subject": [
+        "clothing"
+      ],
+      "expect": "not_vegan"
+    },
+    {
+      "text": "Veja V-10 C.W.L. sneakers. Upper: C.W.L., a vegan canvas coated with corn waste.",
+      "subject": [
+        "clothing"
+      ],
+      "expect": "vegan"
+    },
+    {
+      "text": "Hermès Carré 90 scarf in silk twill. 100% silk.",
+      "subject": [
+        "clothing"
+      ],
+      "expect": "not_vegan"
+    },
+    {
+      "text": "Excursió en camell per les dunes de Maspalomas. Reserva el teu passeig!",
+      "subject": [
+        "activity"
+      ],
+      "expect": "not_vegan"
+    },
+    {
+      "text": "Ruta en bicicleta pel delta de l'Ebre, amb parada per veure flamencs des de l'observatori.",
+      "subject": [
+        "activity"
+      ],
+      "expect": "vegan"
+    },
+    {
+      "text": "Granja escola: els nens aprenen a munyir les vaques i a recollir ous de les gallines.",
+      "subject": [
+        "activity",
+        "place"
+      ],
+      "expect": "not_vegan"
+    },
+    {
+      "text": "Jornada de voluntariat al santuari: netejarem les quadres i passarem el matí amb els animals rescatats.",
+      "subject": [
+        "activity",
+        "place"
+      ],
+      "expect": "vegan"
+    },
+    {
+      "text": "Concurs de pesca esportiva a l'embassament de Sau. Inscripcions obertes.",
+      "subject": [
+        "activity"
+      ],
+      "expect": "not_vegan"
+    },
+    {
+      "text": "Taller de cuina vegana: aprèn a fer formatges de anacard i seitan casolà.",
+      "subject": [
+        "activity"
+      ],
+      "expect": "vegan"
+    },
+    {
+      "text": "Passeig amb poni per als més petits a la fira de Nadal.",
+      "subject": [
+        "activity"
+      ],
+      "expect": "not_vegan"
+    }
   ],
   "brands": [
-    { "brand": "Garnier", "expect": "cruelty_free", "note": "Leaping Bunny (Cruelty Free International) since 2021, audited 2023." },
-    { "brand": "The Body Shop", "expect": "cruelty_free", "review": true },
-    { "brand": "Lush", "expect": "cruelty_free", "review": true },
-    { "brand": "Dr. Bronner's", "expect": "cruelty_free", "review": true },
-    { "brand": "Nivea", "expect": "not_cruelty_free", "note": "Beiersdorf tests when required by law; sold where testing is mandatory." },
-    { "brand": "Estée Lauder", "expect": "not_cruelty_free", "note": "Sold in markets that require animal testing." },
-    { "brand": "L'Oréal Paris", "expect": "not_cruelty_free", "review": true },
-    { "brand": "Maybelline New York", "expect": "not_cruelty_free", "review": true }
+    {
+      "brand": "Garnier",
+      "expect": "cruelty_free",
+      "note": "Leaping Bunny (Cruelty Free International) since 2021, audited 2023."
+    },
+    {
+      "brand": "The Body Shop",
+      "expect": "cruelty_free",
+      "review": true
+    },
+    {
+      "brand": "Lush",
+      "expect": "cruelty_free",
+      "review": true
+    },
+    {
+      "brand": "Dr. Bronner's",
+      "expect": "cruelty_free",
+      "review": true
+    },
+    {
+      "brand": "Nivea",
+      "expect": "not_cruelty_free",
+      "note": "Beiersdorf tests when required by law; sold where testing is mandatory."
+    },
+    {
+      "brand": "Estée Lauder",
+      "expect": "not_cruelty_free",
+      "note": "Sold in markets that require animal testing."
+    },
+    {
+      "brand": "L'Oréal Paris",
+      "expect": "not_cruelty_free",
+      "review": true
+    },
+    {
+      "brand": "Maybelline New York",
+      "expect": "not_cruelty_free",
+      "review": true
+    }
   ],
   "photos": []
 }
