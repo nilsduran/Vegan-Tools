@@ -10,6 +10,12 @@ interface OffProduct {
   image_front_url?: string;
   image_ingredients_url?: string;
   ingredients_text?: string;
+  ingredients_text_ca?: string;
+  ingredients_text_es?: string;
+  ingredients_text_en?: string;
+  ingredients_text_fr?: string;
+  /** Declared allergens (contained, not traces): a strong signal when ingredient texts are incomplete. */
+  allergens_tags?: string[];
   ingredients_analysis_tags?: string[];
   labels_tags?: string[];
   categories_tags?: string[];
@@ -62,6 +68,67 @@ function inferFromProductIdentity(product: OffProduct): {
   return undefined;
 }
 
+const VERDICT_SEVERITY: Record<ProductResult["verdict"], number> = {
+  non_vegetarian: 5,
+  vegetarian: 4,
+  probably_vegetarian: 3,
+  unknown: 2,
+  probably_vegan: 1,
+  vegan: 0,
+};
+
+/**
+ * Community ingredient texts are often incomplete in one language (Nutella's default
+ * text was just "sugar, palm oil"). Every language is classified and the most
+ * restrictive result wins; ties go to the longest text.
+ */
+export function mostRestrictiveIngredients(product: OffProduct): { text: string; analysis: ReturnType<typeof classifyIngredients> } {
+  const texts = [
+    product.ingredients_text,
+    product.ingredients_text_ca,
+    product.ingredients_text_es,
+    product.ingredients_text_en,
+    product.ingredients_text_fr,
+  ].filter((text, index, all): text is string => Boolean(text?.trim()) && all.indexOf(text) === index);
+  if (texts.length === 0) texts.push("");
+  const classified = texts.map((text) => ({
+    text,
+    analysis: classifyIngredients(text, {
+      assurance: "external",
+      // OFF is useful evidence, but its community tags are not a trusted claim.
+      verifiedVeganClaim: false,
+    }),
+  }));
+  return classified.reduce((best, next) => {
+    const difference = VERDICT_SEVERITY[next.analysis.verdict] - VERDICT_SEVERITY[best.analysis.verdict];
+    if (difference > 0) return next;
+    if (difference === 0 && next.text.length > best.text.length) return next;
+    return best;
+  });
+}
+
+/** OFF sometimes answers a burst of requests with an error page: one retry after a pause. */
+async function fetchOffJson(url: string): Promise<OffResponse | undefined> {
+  for (const delay of [0, 1_200]) {
+    if (delay) await new Promise((resolve) => setTimeout(resolve, delay));
+    try {
+      const response = await fetch(url, {
+        headers: {
+          Accept: "application/json",
+          "User-Agent": process.env.OFF_USER_AGENT ?? "VeganTools/0.1 (contact@example.com)",
+        },
+        signal: AbortSignal.timeout(8_000),
+      });
+      if (response.status === 404) return undefined;
+      if (!response.ok) continue;
+      return (await response.json()) as OffResponse;
+    } catch {
+      // Non-JSON error page or timeout: retry once.
+    }
+  }
+  return undefined;
+}
+
 export async function lookupOpenFoodFacts(gtin: string): Promise<ProductResult | undefined> {
   const fields = [
     "product_name",
@@ -69,6 +136,11 @@ export async function lookupOpenFoodFacts(gtin: string): Promise<ProductResult |
     "image_front_url",
     "image_ingredients_url",
     "ingredients_text",
+    "ingredients_text_ca",
+    "ingredients_text_es",
+    "ingredients_text_en",
+    "ingredients_text_fr",
+    "allergens_tags",
     "ingredients_analysis_tags",
     "labels_tags",
     "categories_tags",
@@ -77,18 +149,8 @@ export async function lookupOpenFoodFacts(gtin: string): Promise<ProductResult |
   ].join(",");
   const url =
     `https://world.openfoodfacts.org/api/v3.6/product/${gtin}.json?fields=${fields}`;
-  const response = await fetch(url, {
-    headers: {
-      Accept: "application/json",
-      "User-Agent":
-        process.env.OFF_USER_AGENT ?? "VeganTools/0.1 (contact@example.com)",
-    },
-    signal: AbortSignal.timeout(8_000),
-  });
-
-  if (!response.ok) return undefined;
-  const data = (await response.json()) as OffResponse;
-  if (!data.product) return undefined;
+  const data = await fetchOffJson(url);
+  if (!data?.product) return undefined;
 
   const product = data.product;
   const capturedAt = product.last_modified_t
@@ -109,13 +171,12 @@ export async function lookupOpenFoodFacts(gtin: string): Promise<ProductResult |
   const tags = product.ingredients_analysis_tags ?? [];
   const labels = product.labels_tags ?? [];
   const categories = product.categories_tags ?? [];
-  const ingredients = product.ingredients_text ?? "";
-  const analysis = classifyIngredients(ingredients, {
-    assurance: "external",
-    // OFF is useful evidence, but its community tags are not a trusted claim.
-    verifiedVeganClaim: false,
-  });
+  const { text: ingredients, analysis } = mostRestrictiveIngredients(product);
+  evidence.ingredientsText = ingredients || product.ingredients_text;
   evidence.traces = analysis.traces;
+  const allergens = (product.allergens_tags ?? []).map((tag) => tag.replace(/^[a-z]{2}:/i, ""));
+  const declaresSeafood = allergens.some((tag) => ["fish", "crustaceans", "molluscs"].includes(tag));
+  const declaresMilkOrEgg = allergens.some((tag) => ["milk", "eggs"].includes(tag));
 
   let verdict = analysis.verdict;
   let reason = analysis.reason;
@@ -133,7 +194,13 @@ export async function lookupOpenFoodFacts(gtin: string): Promise<ProductResult |
       finding.status === "non_vegetarian" || finding.status === "vegetarian",
   );
 
-  if (markedNonVegetarian && analysis.verdict !== "non_vegetarian") {
+  if (declaresSeafood && analysis.verdict !== "non_vegetarian") {
+    verdict = "non_vegetarian";
+    reason = "The declared allergens include fish or shellfish.";
+  } else if (declaresMilkOrEgg && VERDICT_SEVERITY[analysis.verdict] < VERDICT_SEVERITY.probably_vegetarian) {
+    verdict = markedNonVegetarian ? "non_vegetarian" : "probably_vegetarian";
+    reason = "The declared allergens include milk or eggs, so it is not vegan.";
+  } else if (markedNonVegetarian && analysis.verdict !== "non_vegetarian") {
     verdict = "non_vegetarian";
     reason = "Open Food Facts marks this product as non-vegetarian.";
   } else if (
