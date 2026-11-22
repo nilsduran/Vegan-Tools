@@ -18,6 +18,7 @@ import type { Repository } from "../store.js";
 import { lookupOpenFoodFacts } from "../open-food-facts.js";
 import { lookupOpenBeautyFacts } from "../open-beauty-facts.js";
 import { lookupOpenProductsFacts } from "../open-products-facts.js";
+import type { UniversalAnalyzer } from "../universal-analyzer.js";
 import type { IngredientExtractor } from "../ingredient-extractor.js";
 import { authenticateRequest, createTokenVerifier, type TokenVerifier } from "../auth.js";
 
@@ -41,6 +42,8 @@ export interface ProductRoutesOptions {
   repo: Repository;
   ingredientExtractor: IngredientExtractor;
   verifyToken?: TokenVerifier;
+  /** Judges products that Open Products Facts identifies but has no ingredient data for. */
+  universalAnalyzer?: UniversalAnalyzer;
 }
 
 export async function productRoutes(app: FastifyInstance, options: ProductRoutesOptions) {
@@ -71,6 +74,29 @@ export async function productRoutes(app: FastifyInstance, options: ProductRoutes
     const product = lookups
       .map((lookup) => (lookup.status === "fulfilled" ? lookup.value : undefined))
       .find((candidate): candidate is ProductResult => Boolean(candidate));
+    if (product?.category === "other" && options.universalAnalyzer && product.productName) {
+      // Clothing, shoes, household goods: judge the name and brand automatically.
+      // Capped at "probably vegan" and labelled as automatic (universal-analyzer.ts).
+      try {
+        const judged = await withTimeout(
+          options.universalAnalyzer.analyzeText(
+            {
+              text: [product.productName, product.brand].filter(Boolean).join("\n"),
+              hint: "A product identified by its barcode in Open Products Facts (not food, not cosmetics).",
+            },
+            "en",
+          ),
+          15_000,
+          "Product judgement took too long.",
+        );
+        if (judged.verdict !== "unknown") {
+          product.verdict = judged.verdict;
+          product.reason = [judged.reason, ...judged.concerns].filter(Boolean).join(" ");
+        }
+      } catch (error) {
+        request.log.warn({ error }, "Automatic product judgement failed");
+      }
+    }
     if (product) {
       await repo.saveProduct(product);
       return product;
