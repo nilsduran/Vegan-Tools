@@ -35,31 +35,30 @@ Backlog viu en tres blocs: **Ara** (màxim 5 ítems), **Després** (ordenat) i *
    - El conjunt daurat ja dona 0 falsos vegans i bloqueja la CI, però són 182 etiquetes netes. Des del 22-11-2026, `npm run eval:scan` també prova 21 productes reals d'Open Food Facts (19/21, 0 falsos vegans). Falta ampliar-lo amb sortida d'OCR (errors de lectura, paraules partides) i fotos pròpies a `eval/photos`.
    - Resolt el 22-11-2026: un origen vegetal declarat («lecitina de gira-sol», «E471 (palma)», «glicerina vegetal») ja no fa dubtós el producte (classificador `2026.11.3`).
 2. 🟠 **Pre-analitzar 100 cartes de Barcelona** perquè la primera visita trobi contingut a la memòria cau.
-3. 🟠 **Proves E2E dels fluxos que falten** (`e2e/`): ja hi ha l'escàner amb càmera simulada, la comprovació d'ingredients i les pàgines principals, en mòbil i escriptori. Falten cerca → fitxa → carta i el registre al diari.
-4. 🟡 **Perfils de Liberapay i GitHub Sponsors** enllaçats des de `/about` (vegeu [`funding/funding-options.md`](./funding/funding-options.md)).
-5. 🟡 **Reclutar 20 persones de prova** i fer 5 converses de feedback abans de planificar la fase 2.
-6. 🟠 **API sense arrencades en fred abans de la beta**: el pla gratuït de Render adorm l'API després de 15 minuts sense trànsit i la primera petició triga prop d'un minut. La RAM no és el problema (l'API ocupa uns 70 MB dels 512 MB).
+3. 🟡 **Perfils de Liberapay i GitHub Sponsors** enllaçats des de `/about` (vegeu [`funding/funding-options.md`](./funding/funding-options.md)).
+4. 🟡 **Reclutar 20 persones de prova** i fer 5 converses de feedback abans de planificar la fase 2.
+5. 🟠 **API sense arrencades en fred abans de la beta**: el pla gratuït de Render adorm l'API després de 15 minuts sense trànsit i la primera petició triga prop d'un minut. La RAM no és el problema (l'API ocupa uns 70 MB dels 512 MB).
    - *Sense pagar*: Google Cloud Run (escala a zero amb arrencades d'un o dos segons; el nivell gratuït cobreix de sobres aquest trànsit). Cal un compte de facturació i un `Dockerfile`.
    - *Pagant* (Nils no vol quotes mensuals de moment): Render Starter (~7 $/mes, no s'adorm, zero migració).
    - Comprovar preus a les pàgines oficials abans de decidir; vegeu [`decisions.md`](./decisions.md) («Hosting i base de dades»).
-7. 🟡 **Supabase sense pauses**: de moment, el keep-alive reforçat (cada 4 hores, quatre taules). Si torna a avisar de pausa, opcions: Supabase Pro (~25 $/mes, quan es vulgui pagar) o una visita al tauler per reactivar-lo. El límit de 500 MB no és el problema: hi caben milers de cartes.
+6. 🟡 **Supabase sense pauses**: de moment, el keep-alive reforçat (cada 4 hores, quatre taules). Si torna a avisar de pausa, opcions: Supabase Pro (~25 $/mes, quan es vulgui pagar) o una visita al tauler per reactivar-lo. El límit de 500 MB no és el problema: hi caben milers de cartes.
 
 ### Fase 2 — Catalunya
-8. 🟠 **Pàgines de ciutat prerenderitzades** (`/barcelona`, `/girona`, …) amb JSON-LD `Restaurant` i entrada al sitemap.
-9. 🟡 **Glossari d'additius i ingredients** (`/glossari`), generat des de `ingredient-dictionary.ts`: contingut indexable i offline.
-10. 🟡 **Instagram (`@vegan_tools`)**: publicar contingut i després enllaçar-lo al peu, a la capçalera i a `/recursos`.
-11. 🟡 **Adhesius QR «Verificat per Vegan Tools»** per a locals 100 % vegans.
-12. 🟠 **Capa de santuaris i refugis al mapa** (`type: "sanctuary"`), amb pin propi, filtre i fitxa orientada a visita respectuosa, donacions i apadrinament.
-13. 🟠 **Taxonomia de tags i filtres, segona fase**: separar categories gastronòmiques d'atributs, unificar sinònims i aplicar-ho a dades, filtres i etiquetes (auditoria feta amb `npm run audit:cuisine-tags`).
-14. 🟡 **Capa «Desats» al mapa** per a la llista «Vull anar-hi», amb sincronització al compte i accés des del perfil.
-15. 🟠 **Auditoria d'accessibilitat (WCAG 2.2 AA)**: contrast, teclat, lectors de pantalla i alternativa en llista al mapa.
-16. 🟠 **Racionalització de proveïdors de cerca** (`restaurant-search.ts`): de 4 proveïdors a un flux primari/secundari, mesurant cobertura abans i després.
-17. 🟡 **Unificar `AddRestaurantModal` i `EditRestaurantModal`** en un sol formulari.
-18. 🟠 **Mapa ràpid al mòbil** *(proposta, pendent que en Nils la validi: canvia el motor del mapa; cal tornar a mesurar quan s'apliqui l'ordre de fons preferit del 22-11-2026, perquè amb CARTO o Geoapify primer MapLibre només es carrega com a reserva)* (`RestaurantMap.tsx`, `MenuReaderPage.tsx`): en un mòbil de gamma mitjana el mapa triga uns 5 s a aparèixer i el fons uns 9 s (objectiu: 3 s). La pàgina `/map` descarrega 665 kB de JavaScript, i 290 kB són MapLibre. Passar a MapLibre sol (treure Leaflet, ~43 kB, i el pont `@maplibre/maplibre-gl-leaflet` 0.1.x) i mirar per què el contenidor del mapa espera. Cal reescriure pins, agrupació i finestres emergents, i provar-ho a mòbil.
-19. 🟡 **Portada més lleugera** *(proposta, pendent que en Nils la validi)*: LCP de 3,7 s en un mòbil de gamma mitjana (objectiu: 2,5 s). Al paquet inicial hi ha el client de Supabase (diàleg d'inici de sessió), el classificador i les cartes curades, i la portada no els necessita per pintar-se.
+7. 🟠 **Pàgines de ciutat prerenderitzades** (`/barcelona`, `/girona`, …) amb JSON-LD `Restaurant` i entrada al sitemap.
+8. 🟡 **Glossari d'additius i ingredients** (`/glossari`), generat des de `ingredient-dictionary.ts`: contingut indexable i offline.
+9. 🟡 **Instagram (`@vegan_tools`)**: publicar contingut i després enllaçar-lo al peu, a la capçalera i a `/recursos`.
+10. 🟡 **Adhesius QR «Verificat per Vegan Tools»** per a locals 100 % vegans.
+11. 🟠 **Capa de santuaris i refugis al mapa** (`type: "sanctuary"`), amb pin propi, filtre i fitxa orientada a visita respectuosa, donacions i apadrinament.
+12. 🟠 **Taxonomia de tags i filtres, segona fase**: separar categories gastronòmiques d'atributs, unificar sinònims i aplicar-ho a dades, filtres i etiquetes (auditoria feta amb `npm run audit:cuisine-tags`).
+13. 🟡 **Capa «Desats» al mapa** per a la llista «Vull anar-hi», amb sincronització al compte i accés des del perfil.
+14. 🟠 **Auditoria d'accessibilitat (WCAG 2.2 AA)**: contrast, teclat, lectors de pantalla i alternativa en llista al mapa.
+15. 🟠 **Racionalització de proveïdors de cerca** (`restaurant-search.ts`): de 4 proveïdors a un flux primari/secundari, mesurant cobertura abans i després.
+16. 🟡 **Unificar `AddRestaurantModal` i `EditRestaurantModal`** en un sol formulari.
+17. 🟠 **Mapa ràpid al mòbil** *(proposta, pendent que en Nils la validi: canvia el motor del mapa; cal tornar a mesurar quan s'apliqui l'ordre de fons preferit del 22-11-2026, perquè amb CARTO o Geoapify primer MapLibre només es carrega com a reserva)* (`RestaurantMap.tsx`, `MenuReaderPage.tsx`): en un mòbil de gamma mitjana el mapa triga uns 5 s a aparèixer i el fons uns 9 s (objectiu: 3 s). La pàgina `/map` descarrega 665 kB de JavaScript, i 290 kB són MapLibre. Passar a MapLibre sol (treure Leaflet, ~43 kB, i el pont `@maplibre/maplibre-gl-leaflet` 0.1.x) i mirar per què el contenidor del mapa espera. Cal reescriure pins, agrupació i finestres emergents, i provar-ho a mòbil.
+18. 🟡 **Portada més lleugera** *(proposta, pendent que en Nils la validi)*: LCP de 3,7 s en un mòbil de gamma mitjana (objectiu: 2,5 s). Al paquet inicial hi ha el client de Supabase (diàleg d'inici de sessió), el classificador i les cartes curades, i la portada no els necessita per pintar-se.
 
 ### Fase 3 — Sostenibilitat
-20. 🟠 **Sol·licituds a EA Animal Welfare Fund i ACE Movement Grants** amb dades d'ús reals de les fases 1 i 2.
+19. 🟠 **Sol·licituds a EA Animal Welfare Fund i ACE Movement Grants** amb dades d'ús reals de les fases 1 i 2.
 
 ---
 
