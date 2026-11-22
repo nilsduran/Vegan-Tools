@@ -15,6 +15,7 @@ import {
   type MenuDraft,
 } from "@vegan-tools/domain";
 import { recordGeminiCall } from "./usage-counters.js";
+import { verifyVeganDishes, type DishReview, type DishToReview } from "./menu-verification.js";
 
 interface Upload {
   filename: string;
@@ -307,7 +308,7 @@ Return JSON matching the supplied schema.${options?.highAccuracy ? "\nExtract wi
         }),
       })),
     });
-    return {
+    const result: MenuDraft = {
       ...analyzed,
       sections: analyzed.sections.map((section) => ({
         ...section,
@@ -331,6 +332,12 @@ Return JSON matching the supplied schema.${options?.highAccuracy ? "\nExtract wi
         }),
       })),
     };
+    // Second look at the dishes called vegan (menu-verification.ts): rules, then a
+    // focused AI review. It can only lower a verdict.
+    return verifyVeganDishes(result, {
+      isVegan: options?.isVegan,
+      review: (dishes) => reviewVeganDishes(ai, dishes, models),
+    });
   }
 }
 
@@ -443,4 +450,49 @@ function demoMenu(
       },
     ],
   };
+}
+
+/** AI review of only the dishes called vegan: hidden animal ingredients typical of each dish. */
+async function reviewVeganDishes(ai: GoogleGenAI, dishes: DishToReview[], models: string[]): Promise<DishReview[]> {
+  const prompt = `You double-check restaurant dishes that were classified as vegan, for ethical vegans.
+For each dish, judge whether it is likely to contain an animal-derived ingredient that its name or description does not state but that this kind of dish commonly contains in restaurants (for example meat or fish stock in rice, soups and risotto; butter or lard in pastry, bread or sauces; egg in fresh pasta, batter or mayonnaise; cheese in pesto; honey in dressings; fish sauce or shrimp paste in South-East Asian dishes; anchovies in Caesar dressing; gelatine in desserts).
+risk: "none" when nothing typical is a concern, "possible" when some restaurants make it with an animal ingredient, "likely" when most do.
+kind: "slaughter" for meat, fish, seafood, stock, lard or gelatine; "secretion" for dairy, egg or honey.
+reason: one short English sentence telling what to ask the staff; reasonCa: the same in Catalan.
+Do not flag ingredients that are clearly plant-based (soy milk, vegan cheese, olive oil).
+Dishes (JSON): ${JSON.stringify(dishes.slice(0, 80))}`;
+  let lastError: unknown;
+  for (const model of models.slice(0, 2)) {
+    try {
+      const response = await ai.models.generateContent({
+        model,
+        contents: [prompt],
+        config: {
+          responseMimeType: "application/json",
+          temperature: 0,
+          responseSchema: {
+            type: Type.ARRAY,
+            items: {
+              type: Type.OBJECT,
+              properties: {
+                id: { type: Type.STRING },
+                risk: { type: Type.STRING, enum: ["none", "possible", "likely"] },
+                ingredient: { type: Type.STRING },
+                kind: { type: Type.STRING, enum: ["slaughter", "secretion"] },
+                reason: { type: Type.STRING },
+                reasonCa: { type: Type.STRING },
+              },
+              required: ["id", "risk"],
+            },
+          },
+        },
+      });
+      recordGeminiCall("menu_review", response);
+      const parsed = JSON.parse(response.text ?? "[]") as DishReview[];
+      return Array.isArray(parsed) ? parsed : [];
+    } catch (error) {
+      lastError = error;
+    }
+  }
+  throw lastError;
 }
