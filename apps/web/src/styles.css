@@ -5992,3 +5992,13 @@ button:disabled { cursor: not-allowed; opacity: .55; }
 [data-theme="dark"] .settings-delete-btn:hover {
   background: #5b0d0d;
 }
+
+.settings-error {
+  margin: 0.75rem 0 0;
+  color: #b91c1c;
+  font-size: 0.88rem;
+}
+
+[data-theme="dark"] .settings-error {
+  color: #fca5a5;
+}

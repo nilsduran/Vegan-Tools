@@ -513,6 +513,30 @@ export async function deleteRestaurantReview(
   };
 }
 
+export interface AccountExport {
+  exportedAt: string;
+  reviews: RestaurantReview[];
+  visits: RestaurantVisitLog[];
+  top4: RestaurantCandidate[];
+}
+
+/** Everything the server holds about the signed-in user (GDPR portability). */
+export async function exportAccountApi(token: string): Promise<AccountExport> {
+  const response = await checkedFetch("/v1/users/me/export", {
+    method: "GET",
+    headers: { Authorization: `Bearer ${token}` },
+  });
+  return (await response.json()) as AccountExport;
+}
+
+/** Permanently deletes the signed-in user's reviews, diary, Top 4 and account. */
+export async function deleteAccountApi(token: string): Promise<void> {
+  await checkedFetch("/v1/users/me", {
+    method: "DELETE",
+    headers: { Authorization: `Bearer ${token}` },
+  });
+}
+
 export async function getUserReviews(token: string): Promise<RestaurantReview[]> {
   const response = await checkedFetch("/v1/users/me/reviews", {
     method: "GET",
@@ -528,10 +552,11 @@ export async function getUserReviews(token: string): Promise<RestaurantReview[]>
   });
 }
 
-export async function fetchUserVisits(userId: string): Promise<RestaurantVisitLog[]> {
+export async function fetchUserVisits(userId: string, token: string): Promise<RestaurantVisitLog[]> {
   try {
     const response = await checkedFetch(`/v1/users/${encodeURIComponent(userId)}/visits`, {
       method: "GET",
+      headers: { Authorization: `Bearer ${token}` },
     });
     const json = (await response.json()) as { visits: unknown[] };
     if (!Array.isArray(json.visits)) return [];

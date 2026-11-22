@@ -74,6 +74,7 @@ describe("Visit & Top4 routes (/v1/users/:userId/visits, /v1/users/:userId/top4)
     const listRes = await app.inject({
       method: "GET",
       url: "/v1/users/user-42/visits",
+      headers: { authorization: authHeader },
     });
     expect(listRes.statusCode).toBe(200);
     const listBody = listRes.json();
@@ -93,6 +94,7 @@ describe("Visit & Top4 routes (/v1/users/:userId/visits, /v1/users/:userId/top4)
     const listAfterRes = await app.inject({
       method: "GET",
       url: "/v1/users/user-42/visits",
+      headers: { authorization: authHeader },
     });
     expect(listAfterRes.json().visits).toHaveLength(0);
 

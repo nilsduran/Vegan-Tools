@@ -273,10 +273,11 @@ export function setUserTop4(ids: string[], userId: string): void {
   }
 }
 
-export async function syncUserDiaryFromCloud(userId: string): Promise<RestaurantVisitLog[]> {
+export async function syncUserDiaryFromCloud(userId: string, token?: string | null): Promise<RestaurantVisitLog[]> {
   if (!userId || typeof window === "undefined" || !window.localStorage) return [];
+  if (!token) return getDiaryLogs(userId);
   try {
-    const rawCloudVisits = await Promise.resolve(fetchUserVisits(userId));
+    const rawCloudVisits = await Promise.resolve(fetchUserVisits(userId, token));
     const cloudVisits = Array.isArray(rawCloudVisits) ? rawCloudVisits : [];
     if (cloudVisits.length === 0) return getDiaryLogs(userId);
 
@@ -322,14 +323,14 @@ export async function syncUserDiaryFromCloud(userId: string): Promise<Restaurant
   }
 }
 
-export function useDiaryLogs(userId?: string) {
+export function useDiaryLogs(userId?: string, token?: string | null) {
   const [logs, setLogs] = useState<RestaurantVisitLog[]>(() => getDiaryLogs(userId));
 
   useEffect(() => {
     setLogs(getDiaryLogs(userId));
 
     if (userId) {
-      void Promise.resolve(syncUserDiaryFromCloud(userId))
+      void Promise.resolve(syncUserDiaryFromCloud(userId, token))
         .then((synced) => {
           if (Array.isArray(synced)) {
             setLogs(synced);
@@ -351,7 +352,7 @@ export function useDiaryLogs(userId?: string) {
       window.removeEventListener(DIARY_UPDATED_EVENT, handleUpdate);
       window.removeEventListener("storage", handleUpdate);
     };
-  }, [userId]);
+  }, [userId, token]);
 
   return logs;
 }

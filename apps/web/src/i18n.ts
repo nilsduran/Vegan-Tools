@@ -943,6 +943,9 @@ export const caPhrases = {
   "Are you sure you want to delete your account? All your personal logs and reviews will be permanently deleted.":
     "N'estàs segur que vols eliminar el teu compte? S'eliminaran permanentment totes les teves visites i ressenyes.",
   "Account deleted successfully": "Compte eliminat correctament",
+  "Your data could not be exported. Please try again.": "No s'han pogut exportar les teves dades. Torna-ho a provar.",
+  "Your account could not be deleted. Nothing has been removed; please try again.":
+    "No s'ha pogut eliminar el compte. No s'ha esborrat res; torna-ho a provar.",
   "Create your Vegan Tools profile": "Crea el teu perfil a Vegan Tools",
   "Personalize alerts and filters": "Personalitza alertes i filtres",
   "Dining Diary": "Diari de visites",

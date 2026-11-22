@@ -56,6 +56,7 @@ import { reviewRoutes } from "./routes/reviews.js";
 import { restaurantRoutes } from "./routes/restaurants.js";
 import { menuRoutes } from "./routes/menus.js";
 import { visitRoutes } from "./routes/visits.js";
+import { accountRoutes, type AuthUserDeleter } from "./routes/account.js";
 
 // Re-export routes and helpers for external consumers & tests
 export * from "./routes/location.js";
@@ -78,6 +79,7 @@ export interface AppDependencies {
   dishFeedbackPolisher?: DishFeedbackPolisher;
   reviewStore?: RestaurantReviewStore;
   visitStore?: RestaurantVisitStore;
+  deleteAuthUser?: AuthUserDeleter;
   disableRateLimit?: boolean;
   rateLimitMax?: number;
   /** Overrides bearer-token verification (tests). Defaults to Supabase Auth. */
@@ -285,6 +287,7 @@ export async function buildApp(
     verifyToken,
   });
   await visitRoutes(app, { visitStore, verifyToken });
+  await accountRoutes(app, { reviewStore, visitStore, verifyToken, deleteAuthUser: deps.deleteAuthUser });
 
   return app;
 }
