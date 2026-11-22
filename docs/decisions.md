@@ -10,6 +10,18 @@ Memòria del projecte entre sessions: **què es va decidir, per què i què es v
 
 ---
 
+## 2026-11-22 — Segona revisió dels plats vegans, errors d'OCR i dos fluxos més amb E2E
+- **Plats vegans** (`menu-verification.ts`) **(deduït)**:
+  - Les regles passen pel nom i la descripció dels plats «vegans».
+  - Després, una crida de Gemini revisa només aquests plats buscant ingredients animals que el tipus de plat sol amagar.
+  - Només pot rebaixar veredictes; «possible» deixa el plat com a probablement vegà amb què preguntar.
+  - No s'aplica a locals 100 % vegans. És la primera idea de la llista de tècniques d'IA (probabilitat estimada ~65 %).
+- **Errors d'OCR** **(deduït)**:
+  - Només en text llegit d'una foto, les paraules a un error típic d'OCR d'un terme animal passen a dubtoses.
+  - La distància d'edició simple es va descartar: marcava 6 etiquetes vegetals del conjunt daurat amb paraules reals («boisson»/«poisson», «frisch»/«fisch»).
+  - Límit conegut: «truita» (truita de patates o el peix) surt com a no vegetariana; l'error va en la direcció prudent.
+- **E2E**: cerca → carta i registre al diari, a escriptori i mòbil. Van destapar un error real del mapa: el pont MapLibre-Leaflet petava si el mapa desapareixia durant el vol cap a un restaurant. **(deduït)**
+
 ## 2026-11-22 — Productes de qualsevol tipus: combinar fonts, cercar a la web i verificar la cita
 - **Problema real**: una crema solar vegana (Altruist, 8719327023839) sortia «desconeguda» amb Open Food Facts com a font. El producte hi és arxivat com a menjar, sense marca ni ingredients, i el registre buit guanyava. **(Nils ho va trobar; va demanar una solució general, no per a aquest cas)**
 - **Decisió** (`product-resolver.ts`) **(deduït)**:

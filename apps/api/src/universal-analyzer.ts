@@ -138,7 +138,7 @@ export function finalizeScanAnswer(
 
   const labelText = raw.ingredientsText?.trim();
   if (subject === "ingredient_label" && labelText) {
-    const analysis = classifyIngredients(labelText, { assurance: "label_based" });
+    const analysis = classifyIngredients(labelText, { assurance: "label_based", fromPhoto: true });
     return {
       ...base,
       verdict: analysis.verdict,

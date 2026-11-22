@@ -162,3 +162,82 @@ export function findAnimalTerms(text: string): AnimalTermMatch[] {
 export function toLexiconTerm(value: string): string {
   return toSegments(value).map((tokens) => tokens.join(" ")).join(" ");
 }
+
+export interface LikelyMisreading {
+  /** The word as read from the photo. */
+  word: string;
+  /** The animal ingredient it is one or two letters away from. */
+  term: string;
+  status: AnimalTermMatch["status"];
+}
+
+const CONFUSABLE = [new Set(["i", "l", "1", "t", "j", "f"]), new Set(["c", "e", "o", "0"]), new Set(["u", "v"]), new Set(["n", "h"])];
+
+function confusable(a: string, b: string): boolean {
+  return CONFUSABLE.some((group) => group.has(a) && group.has(b));
+}
+
+/**
+ * Whether `word` is `term` with one typical OCR reading error: a dropped letter, a
+ * doubled letter, two swapped neighbours, "rn" read for "m", or one visually
+ * confusable letter (l/i/1/t, c/e/o, u/v, n/h). Unlike plain edit distance this
+ * ignores real words a letter apart ("boisson"/"poisson", "frisch"/"fisch").
+ */
+export function isOcrLikeVariant(word: string, term: string): boolean {
+  if (word === term) return false;
+  if (word.length === term.length - 1) {
+    for (let i = 0; i < term.length; i += 1) if (term.slice(0, i) + term.slice(i + 1) === word) return true;
+    return false;
+  }
+  if (word.length === term.length + 1) {
+    for (let i = 1; i < word.length; i += 1) {
+      if (word[i] === word[i - 1] && word.slice(0, i) + word.slice(i + 1) === term) return true;
+    }
+    return word.replace("rn", "m") === term;
+  }
+  if (word.length !== term.length) return false;
+  const diffs: number[] = [];
+  for (let i = 0; i < word.length; i += 1) if (word[i] !== term[i]) diffs.push(i);
+  if (diffs.length === 1) return confusable(word[diffs[0]!]!, term[diffs[0]!]!);
+  if (diffs.length === 2 && diffs[1] === diffs[0]! + 1) {
+    return word[diffs[0]!] === term[diffs[1]!] && word[diffs[1]!] === term[diffs[0]!];
+  }
+  return false;
+}
+
+/** Real words in label languages that are one OCR-like error away from an animal term. */
+const REAL_WORD_COLLISIONS = new Set(["roggen"]);
+
+let singleWordTerms: Array<{ term: string; status: AnimalTermMatch["status"] }> | undefined;
+
+/**
+ * Words from a photographed label that look like a misread animal ingredient
+ * ("gelatna", "lactosse", "beurrre"): long words (6+ letters) one typical OCR error
+ * away from a known single-word term (isOcrLikeVariant). Words that are themselves
+ * known (animal, plant-shield or vegan qualifier) are never reported. Only for OCR
+ * text: typed text does not have reading errors.
+ */
+export function findLikelyMisreadings(text: string, extraTerms: AnimalTermMatch[] = []): LikelyMisreading[] {
+  singleWordTerms ??= [
+    ...lexicon.n.filter((term) => !term.includes(" ")).map((term) => ({ term, status: "non_vegetarian" as const })),
+    ...lexicon.v.filter((term) => !term.includes(" ")).map((term) => ({ term, status: "vegetarian" as const })),
+  ];
+  const candidates = [...singleWordTerms, ...extraTerms.filter((entry) => !entry.term.includes(" "))]
+    .filter((entry) => entry.term.length >= 5);
+  const found = new Map<string, LikelyMisreading>();
+  for (const tokens of toSegments(text)) {
+    for (const word of tokens) {
+      if (word.length < 6 || found.has(word)) continue;
+      if (statusOf(word) || statusOf(singular(word)) || shieldTerms.has(word)) continue;
+      if (VEGAN_QUALIFIERS.has(word) || PLANT_QUALIFIERS.has(word) || REAL_WORD_COLLISIONS.has(word)) continue;
+      for (const entry of candidates) {
+        if (Math.abs(entry.term.length - word.length) > 1) continue;
+        if (isOcrLikeVariant(word, entry.term)) {
+          found.set(word, { word, term: entry.term, status: entry.status });
+          break;
+        }
+      }
+    }
+  }
+  return [...found.values()];
+}
