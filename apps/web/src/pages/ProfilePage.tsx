@@ -313,6 +313,18 @@ export function ProfilePage() {
             <LogIn size={18} aria-hidden="true" />
             <span>{tx("Sign in / Create account")}</span>
           </button>
+
+          {/* Language and theme work without an account. */}
+          <div style={{ marginTop: "1.25rem" }}>
+            <Link
+              to="/settings"
+              className="secondary-button profile-auth-btn"
+              style={{ display: "inline-flex", alignItems: "center", gap: "0.4rem" }}
+            >
+              <Settings size={16} aria-hidden="true" />
+              <span>{tx("Settings")}</span>
+            </Link>
+          </div>
         </section>
       ) : (
         <>
