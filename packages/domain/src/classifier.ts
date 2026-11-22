@@ -15,7 +15,7 @@ import type {
   IngredientFinding,
 } from "./schemas.js";
 
-export const CLASSIFIER_VERSION = "2026.11.2";
+export const CLASSIFIER_VERSION = "2026.11.3";
 
 function normalizeText(value: string): string {
   return value
@@ -82,6 +82,63 @@ function mergeWithAnimalLexicon(text: string, dictionary: IngredientFinding[]): 
       substitutions: [],
     }));
   return [...kept, ...added];
+}
+
+/**
+ * Words that declare a plant (or synthetic, non-animal) origin for a dual-origin
+ * ingredient: "lecitina de gira-sol", "sunflower lecithin", "E471 (palma)",
+ * "glicerina vegetal", "vitamin D3 (lichen)". Normalised text, no diacritics.
+ */
+const PLANT_ORIGIN = new RegExp(
+  "(^|[^a-z])(" +
+    [
+      "sunflower", "gira-?sol", "girasol(e)?", "tournesol", "sonnenblumen\\w*",
+      "soy(a|bean)?", "soja", "rapeseed", "colza", "raps\\w*",
+      "palm(a|e)?", "coconut", "coco", "kokos\\w*", "maize", "corn", "blat de moro", "maiz",
+      "rice", "arros", "arroz", "olive", "oliva", "lichen", "liquen", "flechte",
+      "vegetable", "vegetal(s|es)?", "vegetale", "vegetaux", "pflanzlich\\w*",
+      "plant(-based)?", "d'origen vegetal", "de origen vegetal", "d'origine vegetale",
+    ].join("|") +
+    ")([^a-z]|$)",
+);
+
+/**
+ * True when the ingredient's own entry on the label (between commas) names a
+ * plant source. Commas end the entry, so "lecithin, sunflower oil" does not count.
+ */
+function declaresPlantOrigin(normalizedText: string, alias: string): boolean {
+  const needle = normalizeText(alias);
+  let from = 0;
+  while (true) {
+    const index = normalizedText.indexOf(needle, from);
+    if (index < 0) return false;
+    const start = Math.max(
+      normalizedText.lastIndexOf(",", index),
+      normalizedText.lastIndexOf(";", index),
+      index - 40,
+    ) + 1;
+    const ends = [",", ";"]
+      .map((separator) => normalizedText.indexOf(separator, index + needle.length))
+      .filter((position) => position >= 0);
+    const end = Math.min(...ends, index + needle.length + 40, normalizedText.length);
+    const entry = normalizedText.slice(start, end);
+    if (PLANT_ORIGIN.test(entry) && !/(^|[^a-z])animal/.test(entry)) return true;
+    from = index + needle.length;
+  }
+}
+
+/** Dual-origin ingredients whose label states a plant source are not doubtful. */
+function resolveDeclaredPlantOrigins(text: string, findings: IngredientFinding[]): IngredientFinding[] {
+  const normalized = normalizeText(text);
+  return findings.map((finding) =>
+    finding.status === "ambiguous" && declaresPlantOrigin(normalized, finding.matchedAlias)
+      ? {
+          ...finding,
+          status: "vegan",
+          reason: "The label states a plant source for this ingredient.",
+        }
+      : finding,
+  );
 }
 
 export function getIngredientDefinition(id: string): IngredientDefinition | undefined {
@@ -161,7 +218,10 @@ export function classifyIngredients(
     );
   }
 
-  const findings = mergeWithAnimalLexicon(ingredients, lookupIngredients(ingredients));
+  const findings = resolveDeclaredPlantOrigins(
+    ingredients,
+    mergeWithAnimalLexicon(ingredients, lookupIngredients(ingredients)),
+  );
   const nonVegetarian = findings.filter((finding) => finding.status === "non_vegetarian");
   const vegetarian = findings.filter((finding) => finding.status === "vegetarian");
   const ambiguous = findings.filter((finding) => finding.status === "ambiguous");
