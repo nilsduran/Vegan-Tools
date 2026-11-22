@@ -1,7 +1,7 @@
 /**
  * @file App.tsx
  * @description Root application shell and routing architecture.
- * Configures lazy-loaded page routes, suspense boundaries, navigation bar, language switcher,
+ * Configures lazy-loaded page routes, suspense boundaries, navigation bar, header language switcher,
  * and authentication context.
  */
 
@@ -13,6 +13,7 @@ import { t, tx, useLanguage } from "./i18n";
 import { AuthProvider, useAuth } from "./auth";
 import { useTheme } from "./theme";
 import { OnboardingModal } from "./components/OnboardingModal";
+import { LanguageSwitcher } from "./components/LanguageSwitcher";
 
 const HomePage = lazy(() => import("./pages/HomePage").then((m) => ({ default: m.HomePage })));
 const MenuReaderPage = lazy(() => import("./pages/MenuReaderPage").then((m) => ({ default: m.MenuReaderPage })));
@@ -113,6 +114,7 @@ export function App() {
               <NavLink to="/profile">{tx("Profile")}</NavLink>
             </nav>
           )}
+          <LanguageSwitcher />
         </header>
 
         <main>

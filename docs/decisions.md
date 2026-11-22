@@ -10,6 +10,12 @@ Memòria del projecte entre sessions: **què es va decidir, per què i què es v
 
 ---
 
+## 2026-11-22 — Idioma accessible sense compte
+- **Problema**: sense iniciar sessió no es podia canviar l'idioma (ni el tema). El selector de la capçalera es va treure el 3-10-2026 (`7b5cd94`) en crear la pàgina de Configuració, que només s'enllaçava des del perfil amb sessió. **(Nils ho va detectar)**
+- **Decisió**: tornar el selector de banderes a la capçalera, a totes les pàgines, i mostrar l'enllaç a Configuració també al perfil sense sessió. **(Nils va triar «capçalera i perfil»)**
+- **Retirat**: `SettingsModal.tsx`, la versió antiga de la configuració, que no s'usava enlloc. **(deduït)**
+- **Pendent de valorar**: els botons de bandera fan 28×19 px, per sota dels 44 px recomanats per tocar amb el dit; és el disseny original i no s'ha canviat.
+
 ## 2026-11-21 — `main` protegida: tot entra per PR amb la CI en verd
 - **Decisió**: protecció de branca a GitHub sobre `main`, també per a administradors: cal una PR (sense aprovació obligatòria, perquè és un sol desenvolupador) i que passin Typecheck, Tests, Audits, Production build i E2E. Sense force-push ni esborrat de `main`. Les branques remotes s'esborren en fusionar. **(Nils va dir que sí)**
 - **Per què**: el 15-11-2026 una fusió d'una sessió d'agent (`ccb8f9b`) va trencar `main` perquè es va pujar sense esperar la CI. Amb diversos agents treballant en paral·lel, és el control que atura un error abans de producció. **(deduït)**
