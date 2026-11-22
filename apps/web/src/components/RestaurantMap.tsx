@@ -202,16 +202,42 @@ export function RestaurantMap({
   const [isLocating, setIsLocating] = useState(false);
   const [showSearchAreaBtn, setShowSearchAreaBtn] = useState(false);
 
+  // Markers drawn by the last full render, so hovering a result only updates
+  // the two markers involved instead of rebuilding every pin and label.
+  const singleMarkersRef = useRef(new Map<string, { marker: L.Marker; restaurant: RestaurantCandidate }>());
+  const clusterMarkersRef = useRef(
+    new Map<string, { marker: L.Marker; count: number; hasSelected: boolean; hasFeatured: boolean }>(),
+  );
+  const hoveredIdRef = useRef(hoveredRestaurantId);
+  const appliedHoverRef = useRef<string | undefined>(undefined);
+
+  const bindNameTooltip = (marker: L.Marker, restaurant: RestaurantCandidate, isSelected: boolean) => {
+    if (marker.getTooltip()) return;
+    marker.bindTooltip(restaurant.name, {
+      permanent: true,
+      direction: "bottom",
+      offset: [0, 4],
+      className: isSelected ? "map-pin-name-tooltip selected" : "map-pin-name-tooltip",
+    });
+  };
+
   const renderClustersAndMarkers = useCallback(() => {
     const map = mapInstanceRef.current;
     const markersGroup = markersGroupRef.current;
     if (!map || !markersGroup) return;
 
     markersGroup.clearLayers();
+    singleMarkersRef.current.clear();
+    clusterMarkersRef.current.clear();
+    appliedHoverRef.current = undefined;
 
     const zoom = map.getZoom();
     const clusterRadius = zoom >= 14 ? 0 : zoom >= 13 ? 16 : zoom >= 12 ? 24 : 34;
     const showPinRating = zoom >= 16;
+    // Name labels are only visible from zoom 17 (CSS) or on hover: creating a
+    // permanent tooltip for every pin at lower zooms was wasted DOM work.
+    const showLabels = zoom >= 17;
+    const hoveredId = hoveredIdRef.current;
 
     // Use the restaurants provided by the parent component
     const validRestaurants = restaurants.filter(
@@ -242,22 +268,15 @@ export function RestaurantMap({
       if (result.type === "single") {
         const restaurant = result.item;
         const isSelected = selectedRestaurant?.id === restaurant.id;
-        const isHovered = hoveredRestaurantId === restaurant.id;
+        const isHovered = hoveredId === restaurant.id;
         const marker = L.marker([restaurant.latitude, restaurant.longitude], {
           icon: createRestaurantIcon(restaurant, isSelected, isHovered, showPinRating),
           zIndexOffset: isSelected ? 1000 : isHovered ? 900 : 0,
         });
 
-        marker.bindTooltip(restaurant.name, {
-          permanent: true,
-          direction: "bottom",
-          offset: [0, 4],
-          className: isSelected
-            ? "map-pin-name-tooltip selected"
-            : isHovered
-              ? "map-pin-name-tooltip hovered"
-              : "map-pin-name-tooltip",
-        });
+        if (showLabels || isSelected || isHovered) {
+          bindNameTooltip(marker, restaurant, isSelected);
+        }
 
         marker.on("click", (e) => {
           L.DomEvent.stopPropagation(e);
@@ -265,26 +284,28 @@ export function RestaurantMap({
         });
 
         marker.on("mouseover", () => {
-          const tooltipEl = marker.getTooltip()?.getElement();
-          if (tooltipEl) tooltipEl.classList.add("hovered");
+          bindNameTooltip(marker, restaurant, isSelected);
+          marker.getTooltip()?.getElement()?.classList.add("hovered");
         });
 
         marker.on("mouseout", () => {
-          const tooltipEl = marker.getTooltip()?.getElement();
-          if (tooltipEl) tooltipEl.classList.remove("hovered");
+          marker.getTooltip()?.getElement()?.classList.remove("hovered");
         });
 
         markersGroup.addLayer(marker);
+        singleMarkersRef.current.set(restaurant.id, { marker, restaurant });
+        if (isHovered) appliedHoverRef.current = restaurant.id;
       } else {
         const hasSelected = selectedRestaurant
           ? result.items.some((r) => r.id === selectedRestaurant.id)
           : false;
-        const hasHovered = hoveredRestaurantId
-          ? result.items.some((r) => r.id === hoveredRestaurantId)
+        const hasHovered = hoveredId
+          ? result.items.some((r) => r.id === hoveredId)
           : false;
+        const hasFeatured = Boolean(result.hasFeatured);
 
         const clusterMarker = L.marker([result.latitude, result.longitude], {
-          icon: createClusterIcon(result.count, hasSelected || hasHovered, Boolean(result.hasFeatured)),
+          icon: createClusterIcon(result.count, hasSelected || hasHovered, hasFeatured),
           zIndexOffset: hasSelected ? 800 : hasHovered ? 700 : 100,
         });
 
@@ -298,9 +319,44 @@ export function RestaurantMap({
         });
 
         markersGroup.addLayer(clusterMarker);
+        const clusterEntry = { marker: clusterMarker, count: result.count, hasSelected, hasFeatured };
+        for (const item of result.items) clusterMarkersRef.current.set(item.id, clusterEntry);
+        if (hasHovered) appliedHoverRef.current = hoveredId;
       }
     }
-  }, [restaurants, selectedRestaurant, hoveredRestaurantId, onSelectRestaurant]);
+  }, [restaurants, selectedRestaurant, onSelectRestaurant]);
+
+  // Hover: restyle only the previously and newly hovered pins (or their clusters).
+  useEffect(() => {
+    hoveredIdRef.current = hoveredRestaurantId;
+    const map = mapInstanceRef.current;
+    if (!map) return;
+    const showPinRating = map.getZoom() >= 16;
+
+    const apply = (id: string | undefined, hovered: boolean) => {
+      if (!id) return;
+      const single = singleMarkersRef.current.get(id);
+      if (single) {
+        const isSelected = selectedRestaurant?.id === id;
+        single.marker.setIcon(createRestaurantIcon(single.restaurant, isSelected, hovered, showPinRating));
+        single.marker.setZIndexOffset(isSelected ? 1000 : hovered ? 900 : 0);
+        if (hovered) bindNameTooltip(single.marker, single.restaurant, isSelected);
+        single.marker.getTooltip()?.getElement()?.classList.toggle("hovered", hovered);
+        return;
+      }
+      const cluster = clusterMarkersRef.current.get(id);
+      if (cluster) {
+        cluster.marker.setIcon(createClusterIcon(cluster.count, cluster.hasSelected || hovered, cluster.hasFeatured));
+        cluster.marker.setZIndexOffset(cluster.hasSelected ? 800 : hovered ? 700 : 100);
+      }
+    };
+
+    if (appliedHoverRef.current !== hoveredRestaurantId) {
+      apply(appliedHoverRef.current, false);
+      apply(hoveredRestaurantId, true);
+      appliedHoverRef.current = hoveredRestaurantId;
+    }
+  }, [hoveredRestaurantId, selectedRestaurant]);
 
   const renderClustersRef = useRef(renderClustersAndMarkers);
   const onSearchAreaRef = useRef(onSearchArea);
