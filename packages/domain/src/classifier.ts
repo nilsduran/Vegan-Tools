@@ -8,7 +8,7 @@
  */
 
 import { INGREDIENT_DICTIONARY, type IngredientDefinition } from "./ingredient-dictionary.js";
-import { scanAnimalTerms, toLexiconTerm } from "./animal-lexicon.js";
+import { findLikelyMisreadings, scanAnimalTerms, toLexiconTerm } from "./animal-lexicon.js";
 import type {
   Assurance,
   DietVerdict,
@@ -141,6 +141,24 @@ function resolveDeclaredPlantOrigins(text: string, findings: IngredientFinding[]
   );
 }
 
+/** Dictionary aliases (gelatin, casein...) also count as terms a photo may misread. */
+const DICTIONARY_TERMS = INGREDIENT_DICTIONARY.flatMap((definition) =>
+  definition.status === "non_vegetarian" || definition.status === "vegetarian"
+    ? definition.aliases.map((alias) => ({ term: toLexiconTerm(alias), status: definition.status as "non_vegetarian" | "vegetarian" }))
+    : [],
+);
+
+function misreadingFindings(text: string): IngredientFinding[] {
+  return findLikelyMisreadings(text, DICTIONARY_TERMS).map((misreading) => ({
+    id: `misread:${misreading.word}`,
+    name: misreading.word,
+    matchedAlias: misreading.word,
+    status: "ambiguous",
+    reason: `"${misreading.word}" looks like a misreading of "${misreading.term}", an animal-derived ingredient. Check the label.`,
+    substitutions: [],
+  }));
+}
+
 export function getIngredientDefinition(id: string): IngredientDefinition | undefined {
   return INGREDIENT_DICTIONARY.find((definition) => definition.id === id);
 }
@@ -198,6 +216,8 @@ export function classifyIngredients(
     assurance?: Assurance;
     verifiedVeganClaim?: boolean;
     verifiedVegetarianClaim?: boolean;
+    /** Text read from a photo: words that look like misread animal ingredients become doubtful. */
+    fromPhoto?: boolean;
   } = {},
 ): Classification {
   const { ingredients, traces } = splitTraces(text);
@@ -222,6 +242,7 @@ export function classifyIngredients(
     ingredients,
     mergeWithAnimalLexicon(ingredients, lookupIngredients(ingredients)),
   );
+  if (options.fromPhoto) findings.push(...misreadingFindings(ingredients));
   const nonVegetarian = findings.filter((finding) => finding.status === "non_vegetarian");
   const vegetarian = findings.filter((finding) => finding.status === "vegetarian");
   const ambiguous = findings.filter((finding) => finding.status === "ambiguous");
