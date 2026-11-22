@@ -21,6 +21,7 @@ import {
 import type { RestaurantMenuCache } from "../restaurant-menu-cache.js";
 import { CURATED_MENUS } from "../curated-menus.js";
 import { authenticateRequest, createTokenVerifier, type TokenVerifier } from "../auth.js";
+import { usageCounters } from "../usage-counters.js";
 
 export function cleanShortAddress(
   formattedAddress?: string,
@@ -536,6 +537,7 @@ export async function restaurantRoutes(
         provider: "curated",
       };
       const cached = await restaurantMenuCache.get(dummyCandidate);
+      usageCounters.increment(cached?.menu ? "menus.cache.hit" : "menus.cache.miss");
       if (cached?.menu) {
         reply.header("Cache-Control", "public, max-age=1800");
         return cached.menu;

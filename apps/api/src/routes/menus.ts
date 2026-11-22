@@ -23,6 +23,7 @@ import type { RestaurantMenuCache } from "../restaurant-menu-cache.js";
 import { loadSourcesFromStore, type MenuSourceStore } from "../menu-source-store.js";
 import type { DishFeedbackPolisher } from "../dish-feedback-polisher.js";
 import { authenticateRequest, createTokenVerifier, type TokenVerifier } from "../auth.js";
+import { usageCounters } from "../usage-counters.js";
 
 async function withTimeout<T>(
   promise: Promise<T>,
@@ -188,6 +189,8 @@ export async function menuRoutes(app: FastifyInstance, options: MenuRoutesOption
     if (restaurant) {
       try {
         const cached = await restaurantMenuCache.get(restaurant);
+        const cacheHit = Boolean(cached?.menu && cached.menu.status === "ready" && cached.menu.sections.length > 0);
+        usageCounters.increment(cacheHit ? "menus.cache.hit" : "menus.cache.miss");
         if (cached?.menu && cached.menu.status === "ready" && cached.menu.sections.length > 0) {
           const sessionMenu = {
             ...cached.menu,

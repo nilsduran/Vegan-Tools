@@ -5,6 +5,7 @@
  */
 
 import { GoogleGenAI } from "@google/genai";
+import { recordGeminiCall } from "./usage-counters.js";
 
 export interface IngredientImage {
   mimetype: string;
@@ -55,6 +56,7 @@ export class GeminiIngredientExtractor implements IngredientExtractor {
               ],
             }],
           });
+          recordGeminiCall("label", response);
           break;
         } catch (error) {
           lastError = error;
