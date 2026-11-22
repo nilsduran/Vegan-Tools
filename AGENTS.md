@@ -59,6 +59,7 @@ Qualsevol tasca, millora o correcció s'ha de classificar i abordar seguint aque
    - `main` està protegida a GitHub: no s'hi pot pujar directament (tampoc com a administrador). Tot entra per una PR, i només es pot fusionar quan passen els cinc jobs de la CI (Typecheck, Tests, Audits, Production build, E2E).
    - Flux: branca (`feature/*`, `fix/*`, `docs/*`) → commits atòmics → `git push -u origin <branca>` → `gh pr create` → esperar la CI → `gh pr merge --merge`. La branca remota s'esborra sola en fusionar.
    - Pujar una branca i obrir la PR és una acció visible: cal el vistiplau d'en Nils, igual que per fusionar-la.
+   - Fusió automàtica: amb el vistiplau d'en Nils per fusionar, es pot fer `gh pr merge --auto --merge` just després de crear la PR; GitHub la fusiona sola quan passa la CI i no la fusiona si falla. Activar-la equival a fusionar, així que també necessita el seu vistiplau.
    - Mantenir commits atòmics amb missatges clars i descriptius en català o anglès.
 
 2. **Cicle de Verificació, Recursos i Piràmide de Tests**:

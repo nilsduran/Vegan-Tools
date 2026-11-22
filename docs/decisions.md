@@ -14,6 +14,7 @@ Memòria del projecte entre sessions: **què es va decidir, per què i què es v
 - **Decisió**: protecció de branca a GitHub sobre `main`, també per a administradors: cal una PR (sense aprovació obligatòria, perquè és un sol desenvolupador) i que passin Typecheck, Tests, Audits, Production build i E2E. Sense force-push ni esborrat de `main`. Les branques remotes s'esborren en fusionar. **(Nils va dir que sí)**
 - **Per què**: el 15-11-2026 una fusió d'una sessió d'agent (`ccb8f9b`) va trencar `main` perquè es va pujar sense esperar la CI. Amb diversos agents treballant en paral·lel, és el control que atura un error abans de producció. **(deduït)**
 - **Alternativa descartada**: construir arquitectura d'IA pròpia (orquestració d'agents, indexació del codi). Els problemes reals havien estat de verificació i de context, no de falta d'eines. **(deduït; Nils ho havia preguntat)**
+- **Fusió automàtica** (22-11-2026): activada al repositori perquè una PR es fusioni sola quan passa la CI. **(Nils)**
 - **Conseqüència**: la CI només s'executa en PR i en pujades a `main`, així que el flux és sempre branca → PR → fusió. `strict` desactivat: no cal rebasar una PR si `main` ha avançat.
 
 ## 2026-11-18 — Velocitat: cap canvi de producte sense validar-lo
