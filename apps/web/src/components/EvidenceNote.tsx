@@ -39,7 +39,7 @@ const LEVELS: Record<Assurance, { label: string; detail: string; Icon: typeof Ba
 
 const AUTOMATIC = {
   label: "Automatic recognition",
-  detail: "Identified automatically from the photo or page. It is not a verification: check the label or ask when it matters.",
+  detail: "Found automatically (photo, web page or web search). It is not a verification: check the label or ask when it matters.",
   Icon: Sparkles,
 };
 

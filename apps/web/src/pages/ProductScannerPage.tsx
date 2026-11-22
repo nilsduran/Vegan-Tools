@@ -168,6 +168,14 @@ export function ProductScannerPage() {
     type: "website",
   });
   const ingredientAnalysis = useMutation({ mutationFn: classifyIngredientList });
+  // A product without ingredients in any database triggers a web search (up to ~30 s).
+  const [slowLookup, setSlowLookup] = useState(false);
+  useEffect(() => {
+    setSlowLookup(false);
+    if (!lookup.isPending || !routeGtin) return;
+    const timer = window.setTimeout(() => setSlowLookup(true), 4_000);
+    return () => window.clearTimeout(timer);
+  }, [lookup.isPending, routeGtin]);
   const photoScan = useMutation({ mutationFn: (file: File) => analyzeScanPhoto(file, language) });
   const linkScan = useMutation({ mutationFn: (url: string) => analyzeScanUrl(url, language) });
   const productPhotoExtraction = useMutation({
@@ -382,7 +390,12 @@ export function ProductScannerPage() {
             </div>
           </form>}
 
-          {routeGtin && lookup.isPending && <div className="loading"><LoaderCircle className="spin" />{tx("Checking product…")}</div>}
+          {routeGtin && lookup.isPending && (
+            <div className="loading">
+              <LoaderCircle className="spin" />
+              {slowLookup ? tx("No database has this product's ingredients: searching the web…") : tx("Checking product…")}
+            </div>
+          )}
           
           {routeGtin && lookup.error && (
             <div className="product-not-found-card">
@@ -519,16 +532,25 @@ export function ProductScannerPage() {
                 {productCategory(lookup.data) === "beauty" && lookup.data.brand && (
                   <BrandCrueltyFree brand={lookup.data.brand} />
                 )}
-                <EvidenceNote assurance={lookup.data.assurance} evidence={lookup.data.evidence} />
+                <EvidenceNote
+                  assurance={lookup.data.assurance}
+                  evidence={lookup.data.evidence}
+                  automatic={lookup.data.evidence.some((item) => item.sourceType === "automated_extraction")}
+                />
                 {lookup.data.traces.length > 0 && (
                   <p className="trace-note">
                     {tx("Allergen trace warning")}: {lookup.data.traces.join(", ")}
                   </p>
                 )}
-                {lookup.data.evidence[0]?.sourceUrl && (
-                  <a className="source-link" href={lookup.data.evidence[0].sourceUrl} target="_blank" rel="noreferrer">
-                    {lookup.data.evidence[0].sourceName} <ExternalLink />
-                  </a>
+                {lookup.data.evidence.filter((item) => item.sourceUrl).length > 0 && (
+                  <p className="source-links">
+                    {tx("Sources")}:{" "}
+                    {lookup.data.evidence.filter((item) => item.sourceUrl).slice(0, 3).map((item) => (
+                      <a key={item.id} className="source-link" href={item.sourceUrl} target="_blank" rel="noreferrer">
+                        {item.sourceName} <ExternalLink />
+                      </a>
+                    ))}
+                  </p>
                 )}
                 <div className="result-actions">
                   <button
