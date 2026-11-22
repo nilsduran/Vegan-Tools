@@ -33,6 +33,7 @@ import type { Language } from "../i18n";
 import { localizeGeneratedText } from "../generated-i18n";
 import { reanalyzeMenuDraft, resolveApiUrl, sourcePdfPageUrl } from "../api";
 import { isPresentableMenuSource } from "../menu-source";
+import { menuFreshness } from "../utils/freshness";
 import { DishCorrectionDialog } from "./DishCorrectionDialog";
 import { RestaurantNotesDialog } from "./RestaurantNotesDialog";
 
@@ -135,13 +136,19 @@ export function MenuView({
   onSourceReference,
   onUpdateMenu,
   onEditSources,
+  onRefreshFromSource,
+  isRefreshing = false,
 }: {
   menu: MenuDraft;
   onSourceReference?: (item: MenuItem) => void;
   onUpdateMenu?: (updated: MenuDraft) => void;
   onEditSources?: () => void;
+  /** Fetches and analyses the restaurant's current menu again (offered when the analysis is old). */
+  onRefreshFromSource?: () => void;
+  isRefreshing?: boolean;
 }) {
   const language = useLanguage();
+  const freshness = menuFreshness(menu.sourceCapturedAt, language);
   const { lifestyle } = useLifestyle();
   const [selectedDiets, setSelectedDiets] = useState<Set<DietFilter>>(() => {
     if (lifestyle === "vegetarian") {
@@ -260,6 +267,31 @@ export function MenuView({
       <header className="public-menu-heading">
         <p className="menu-eyebrow">{language === "ca" ? "Carta" : "Menu"}</p>
         <h1>{menu.restaurantName || (language === "ca" ? "Carta del restaurant" : "Restaurant menu")}</h1>
+        {freshness && (
+          <p className={`menu-freshness${freshness.stale ? " menu-freshness--stale" : ""}`}>
+            <time dateTime={menu.sourceCapturedAt}>
+              {tx("Menu analysed")} {freshness.relative}
+            </time>
+          </p>
+        )}
+        {freshness?.stale && (
+          <div className="menu-stale-banner" role="note">
+            <p>
+              {tx("This menu may be out of date: restaurants change their dishes. Check with the staff before ordering.")}
+            </p>
+            {onRefreshFromSource && (
+              <button
+                type="button"
+                className="menu-sub-action-button menu-sub-action-button--highlight"
+                onClick={onRefreshFromSource}
+                disabled={isRefreshing}
+              >
+                {isRefreshing ? <LoaderCircle className="spin" /> : <Sparkles />}
+                <span>{isRefreshing ? tx("Updating menu...") : tx("Update menu")}</span>
+              </button>
+            )}
+          </div>
+        )}
         <div className="menu-secondary-actions-bar">
           {menu.sourceUrl && (
             <a

@@ -3307,3 +3307,46 @@
 .reviews-center-leaves .leaf-slot:hover {
   transform: scale(1.15);
 }
+
+/* Menu freshness: when the analysis was made, and a warning once it is old */
+.menu-freshness {
+  margin: 0.25rem 0 0;
+  color: var(--muted, #64748b);
+  font-size: 0.85rem;
+}
+
+.menu-freshness--stale {
+  color: #b45309;
+  font-weight: 600;
+}
+
+.menu-stale-banner {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: center;
+  gap: 0.6rem;
+  max-width: 600px;
+  margin: 0.75rem auto 0;
+  padding: 0.7rem 0.9rem;
+  border: 1px solid #fcd34d;
+  border-radius: 10px;
+  background: #fffbeb;
+  color: #78350f;
+  font-size: 0.88rem;
+}
+
+.menu-stale-banner p {
+  margin: 0;
+  flex: 1 1 260px;
+}
+
+[data-theme="dark"] .menu-freshness--stale {
+  color: #fbbf24;
+}
+
+[data-theme="dark"] .menu-stale-banner {
+  border-color: #92400e;
+  background: rgba(146, 64, 14, 0.18);
+  color: #fde68a;
+}

@@ -264,6 +264,27 @@ export function RestaurantMenuPage() {
     }
   };
 
+  const [isRefreshingMenu, setIsRefreshingMenu] = useState(false);
+  const handleRefreshFromSource = async () => {
+    const url = menuDraft?.sourceUrl;
+    if (!url) return;
+    setIsRefreshingMenu(true);
+    setMenuError(null);
+    try {
+      const res = await discoverMenuByUrl(url, restaurant?.name);
+      const finalDraft = await waitForMenuProcessing(res, () => false);
+      if (finalDraft.sections && finalDraft.sections.length > 0) {
+        setMenuDraft(finalDraft);
+      } else {
+        setMenuError(finalDraft.error ? tx(finalDraft.error) : tx("Finding menu on website failed."));
+      }
+    } catch (err) {
+      setMenuError(err instanceof Error ? err.message : tx("Finding menu on website failed."));
+    } finally {
+      setIsRefreshingMenu(false);
+    }
+  };
+
   const handleCustomFileUpload = async (files: File[]) => {
     if (files.length === 0) return;
     setIsUploadingMenuFiles(true);
@@ -341,6 +362,8 @@ export function RestaurantMenuPage() {
         <MenuView
           menu={menuDraft}
           onUpdateMenu={(updated) => setMenuDraft(updated)}
+          onRefreshFromSource={menuDraft.sourceUrl ? () => void handleRefreshFromSource() : undefined}
+          isRefreshing={isRefreshingMenu}
         />
       )}
 
