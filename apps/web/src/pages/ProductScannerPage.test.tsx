@@ -13,6 +13,9 @@ vi.mock("../api.js", () => ({
   classifyIngredientList: vi.fn(),
   extractIngredientText: vi.fn(),
   extractProductIngredientText: vi.fn(),
+  analyzeScanPhoto: vi.fn(),
+  analyzeScanUrl: vi.fn(),
+  getBrandEthics: vi.fn(),
 }));
 
 vi.mock("../components/BarcodeCamera.js", () => ({
@@ -157,7 +160,7 @@ describe("ProductScannerPage Form UI", () => {
 
     renderScanner("/product");
 
-    const ingredientsTab = screen.getByRole("tab", { name: /ingredients/i });
+    const ingredientsTab = screen.getByRole("tab", { name: /camera/i });
     fireEvent.click(ingredientsTab);
 
     const textarea = screen.getByPlaceholderText(/Ingredients: cocoa mass/i);
@@ -241,44 +244,61 @@ describe("ProductScannerPage Form UI", () => {
     });
   });
 
-  it("automatically submits ingredient analysis once photo extraction succeeds", async () => {
-    vi.mocked(api.extractIngredientText).mockResolvedValueOnce("Oat flakes, sugar, sunflower oil");
-    vi.mocked(api.classifyIngredientList).mockResolvedValueOnce({
-      verdict: "vegan",
-      assurance: "label_based",
-      definitive: true,
-      reason: "All ingredients plant-based granola.",
+  it("recognises a photographed ingredient label and copies it for correction", async () => {
+    vi.mocked(api.analyzeScanPhoto).mockResolvedValueOnce({
+      subject: "ingredient_label",
+      title: "Granola",
+      verdict: "probably_vegan",
+      reason: "No animal-derived ingredient was recognised, but not every ingredient on the list could be verified.",
+      concerns: [],
+      alternatives: [],
+      ingredientsText: "Oat flakes, sugar, sunflower oil",
       findings: [],
-      matchedIngredients: ["oats", "sugar", "sunflower oil"],
       traces: [],
-      classifierVersion: "1.0",
+      assurance: "label_based",
+      sources: [],
     });
 
     renderScanner("/product");
+    fireEvent.click(screen.getByRole("tab", { name: /camera/i }));
 
-    // Switch to ingredients mode
-    const ingredientsTab = screen.getByRole("tab", { name: /ingredients/i });
-    fireEvent.click(ingredientsTab);
-
-    // Upload an image file
     const fileInput = document.querySelector('input[type="file"]') as HTMLInputElement;
-    expect(fileInput).toBeDefined();
-
-    const testFile = new File(["dummy content"], "ingredients.jpg", { type: "image/jpeg" });
+    const testFile = new File(["dummy content"], "label.jpg", { type: "image/jpeg" });
     fireEvent.change(fileInput, { target: { files: [testFile] } });
 
     await waitFor(() => {
-      expect(api.extractIngredientText).toHaveBeenCalledWith(testFile, expect.anything());
+      expect(api.analyzeScanPhoto).toHaveBeenCalledWith(testFile, expect.anything());
     });
-
-    // Verify classifyIngredientList was automatically invoked without clicking "Check ingredients"
+    expect(await screen.findByRole("heading", { name: "Granola" })).toBeDefined();
     await waitFor(() => {
-      expect(api.classifyIngredientList).toHaveBeenCalledWith(
+      expect((screen.getByLabelText(/type the ingredients/i) as HTMLTextAreaElement).value).toBe(
         "Oat flakes, sugar, sunflower oil",
-        expect.anything(),
       );
     });
+  });
 
-    expect(await screen.findByText("All ingredients plant-based granola.")).toBeDefined();
+  it("shows an activity as not vegan with alternatives", async () => {
+    vi.mocked(api.analyzeScanPhoto).mockResolvedValueOnce({
+      subject: "activity",
+      title: "Horse riding",
+      verdict: "non_vegetarian",
+      reason: "Horses are used for riding.",
+      concerns: ["Animals used for entertainment"],
+      alternatives: ["Visit an animal sanctuary"],
+      findings: [],
+      traces: [],
+      assurance: "unverified",
+      sources: [],
+    });
+
+    renderScanner("/product");
+    fireEvent.click(screen.getByRole("tab", { name: /camera/i }));
+    const fileInput = document.querySelector('input[type="file"]') as HTMLInputElement;
+    fireEvent.change(fileInput, { target: { files: [new File(["x"], "horse.jpg", { type: "image/jpeg" })] } });
+
+    expect(await screen.findByRole("heading", { name: "Horse riding" })).toBeDefined();
+    expect(screen.getByText("Not vegan")).toBeDefined();
+    expect(screen.getByText("Visit an animal sanctuary")).toBeDefined();
+    expect(screen.getByText(/Automatic recognition/)).toBeDefined();
   });
 });

@@ -6039,3 +6039,23 @@ button:disabled { cursor: not-allowed; opacity: .55; }
   font-weight: 600;
 }
 .scanned-text { overflow-wrap: anywhere; }
+
+/* Universal scanner result */
+.universal-result-badges { display: flex; flex-wrap: wrap; align-items: center; gap: .5rem; margin-bottom: .4rem; }
+.universal-concerns { margin: .5rem 0 0; padding-left: 1.2rem; color: var(--text, #1f2924); font-size: .9rem; }
+.universal-alternatives { margin-top: .7rem; padding: .6rem .75rem; border-radius: 10px; background: var(--green-light, #ecfdf5); font-size: .88rem; }
+.universal-alternatives ul { margin: .3rem 0 0; padding-left: 1.2rem; }
+.brand-ethics { margin-top: .7rem; padding: .6rem .75rem; border: 1px solid var(--line); border-radius: 10px; font-size: .86rem; line-height: 1.45; }
+.brand-ethics p { margin: .2rem 0; }
+.brand-ethics--loading { display: flex; align-items: center; gap: .45rem; color: var(--muted); }
+.brand-ethics--loading svg { width: 16px; height: 16px; }
+.brand-ethics-title { display: flex; align-items: center; gap: .4rem; }
+.brand-ethics-title svg { flex: none; width: 17px; height: 17px; }
+.brand-ethics--cruelty_free { border-color: #10b981; background: #ecfdf5; }
+.brand-ethics--tests_on_animals { border-color: #f87171; background: #fef2f2; }
+.brand-ethics-sources { margin: .3rem 0 0; padding-left: 1.1rem; }
+.brand-ethics-sources svg { width: 12px; height: 12px; vertical-align: -1px; }
+.brand-ethics-note { font-size: .78rem; }
+[data-theme="dark"] .universal-alternatives { background: rgba(16, 185, 129, .12); }
+[data-theme="dark"] .brand-ethics--cruelty_free { background: rgba(16, 185, 129, .12); }
+[data-theme="dark"] .brand-ethics--tests_on_animals { background: rgba(248, 113, 113, .12); }

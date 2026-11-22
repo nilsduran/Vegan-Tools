@@ -1,14 +1,18 @@
 import type { DietVerdict } from "@vegan-tools/domain";
 import { CircleHelp, Leaf, MilkOff, SearchCheck, TriangleAlert } from "lucide-react";
-import { t } from "../i18n";
+import { t, tx } from "../i18n";
 
-export function VerdictBadge({ verdict }: { verdict: DietVerdict }) {
+/**
+ * "diet" speaks of food (vegetarian, non-vegetarian); "general" is for clothing,
+ * cosmetics or activities, where only vegan or not vegan makes sense.
+ */
+export function VerdictBadge({ verdict, context = "diet" }: { verdict: DietVerdict; context?: "diet" | "general" }) {
   const values = {
     vegan: { label: t("vegan"), Icon: Leaf },
     probably_vegan: { label: t("probablyVegan"), Icon: SearchCheck },
-    vegetarian: { label: t("vegetarian"), Icon: MilkOff },
-    probably_vegetarian: { label: t("probablyVegetarian"), Icon: SearchCheck },
-    non_vegetarian: { label: t("nonVegetarian"), Icon: TriangleAlert },
+    vegetarian: { label: context === "diet" ? t("vegetarian") : tx("Not vegan"), Icon: MilkOff },
+    probably_vegetarian: { label: context === "diet" ? t("probablyVegetarian") : tx("Probably not vegan"), Icon: SearchCheck },
+    non_vegetarian: { label: context === "diet" ? t("nonVegetarian") : tx("Not vegan"), Icon: TriangleAlert },
     unknown: { label: t("unknown"), Icon: CircleHelp },
   };
   const { label, Icon } = values[verdict];
