@@ -10,6 +10,31 @@ Memòria del projecte entre sessions: **què es va decidir, per què i què es v
 
 ---
 
+## 2026-11-22 — Receptes desactivades fins que tinguin la qualitat de la resta
+- **Decisió**: el receptari i el veganitzador de receptes queden amagats (enllaços, targeta de la portada i rutes `/recipes`, que redirigeixen a l'inici). El codi es manté; es tornen a activar amb `RECIPES_ENABLED` a `apps/web/src/features.ts`. **(Nils)**
+- **Per què**: «millor un abast més limitat però d'alta qualitat que no pas qualitat heterogènia». **(Nils)** Matisa l'entrada «L'abast ampli és deliberat» del 16-11: l'amplitud es manté on la qualitat és alta.
+
+## 2026-11-22 — Escàner universal: un enrutador determinista, sense model ni MCP
+- **Context**: Nils va proposar un classificador de categoria i potser un MCP amb una eina per a cada tipus de producte, i treure el requadre verd de la càmera. **(Nils)**
+- **Decisió**: `classifyScannedCode` (domini) decideix què és cada codi: producte (codi de barres amb dígit de control vàlid, QR GS1 Digital Link, enllaç d'Open Facts), carta de restaurant, altre enllaç o text. La categoria del producte (alimentació, cosmètica, altres) la dona la base de dades que el coneix: Open Food, Beauty i Products Facts, consultades alhora. **(deduït)**
+- **Per què no un model ni un MCP**: el codi ja diu què és, així que un model només afegiria latència, cost i errors a una decisió exacta. Un MCP serveix perquè un agent d'IA cridi eines; aquí no hi ha cap agent a l'escàner. **(deduït)**
+- **Requadre verd retirat**: el lector analitza tota la imatge, i el requadre feia creure que el codi hi havia de cabre. **(Nils ho va suggerir)**
+- **Qualitat de lectura**: els codis amb dígit de control incorrecte s'ignoren com a lectures errònies; Full HD, enfocament continu i llanterna quan el mòbil en té.
+- **QR de carta**: obre `/scan/menu`, que analitza la carta i mostra què es pot demanar.
+
+## 2026-11-22 — El diari de visites era llegible per qualsevol
+- **Trobat** (deduït): `GET /v1/users/:id/visits` no demanava autenticació, i el diari inclou notes personals. Ara només el pot llegir el propietari. El Top 4 continua sent públic (no conté notes).
+- **Esborrat de compte**: `DELETE /v1/users/me` esborra ressenyes, visites, Top 4 i l'usuari de Supabase Auth; si un pas falla, la petició falla i l'app no diu que s'ha esborrat. Cal aplicar la migració `202611220001_account_deletion.sql` a Supabase.
+
+## 2026-11-22 — Comptadors d'ús agregats, sense pantalla pròpia
+- **Decisió**: taula `usage_counters` (dia, mètrica, recompte) amb peticions per plantilla de ruta, encerts de la memòria cau de cartes i crides i tokens de Gemini per funció. Es consulten al tauler de Supabase; no s'ha fet cap endpoint ni panell. **(deduït, AGENTS.md §4.7)**
+- **Privacitat**: mai identificadors d'usuari, ubicacions, cerques ni identificadors de restaurant.
+- **Límit conegut**: «cartes consultades per setmana» (la mètrica nord) s'aproxima amb `menus.cache.hit` i les rutes de cartes; les cartes curades que el web mostra sense passar per l'API no es compten.
+
+## 2026-11-22 — Mapa: només millores internes mentre es decideix el fons
+- **Fet**: en passar el ratolí per la llista ja no es reconstrueixen tots els marcadors, i les etiquetes de nom només es creen on es veuen. Sense canvi visible. **(deduït)**
+- **No fet**: la migració a MapLibre sol (proposta pendent del roadmap). L'ordre de fons preferit del mateix dia (CARTO, Geoapify, OpenFreeMap) fa que MapLibre només es carregui com a reserva, així que cal tornar a mesurar abans de decidir. **(deduït)**
+
 ## 2026-11-22 — Idioma accessible sense compte
 - **Problema**: sense iniciar sessió no es podia canviar l'idioma (ni el tema). El selector de la capçalera es va treure el 3-10-2026 (`7b5cd94`) en crear la pàgina de Configuració, que només s'enllaçava des del perfil amb sessió. **(Nils ho va detectar)**
 - **Decisió**: tornar el selector de banderes a la capçalera, a totes les pàgines, i mostrar l'enllaç a Configuració també al perfil sense sessió. **(Nils va triar «capçalera i perfil»)**

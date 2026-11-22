@@ -155,6 +155,9 @@ flowchart TD
 - `GET /v1/restaurants/:restaurantId/reviews` — Fetch paginated reviews and leaf score statistics.
 - `POST /v1/restaurants/:restaurantId/reviews` — Submit or update an authenticated review (1–5 leaves).
 - `DELETE /v1/restaurants/:restaurantId/reviews` — Delete a user's own review.
+- `GET /v1/users/me/export` — Everything stored about the signed-in user (reviews, visits, Top 4).
+- `DELETE /v1/users/me` — Delete the signed-in user's reviews, visits, Top 4 and Supabase Auth account.
+- `GET /v1/users/:userId/visits` — The user's own diary (owner's token required).
 
 ### Products & Ingredients
 - `GET /v1/products/:gtin` — Retrieve product details and vegan classification by barcode (Open Food Facts).
