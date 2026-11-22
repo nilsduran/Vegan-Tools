@@ -1,4 +1,4 @@
-import { SCANNED_GTIN } from "./support/barcode-video";
+import { SCANNED_GTIN, barcodePng } from "./support/barcode-video";
 import { expect, mockJson, test } from "./support/app";
 
 const product = {
@@ -153,4 +153,19 @@ test("an unknown link can be checked and its page is classified", async ({ page 
   await page.locator("#barcode").press("Enter");
   await page.getByRole("button", { name: /Check this link|Comprova aquest enllaç/ }).click();
   await expect(page.getByRole("heading", { name: "Rutes a cavall" })).toBeVisible();
+});
+
+test("a photo of the barcode works when the live camera does not", async ({ page }) => {
+  await page.addInitScript(() => {
+    navigator.mediaDevices.getUserMedia = () =>
+      Promise.reject(new DOMException("Permission denied", "NotAllowedError"));
+  });
+  await mockJson(page, new RegExp(`/v1/products/${SCANNED_GTIN}$`), product);
+  await page.goto("/scanner");
+  await page.getByTestId("barcode-photo-input").setInputFiles({
+    name: "barcode.png",
+    mimeType: "image/png",
+    buffer: barcodePng(SCANNED_GTIN),
+  });
+  await expect(page.getByRole("heading", { name: "E2E oat drink" })).toBeVisible({ timeout: 15_000 });
 });

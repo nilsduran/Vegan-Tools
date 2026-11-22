@@ -17,7 +17,7 @@ const fakeCamera = [
  * Geoapify, Gemini or Supabase.
  *
  * Chromium on Linux and Windows has no native BarcodeDetector, so the scanner
- * runs on the ZBar polyfill: the same path as iPhone Safari and Firefox.
+ * runs on the bundled ZXing reader: the same path as iPhone Safari and Firefox.
  */
 export default defineConfig({
   testDir: "e2e",

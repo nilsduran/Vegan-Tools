@@ -2,19 +2,10 @@ import react from "@vitejs/plugin-react";
 import { defineConfig } from "vite";
 import { VitePWA } from "vite-plugin-pwa";
 
-// The barcode polyfill imports its ZBar engine from cdn.jsdelivr.net at
-// runtime. Point that import at the local copy (same version) so the scanner
-// works offline and makes no third-party request; Vite then bundles the engine
-// and emits zbar.wasm next to it.
-const ZBAR_CDN_URL = "https://cdn.jsdelivr.net/npm/@undecaf/zbar-wasm@0.9.16/dist/main.js";
-
+// The barcode reader (ZXing, WebAssembly) is bundled: BarcodeCamera.tsx points
+// its .wasm at the local file, so scanning works offline with no CDN request.
 export default defineConfig({
   envDir: "../../",
-  resolve: {
-    alias: {
-      [ZBAR_CDN_URL]: "@undecaf/zbar-wasm",
-    },
-  },
   plugins: [
     react(),
     VitePWA({
@@ -105,7 +96,7 @@ export default defineConfig({
           if (id.includes("node_modules/maplibre-gl") || id.includes("node_modules/@maplibre/")) {
             return "vendor-maplibre";
           }
-          if (id.includes("node_modules/@undecaf/")) {
+          if (id.includes("node_modules/barcode-detector") || id.includes("node_modules/zxing-wasm")) {
             return "vendor-barcode";
           }
           if (id.includes("node_modules/lucide-react")) {

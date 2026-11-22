@@ -6059,3 +6059,9 @@ button:disabled { cursor: not-allowed; opacity: .55; }
 [data-theme="dark"] .universal-alternatives { background: rgba(16, 185, 129, .12); }
 [data-theme="dark"] .brand-ethics--cruelty_free { background: rgba(16, 185, 129, .12); }
 [data-theme="dark"] .brand-ethics--tests_on_animals { background: rgba(248, 113, 113, .12); }
+
+.source-links { display: flex; flex-wrap: wrap; align-items: center; gap: .35rem .7rem; margin: .5rem 0 0; color: var(--muted); font-size: .85rem; }
+
+.barcode-photo-row { display: flex; flex-wrap: wrap; align-items: center; gap: .6rem; margin-top: .6rem; }
+.barcode-photo-row p { margin: 0; font-size: .85rem; }
+.barcode-photo-button input { display: none; }

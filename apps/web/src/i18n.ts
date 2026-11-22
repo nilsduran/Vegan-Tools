@@ -963,6 +963,9 @@ export const caPhrases = {
     "Plats classificats automàticament a partir d'una foto o PDF de la carta.",
   "Check with the staff when in doubt.": "Confirma-ho amb el personal si tens dubtes.",
   "Food": "Alimentació",
+  "Photo of the barcode": "Foto del codi de barres",
+  "No code was found in the photo. Try a closer, sharper photo or type the number.":
+    "No s'ha trobat cap codi a la foto. Prova una foto més propera i nítida, o escriu el número.",
   "Camera": "Càmera",
   "Camera checker": "Comprovació amb càmera",
   "Scan any barcode or QR code, or take a photo of what you want to check.":
@@ -983,8 +986,10 @@ export const caPhrases = {
   "Place": "Lloc",
   "Vegan alternatives": "Alternatives veganes",
   "Automatic recognition": "Reconeixement automàtic",
-  "Identified automatically from the photo or page. It is not a verification: check the label or ask when it matters.":
-    "Identificat automàticament a partir de la foto o la pàgina. No és una verificació: comprova l'etiqueta o pregunta quan sigui important.",
+  "Found automatically (photo, web page or web search). It is not a verification: check the label or ask when it matters.":
+    "Trobat automàticament (foto, pàgina web o cerca web). No és una verificació: comprova l'etiqueta o pregunta quan sigui important.",
+  "No database has this product's ingredients: searching the web…": "Cap base de dades té els ingredients d'aquest producte: buscant-los a la web…",
+  "Sources": "Fonts",
   "Checking whether the brand tests on animals…": "Comprovant si la marca experimenta amb animals…",
   "The brand does not test on animals": "La marca no experimenta amb animals",
   "The brand or its parent company tests on animals": "La marca o la seva empresa matriu experimenta amb animals",
