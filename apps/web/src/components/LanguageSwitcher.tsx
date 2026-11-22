@@ -25,7 +25,7 @@ export function LanguageSwitcher() {
           title={label}
           lang={value}
         >
-          <Flag />
+          <Flag className="flag-icon" />
           <span className="sr-only">{label}</span>
         </button>
       ))}
