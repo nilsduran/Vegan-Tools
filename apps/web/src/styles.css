@@ -6065,3 +6065,5 @@ button:disabled { cursor: not-allowed; opacity: .55; }
 .barcode-photo-row { display: flex; flex-wrap: wrap; align-items: center; gap: .6rem; margin-top: .6rem; }
 .barcode-photo-row p { margin: 0; font-size: .85rem; }
 .barcode-photo-button input { display: none; }
+
+.camera-debug { position: absolute; top: .5rem; left: .5rem; right: 3.5rem; margin: 0; padding: .3rem .5rem; border-radius: 6px; color: #d9f99d; background: rgb(0 0 0 / 70%); font: 600 .72rem/1.35 ui-monospace, monospace; pointer-events: none; }

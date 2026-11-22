@@ -70,6 +70,10 @@ export function BarcodeCamera({ onDetected }: { onDetected: (value: string) => v
   const trackRef = useRef<MediaStreamTrack | null>(null);
   const [torchAvailable, setTorchAvailable] = useState(false);
   const [torchOn, setTorchOn] = useState(false);
+  // /scanner?camera-debug=1 shows what the camera really delivers (resolution,
+  // frame rate, reader time), to tell hardware limits from software ones.
+  const debugCamera = typeof window !== "undefined" && new URLSearchParams(window.location.search).has("camera-debug");
+  const [debugInfo, setDebugInfo] = useState("");
 
   useEffect(() => {
     if (!started) return;
@@ -102,6 +106,15 @@ export function BarcodeCamera({ onDetected }: { onDetected: (value: string) => v
           trackRef.current = track;
           const capabilities = (track?.getCapabilities?.() ?? {}) as { torch?: boolean; focusMode?: string[] };
           setTorchAvailable(Boolean(capabilities.torch));
+          if (debugCamera && track) {
+            const settings = track.getSettings();
+            const max = (track.getCapabilities?.() ?? {}) as { width?: { max?: number }; height?: { max?: number }; frameRate?: { max?: number } };
+            const supported = max.width?.max ? `${max.width.max}×${max.height?.max ?? "?"} @${Math.round(max.frameRate?.max ?? 0)}fps` : "not reported by this browser";
+            const video = videoRef.current;
+            setDebugInfo(
+              `delivered ${settings.width ?? video?.videoWidth}×${settings.height ?? video?.videoHeight} @${Math.round(settings.frameRate ?? 0)}fps · camera max ${supported} · ${track.label || "camera"}`,
+            );
+          }
           if (capabilities.focusMode?.includes("continuous")) {
             void track?.applyConstraints({ advanced: [{ focusMode: "continuous" } as MediaTrackConstraintSet] }).catch(() => {});
           }
@@ -133,7 +146,13 @@ export function BarcodeCamera({ onDetected }: { onDetected: (value: string) => v
       const detect = async () => {
         if (!active || !videoRef.current) return;
         try {
+          const started = performance.now();
           const results = await detector.detect(videoRef.current);
+          if (debugCamera) {
+            const ms = Math.round(performance.now() - started);
+            const video = videoRef.current;
+            setDebugInfo((previous) => `${previous.split(" · reader")[0]} · reader ${ms} ms/frame on ${video?.videoWidth}×${video?.videoHeight}${(globalThis as { BarcodeDetector?: unknown }).BarcodeDetector ? " (native)" : " (ZXing)"}`);
+          }
           // ZXing only returns codes that decode completely (EAN/UPC check digit
           // included), and measured on degraded webcam frames it never returned a
           // wrong code (scripts/bench-barcode-reader.ts). So the first valid read
@@ -290,6 +309,7 @@ export function BarcodeCamera({ onDetected }: { onDetected: (value: string) => v
     <div className="camera-frame">
       <video ref={videoRef} muted playsInline aria-label={tx("Barcode")} />
       <p className="camera-hint" aria-hidden="true">{tx("Fill half the picture with the code and keep it sharp")}</p>
+      {debugCamera && debugInfo && <p className="camera-debug">{debugInfo}</p>}
       {torchAvailable && (
         <button
           type="button"
