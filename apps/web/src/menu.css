@@ -3350,3 +3350,10 @@
   background: rgba(146, 64, 14, 0.18);
   color: #fde68a;
 }
+
+.menu-evidence {
+  margin: 0.2rem auto 0;
+  max-width: 600px;
+  color: var(--muted, #64748b);
+  font-size: 0.8rem;
+}

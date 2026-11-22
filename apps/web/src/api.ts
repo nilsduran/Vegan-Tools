@@ -299,6 +299,28 @@ export async function discoverMenuByUrl(
   return menuDraftSchema.parse(await response.json());
 }
 
+/** Polls a menu analysis until it leaves the "processing" state (about 90 s at most). */
+export async function waitForMenuDraft(
+  initialDraft: MenuDraft,
+  isCancelled: () => boolean,
+): Promise<MenuDraft> {
+  if (initialDraft.status !== "processing" || !initialDraft.editToken) {
+    return initialDraft;
+  }
+  let current = initialDraft;
+  for (let poll = 0; poll < 45; poll++) {
+    await new Promise((resolve) => setTimeout(resolve, 2000));
+    if (isCancelled()) return current;
+    try {
+      current = await getMenuDraft(current.id, current.editToken);
+      if (current.status !== "processing") break;
+    } catch {
+      // Keep polling
+    }
+  }
+  return current;
+}
+
 export interface CachedRestaurantMenu {
   restaurant: RestaurantCandidate;
   menu: MenuDraft;

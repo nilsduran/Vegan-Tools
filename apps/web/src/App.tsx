@@ -30,6 +30,7 @@ const RecipeDetailPage = lazy(() => import("./pages/RecipeDetailPage").then((m) 
 const AboutPage = lazy(() => import("./pages/AboutPage").then((m) => ({ default: m.AboutPage })));
 const PrivacyPage = lazy(() => import("./pages/PrivacyPage").then((m) => ({ default: m.PrivacyPage })));
 const TermsPage = lazy(() => import("./pages/TermsPage").then((m) => ({ default: m.TermsPage })));
+const ScannedMenuPage = lazy(() => import("./pages/ScannedMenuPage").then((m) => ({ default: m.ScannedMenuPage })));
 const SettingsPage = lazy(() => import("./pages/SettingsPage").then((m) => ({ default: m.SettingsPage })));
 
 function PageLoader() {
@@ -126,6 +127,7 @@ export function App() {
               <Route path="/menus" element={<MenuReaderPage />} />
               <Route path="/scanner" element={<ProductScannerPage />} />
               <Route path="/product/:gtin" element={<ProductScannerPage />} />
+              <Route path="/scan/menu" element={<ScannedMenuPage />} />
               <Route path="/recipes" element={RECIPES_ENABLED ? <RecipeVeganizerPage /> : <Navigate to="/" replace />} />
               <Route path="/recipes/:slug" element={RECIPES_ENABLED ? <RecipeDetailPage /> : <Navigate to="/" replace />} />
               <Route path="/receptes/:slug" element={RECIPES_ENABLED ? <RecipeDetailPage /> : <Navigate to="/" replace />} />

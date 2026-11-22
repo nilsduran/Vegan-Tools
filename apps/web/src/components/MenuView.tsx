@@ -274,6 +274,14 @@ export function MenuView({
             </time>
           </p>
         )}
+        {(menu.sourceUrl || menu.sourceFiles.length > 0) && (
+          <p className="menu-evidence">
+            {menu.sourceUrl
+              ? tx("Dishes classified automatically from the restaurant's website.")
+              : tx("Dishes classified automatically from a photo or PDF of the menu.")}{" "}
+            {tx("Check with the staff when in doubt.")}
+          </p>
+        )}
         {freshness?.stale && (
           <div className="menu-stale-banner" role="note">
             <p>
