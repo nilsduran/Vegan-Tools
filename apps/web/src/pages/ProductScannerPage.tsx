@@ -509,24 +509,6 @@ export function ProductScannerPage() {
                     ))}
                   </div>
                 )}
-                {lookup.data.isBeautyProduct && !lookup.data.crueltyFree && (
-                  <div style={{ margin: "0.35rem 0" }}>
-                    <span
-                      style={{
-                        fontSize: "0.74rem",
-                        fontWeight: 500,
-                        padding: "0.2rem 0.5rem",
-                        borderRadius: "6px",
-                        background: "rgba(245, 158, 11, 0.1)",
-                        color: "#b45309",
-                        border: "1px solid rgba(245, 158, 11, 0.3)",
-                        display: "inline-block",
-                      }}
-                    >
-                      ⚠️ {tx("No cruelty-free certification registered in open databases")}
-                    </span>
-                  </div>
-                )}
                 <p className="result-reason">{localizeGeneratedText(lookup.data.reason, language)}</p>
                 <FlaggedIngredientChips findings={lookup.data.findings} language={language} />
                 {productCategory(lookup.data) === "beauty" && lookup.data.brand && (
