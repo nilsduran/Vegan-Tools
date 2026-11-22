@@ -10,6 +10,53 @@ Memòria del projecte entre sessions: **què es va decidir, per què i què es v
 
 ---
 
+## 2026-11-22 — Productes de qualsevol tipus: combinar fonts, cercar a la web i verificar la cita
+- **Problema real**: una crema solar vegana (Altruist, 8719327023839) sortia «desconeguda» amb Open Food Facts com a font. El producte hi és arxivat com a menjar, sense marca ni ingredients, i el registre buit guanyava. **(Nils ho va trobar; va demanar una solució general, no per a aquest cas)**
+- **Decisió** (`product-resolver.ts`) **(deduït)**:
+  - Es combinen tots els registres d'Open Facts: un registre amb ingredients guanya a un de buit, i si n'hi ha diversos, el més restrictiu.
+  - Sense ingredients enlloc, o amb un codi desconegut, una cerca web identifica el producte (nom, marca, tipus) i en busca la llista d'ingredients.
+  - **La llista només s'accepta si la pàgina citada la conté de debò**: el servidor la descarrega i ho comprova. Gemini a vegades torna llistes completes sense cap font de cerca, i poden ser inventades.
+  - La llista la jutgen les regles. Una declaració vegana del fabricant pot resoldre dubtes d'origen (glicerina), però tot el que ve de la web es queda en «probablement» i es marca com a automàtic.
+  - Una cerca fallida (quota, resposta buida) no es desa, perquè es torni a provar.
+- **Lector de codis** **(deduït)**:
+  - Firefox i els navegadors sense lector natiu usen ara ZXing (WebAssembly, compilat amb l'app) en lloc de ZBar, que llegia malament les webcams d'escriptori.
+  - S'ha afegit «Foto del codi de barres» per quan la càmera en directe no ho aconsegueix.
+  - És un canvi de servei, però per qualitat, no per velocitat: arregla un error que Nils va trobar.
+- **Avaluació**: grup `coverage` amb productes triats primer i buscats després. El grup antic de codis de barres queda marcat com a esbiaixat. **(Nils ho va demanar)**
+- **Límit conegut**: les cerques amb Google són irregulars (respostes buides, quota gratuïta diària) i, en el pla gratuït, el model de reserva (Gemini 3.5 Flash) es queda sense quota aviat.
+
+## 2026-11-22 — Conjunt d'avaluació amb casos reals i on encaixa cada tècnica d'IA
+- **Fet**: `npm run eval:scan` passa 56 casos reals (`eval/scan-cases.json`): 21 codis de barres de supermercat, 13 webs (Viquipèdia, zoo, aquari, Santuari Gaia), 14 descripcions de roba i activitats, 8 marques de cosmètica. Es pot executar per grups (`-- barcodes`) i surt amb error si hi ha algun fals vegà. **(Nils ho va demanar)**
+- **Primera execució** (22-11-2026):
+  - Webs i descripcions: 26/26 correctes.
+  - Marques: 6 correctes, Garnier sense resposta (el resum deia «certificada» però sense fonts de cerca, i la regla el descarta) i 1 error de quota.
+  - Codis de barres: 10/21, amb **1 fals vegà**.
+- **Què es va trobar i arreglar** (deduït):
+  - El text d'ingredients per defecte de la Nutella a Open Food Facts era «sugar, palm oil». Ara es classifiquen tots els idiomes, guanya el més restrictiu, i els al·lèrgens declarats (llet, ou, peix) descarten «vegà».
+  - Open Food Facts respon amb pàgines d'error quan rep moltes peticions seguides; ara es reintenta una vegada.
+  - Després dels arranjaments, codis de barres 19/21 i 0 falsos vegans. Els 2 restants són caigudes puntuals d'Open Food Facts.
+- **Límits** (deduït):
+  - Les expectatives de 4 marques estan marcades `review: true`.
+  - Encara no hi ha fotos: es posen en local a `eval/photos` (fora de git, per privacitat i per l'Espai Segur).
+- **Tècniques d'IA valorades** (deduït; Nils va demanar no descartar-les sense pensar-hi):
+  - **Primer**: revisar només els plats que surten vegans a les cartes; les correccions de la comunitat com a dades; coincidència aproximada per als errors d'OCR; doble resposta a les fotos.
+  - **Barat i obert**: un servidor MCP públic perquè els assistents d'IA consultin Vegan Tools.
+  - **Per més endavant**: models propis per destil·lació (quan hi hagi milers de correccions) i LangGraph (si la cerca de reserva passa de 2–3 passos).
+
+## 2026-11-22 — Escàner universal: codi de barres o càmera, i què fa la IA
+- **Demanat**: qualsevol codi de barres o QR (menjar, roba, cosmètica amb el cruelty free de la marca, activitats), pestanyes «Codi de barres» i «Càmera», i una càmera universal (una activitat com muntar a cavall, o un producte sense codi). L'MCP no es descarta del tot per als QR que porten a una web desconeguda. **(Nils)**
+- **Com**:
+  - Una foto o un enllaç desconegut (botó «Comprova aquest enllaç») es classifica amb Gemini: etiqueta, menjar, cosmètica, roba, activitat, lloc, carta o altres (`universal-analyzer.ts`).
+  - Els productes d'Open Products Facts es jutgen pel nom.
+  - La marca de cosmètica es consulta amb Google Search i es mostren les fonts. **(deduït)**
+- **Regles de qualitat** (deduït):
+  - Una etiqueta d'ingredients només es transcriu; el veredicte el dona el classificador determinista.
+  - El reconeixement automàtic mai no dona «vegà» definitiu (`capAutomatedVerdict`) i sempre es mostra com a «Reconeixement automàtic».
+  - Un «cruelty free» sense cap font de cerca es descarta.
+- **Enllaços**: es comproven només si la persona ho demana, perquè alguns QR porten enllaços privats (pagaments, invitacions).
+- **MCP**: el cas dels QR desconeguts el cobreix el servidor (descarrega la pàgina amb protecció SSRF i la classifica). Un MCP només caldria si un agent d'IA hagués de triar entre eines, i aquí el flux és fix. Es pot reconsiderar si apareixen casos que el flux fix no resol. **(deduït; Nils no ho descarta)**
+- **Cost**: cada foto, enllaç comprovat o marca nova és una crida a Gemini (les marques es desen 24 h a la memòria). Es mesura amb els comptadors `gemini.scan_photo`, `gemini.scan_text` i `gemini.brand`.
+
 ## 2026-11-22 — Receptes desactivades fins que tinguin la qualitat de la resta
 - **Decisió**: el receptari i el veganitzador de receptes queden amagats (enllaços, targeta de la portada i rutes `/recipes`, que redirigeixen a l'inici). El codi es manté; es tornen a activar amb `RECIPES_ENABLED` a `apps/web/src/features.ts`. **(Nils)**
 - **Per què**: «millor un abast més limitat però d'alta qualitat que no pas qualitat heterogènia». **(Nils)** Matisa l'entrada «L'abast ampli és deliberat» del 16-11: l'amplitud es manté on la qualitat és alta.

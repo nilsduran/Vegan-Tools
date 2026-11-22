@@ -58,6 +58,8 @@ import { menuRoutes } from "./routes/menus.js";
 import { visitRoutes } from "./routes/visits.js";
 import { accountRoutes, type AuthUserDeleter } from "./routes/account.js";
 import { usageCounters } from "./usage-counters.js";
+import { scanRoutes } from "./routes/scan.js";
+import { GeminiUniversalAnalyzer, type UniversalAnalyzer } from "./universal-analyzer.js";
 
 // Re-export routes and helpers for external consumers & tests
 export * from "./routes/location.js";
@@ -81,6 +83,7 @@ export interface AppDependencies {
   reviewStore?: RestaurantReviewStore;
   visitStore?: RestaurantVisitStore;
   deleteAuthUser?: AuthUserDeleter;
+  universalAnalyzer?: UniversalAnalyzer;
   disableRateLimit?: boolean;
   rateLimitMax?: number;
   /** Overrides bearer-token verification (tests). Defaults to Supabase Auth. */
@@ -131,6 +134,7 @@ export async function buildApp(
   const reviewStore = deps.reviewStore ?? createRestaurantReviewStore();
   const visitStore = deps.visitStore ?? createRestaurantVisitStore();
   const verifyToken = deps.verifyToken ?? createTokenVerifier();
+  const universalAnalyzer = deps.universalAnalyzer ?? new GeminiUniversalAnalyzer();
 
   const app = Fastify({
     logger: true,
@@ -285,7 +289,8 @@ export async function buildApp(
   // Register modular route plugins
   await locationRoutes(app);
   await recipeRoutes(app);
-  await productRoutes(app, { repo, ingredientExtractor, verifyToken });
+  await productRoutes(app, { repo, ingredientExtractor, verifyToken, universalAnalyzer });
+  await scanRoutes(app, { analyzer: universalAnalyzer });
   await reviewRoutes(app, { reviewStore, verifyToken });
   await restaurantRoutes(app, { restaurantWebsiteFinder, restaurantMenuCache, verifyToken });
   await menuRoutes(app, {

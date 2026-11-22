@@ -109,7 +109,7 @@ export function IngredientCamera({
     );
     setCapturing(false);
     if (blob) {
-      onCapture(new File([blob], "ingredient-label.jpg", { type: "image/jpeg" }));
+      onCapture(new File([blob], "scan-photo.jpg", { type: "image/jpeg" }));
     }
   };
 
@@ -117,8 +117,8 @@ export function IngredientCamera({
     return (
       <div className="ingredient-camera-start">
         <Camera aria-hidden="true" />
-        <strong>{tx("Photograph the ingredient label")}</strong>
-        <span>{tx("Keep the full list in focus and avoid glare.")}</span>
+        <strong>{tx("Take a photo of what you want to check")}</strong>
+        <span>{tx("A label, a product, clothing, an activity…")}</span>
         <button className="primary-button" onClick={() => setStarted(true)}>
           {tx("Open camera")}
         </button>
@@ -179,7 +179,7 @@ export function IngredientCamera({
         ref={videoRef}
         muted
         playsInline
-        aria-label={tx("Photograph the ingredient label")}
+        aria-label={tx("Take a photo of what you want to check")}
         onLoadedMetadata={(e) => {
           const v = e.currentTarget;
           if (v.videoWidth && v.videoHeight) {
@@ -187,14 +187,13 @@ export function IngredientCamera({
           }
         }}
       />
-      <div className="document-guide" aria-hidden="true" />
       <button
         className="capture-button"
         onClick={() => void capture()}
         disabled={!ready || capturing}
       >
         {capturing ? <LoaderCircle className="spin" /> : <Camera />}
-        {tx("Capture label")}
+        {tx("Take photo")}
       </button>
     </div>
   );

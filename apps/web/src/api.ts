@@ -28,6 +28,10 @@ import {
   type SaveVisitLogInput,
   classifyIngredients as classifyIngredientsLocally,
   veganizeRecipe as veganizeRecipeLocally,
+  brandEthicsSchema,
+  universalScanResultSchema,
+  type BrandEthics,
+  type UniversalScanResult,
 } from "@vegan-tools/domain";
 
 const isLocalhost =
@@ -106,6 +110,32 @@ export async function veganizeRecipe(
   selections: Record<string, string> = {},
 ): Promise<RecipeAnalysis> {
   return recipeAnalysisSchema.parse(veganizeRecipeLocally(recipeText, selections));
+}
+
+/** Universal scanner: what a photo shows and whether it involves animals. */
+export async function analyzeScanPhoto(image: File, language: "ca" | "en"): Promise<UniversalScanResult> {
+  const body = new FormData();
+  body.append("image", image);
+  const response = await checkedFetch(`/v1/scan/photo?language=${language}`, { method: "POST", body });
+  return universalScanResultSchema.parse(await response.json());
+}
+
+/** Universal scanner: what an unknown scanned link is. */
+export async function analyzeScanUrl(url: string, language: "ca" | "en"): Promise<UniversalScanResult> {
+  const response = await checkedFetch("/v1/scan/url", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ url, language }),
+  });
+  return universalScanResultSchema.parse(await response.json());
+}
+
+/** Whether a cosmetics brand tests on animals (automatic web search with sources). */
+export async function getBrandEthics(brand: string, language: "ca" | "en"): Promise<BrandEthics> {
+  const response = await checkedFetch(
+    `/v1/brands/cruelty-free?name=${encodeURIComponent(brand)}&language=${language}`,
+  );
+  return brandEthicsSchema.parse(await response.json());
 }
 
 export async function extractIngredientText(image: File): Promise<string> {

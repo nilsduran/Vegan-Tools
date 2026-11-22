@@ -95,6 +95,65 @@ export const productResultSchema = z.object({
 });
 export type ProductResult = z.infer<typeof productResultSchema>;
 
+/** What a photo or a scanned link shows, for the universal scanner. */
+export const scanSubjectSchema = z.enum([
+  "ingredient_label",
+  "food",
+  "cosmetic",
+  "clothing",
+  "activity",
+  "place",
+  "menu",
+  "other",
+]);
+export type ScanSubject = z.infer<typeof scanSubjectSchema>;
+
+export const scanSourceSchema = z.object({
+  title: z.string().optional(),
+  url: z.string().url(),
+});
+export type ScanSource = z.infer<typeof scanSourceSchema>;
+
+export const universalScanResultSchema = z.object({
+  subject: scanSubjectSchema,
+  title: z.string(),
+  brand: z.string().optional(),
+  verdict: dietVerdictSchema,
+  reason: z.string(),
+  concerns: z.array(z.string()).default([]),
+  alternatives: z.array(z.string()).default([]),
+  ingredientsText: z.string().optional(),
+  findings: z.array(ingredientFindingSchema).default([]),
+  traces: z.array(z.string()).default([]),
+  /** label_based when the verdict comes from the rule engine on a label; unverified for AI identification. */
+  assurance: assuranceSchema,
+  gtin: z.string().optional(),
+  menuUrl: z.string().url().optional(),
+  sources: z.array(scanSourceSchema).default([]),
+});
+export type UniversalScanResult = z.infer<typeof universalScanResultSchema>;
+
+export const brandEthicsSchema = z.object({
+  brand: z.string(),
+  status: z.enum(["cruelty_free", "tests_on_animals", "unknown"]),
+  parentCompany: z.string().optional(),
+  summary: z.string(),
+  sources: z.array(scanSourceSchema).default([]),
+  checkedAt: z.string(),
+});
+export type BrandEthics = z.infer<typeof brandEthicsSchema>;
+
+/**
+ * Precautionary cap for automatic identification (photos, web pages, product names):
+ * it can suggest "probably vegan" but never a definitive vegan or vegetarian verdict.
+ * A false "not vegan" is the safe error; a false "vegan" is not.
+ */
+export function capAutomatedVerdict(verdict: DietVerdict): DietVerdict {
+  if (verdict === "vegan") return "probably_vegan";
+  if (verdict === "vegetarian") return "probably_vegetarian";
+  return verdict;
+}
+
 export const ingredientAnalysisSchema = z.object({
   verdict: dietVerdictSchema,
   assurance: assuranceSchema,

@@ -16,15 +16,18 @@ import {
   LoaderCircle,
   RotateCcw,
   ScanBarcode,
-  Type,
+  SearchCheck,
   UtensilsCrossed,
 } from "lucide-react";
 import {
+  analyzeScanPhoto,
+  analyzeScanUrl,
   classifyIngredientList,
-  extractIngredientText,
   extractProductIngredientText,
   getProduct,
 } from "../api";
+import { BrandCrueltyFree } from "../components/BrandCrueltyFree";
+import { UniversalResult } from "../components/UniversalResult";
 import { BarcodeCamera } from "../components/BarcodeCamera";
 import { IngredientFindings } from "../components/IngredientFindings";
 import { IngredientCamera } from "../components/IngredientCamera";
@@ -39,7 +42,7 @@ import {
 import { classifyScannedCode, type IngredientFinding, type ProductResult } from "@vegan-tools/domain";
 import { EvidenceNote } from "../components/EvidenceNote";
 
-type CheckerMode = "barcode" | "ingredients";
+type CheckerMode = "barcode" | "camera";
 
 function productCategory(product: ProductResult): "food" | "beauty" | "other" {
   return product.category ?? (product.isBeautyProduct ? "beauty" : "food");
@@ -165,7 +168,16 @@ export function ProductScannerPage() {
     type: "website",
   });
   const ingredientAnalysis = useMutation({ mutationFn: classifyIngredientList });
-  const photoExtraction = useMutation({ mutationFn: extractIngredientText });
+  // A product without ingredients in any database triggers a web search (up to ~30 s).
+  const [slowLookup, setSlowLookup] = useState(false);
+  useEffect(() => {
+    setSlowLookup(false);
+    if (!lookup.isPending || !routeGtin) return;
+    const timer = window.setTimeout(() => setSlowLookup(true), 4_000);
+    return () => window.clearTimeout(timer);
+  }, [lookup.isPending, routeGtin]);
+  const photoScan = useMutation({ mutationFn: (file: File) => analyzeScanPhoto(file, language) });
+  const linkScan = useMutation({ mutationFn: (url: string) => analyzeScanUrl(url, language) });
   const productPhotoExtraction = useMutation({
     mutationFn: extractProductIngredientText,
   });
@@ -230,15 +242,26 @@ export function ProductScannerPage() {
     }
   }, [navigate]);
 
-  const readIngredientPhoto = (file: File) => {
+  // Universal camera: a label, a product, clothing, an activity... A readable
+  // ingredient list is copied into the text box so it can be corrected.
+  const scanPhoto = (file: File) => {
     setRemotePhotoUrl("");
     setIngredientPhoto(file);
-    photoExtraction.mutate(file, {
-      onSuccess: (text) => {
-        setIngredientsText(text);
-        if (text.trim()) {
-          ingredientAnalysis.mutate(text);
+    ingredientAnalysis.reset();
+    photoScan.mutate(file, {
+      onSuccess: (result) => {
+        if (result.subject === "ingredient_label" && result.ingredientsText) {
+          setIngredientsText(result.ingredientsText);
         }
+      },
+    });
+  };
+
+  const checkLink = (url: string) => {
+    linkScan.mutate(url, {
+      onSuccess: (result) => {
+        if (result.menuUrl) void navigate(`/scan/menu?url=${encodeURIComponent(result.menuUrl)}`);
+        else if (result.gtin) void navigate(`/product/${encodeURIComponent(result.gtin)}`);
       },
     });
   };
@@ -246,7 +269,7 @@ export function ProductScannerPage() {
   const selectMode = (nextMode: CheckerMode) => {
     setMode(nextMode);
     ingredientAnalysis.reset();
-    photoExtraction.reset();
+    photoScan.reset();
     productPhotoExtraction.reset();
   };
 
@@ -254,7 +277,7 @@ export function ProductScannerPage() {
     <div className="page narrow-page">
       <header className="page-heading">
         <h1>{t("scanner")}</h1>
-        <p>{tx("Scan a barcode or check the ingredient label directly.")}</p>
+        <p>{tx("Scan any barcode or QR code, or take a photo of what you want to check.")}</p>
         <p className="checker-disclaimer">
           {tx("Product recipes can change. Check the current package when the result matters.")}
         </p>
@@ -273,11 +296,11 @@ export function ProductScannerPage() {
         <button
           type="button"
           role="tab"
-          aria-selected={mode === "ingredients"}
-          className={mode === "ingredients" ? "active" : ""}
-          onClick={() => selectMode("ingredients")}
+          aria-selected={mode === "camera"}
+          className={mode === "camera" ? "active" : ""}
+          onClick={() => selectMode("camera")}
         >
-          <Type />{tx("Ingredients")}
+          <Camera />{tx("Camera")}
         </button>
       </div>}
 
@@ -315,9 +338,20 @@ export function ProductScannerPage() {
                     <span>{tx("See what I can order")}</span>
                   </button>
                 )}
+                {!scannedIsMenu && (
+                  <button
+                    type="button"
+                    className="primary-button"
+                    onClick={() => checkLink(scannedUrl)}
+                    disabled={linkScan.isPending}
+                  >
+                    {linkScan.isPending ? <LoaderCircle className="spin" aria-hidden="true" /> : <SearchCheck aria-hidden="true" />}
+                    <span>{tx("Check this link")}</span>
+                  </button>
+                )}
                 <button
                   type="button"
-                  className={scannedIsMenu ? "secondary-button" : "primary-button"}
+                  className="secondary-button"
                   onClick={() => window.open(scannedUrl, "_blank", "noopener,noreferrer")}
                 >
                   <ExternalLink aria-hidden="true" />
@@ -330,6 +364,9 @@ export function ProductScannerPage() {
               </div>
             </div>
           )}
+
+          {linkScan.error && <div className="error-banner" role="alert">{linkScan.error.message}</div>}
+          {linkScan.data && !linkScan.data.menuUrl && !linkScan.data.gtin && <UniversalResult result={linkScan.data} />}
 
           {!routeGtin && <form
             className="barcode-form"
@@ -353,7 +390,12 @@ export function ProductScannerPage() {
             </div>
           </form>}
 
-          {routeGtin && lookup.isPending && <div className="loading"><LoaderCircle className="spin" />{tx("Checking product…")}</div>}
+          {routeGtin && lookup.isPending && (
+            <div className="loading">
+              <LoaderCircle className="spin" />
+              {slowLookup ? tx("No database has this product's ingredients: searching the web…") : tx("Checking product…")}
+            </div>
+          )}
           
           {routeGtin && lookup.error && (
             <div className="product-not-found-card">
@@ -368,7 +410,7 @@ export function ProductScannerPage() {
                   type="button"
                   className="primary-button fallback-ocr-btn"
                   onClick={() => {
-                    selectMode("ingredients");
+                    selectMode("camera");
                     void navigate("/scanner");
                   }}
                 >
@@ -418,7 +460,7 @@ export function ProductScannerPage() {
               )}
               <div className="product-result-body">
                 <div style={{ display: "flex", flexWrap: "wrap", alignItems: "center", gap: "0.5rem", marginBottom: "0.4rem" }}>
-                  <VerdictBadge verdict={lookup.data.verdict} />
+                  <VerdictBadge verdict={lookup.data.verdict} context={productCategory(lookup.data) === "food" ? "diet" : "general"} />
                   <span className="product-category-chip">
                     {{ food: tx("Food"), beauty: tx("Cosmetics & Care"), other: tx("Other product") }[productCategory(lookup.data)]}
                   </span>
@@ -487,16 +529,28 @@ export function ProductScannerPage() {
                 )}
                 <p className="result-reason">{localizeGeneratedText(lookup.data.reason, language)}</p>
                 <FlaggedIngredientChips findings={lookup.data.findings} language={language} />
-                <EvidenceNote assurance={lookup.data.assurance} evidence={lookup.data.evidence} />
+                {productCategory(lookup.data) === "beauty" && lookup.data.brand && (
+                  <BrandCrueltyFree brand={lookup.data.brand} />
+                )}
+                <EvidenceNote
+                  assurance={lookup.data.assurance}
+                  evidence={lookup.data.evidence}
+                  automatic={lookup.data.evidence.some((item) => item.sourceType === "automated_extraction")}
+                />
                 {lookup.data.traces.length > 0 && (
                   <p className="trace-note">
                     {tx("Allergen trace warning")}: {lookup.data.traces.join(", ")}
                   </p>
                 )}
-                {lookup.data.evidence[0]?.sourceUrl && (
-                  <a className="source-link" href={lookup.data.evidence[0].sourceUrl} target="_blank" rel="noreferrer">
-                    {lookup.data.evidence[0].sourceName} <ExternalLink />
-                  </a>
+                {lookup.data.evidence.filter((item) => item.sourceUrl).length > 0 && (
+                  <p className="source-links">
+                    {tx("Sources")}:{" "}
+                    {lookup.data.evidence.filter((item) => item.sourceUrl).slice(0, 3).map((item) => (
+                      <a key={item.id} className="source-link" href={item.sourceUrl} target="_blank" rel="noreferrer">
+                        {item.sourceName} <ExternalLink />
+                      </a>
+                    ))}
+                  </p>
                 )}
                 <div className="result-actions">
                   <button
@@ -514,7 +568,7 @@ export function ProductScannerPage() {
                         (item) => item.ingredientsText,
                       )?.ingredientsText;
                       if (label) setIngredientsText(label);
-                      selectMode("ingredients");
+                      selectMode("camera");
                       if (lookup.data.ingredientsImageUrl) {
                         setRemotePhotoUrl(lookup.data.ingredientsImageUrl);
                         productPhotoExtraction.mutate(lookup.data.gtin, {
@@ -582,10 +636,10 @@ export function ProductScannerPage() {
         </section>
       )}
 
-      {mode === "ingredients" && (
-        <section className="checker-panel" aria-label={tx("Ingredient checker")}>
+      {mode === "camera" && (
+        <section className="checker-panel" aria-label={tx("Camera checker")}>
           <p className="checker-intro">
-            {tx("Take a clear photo of the full ingredient label, then correct the extracted text before checking it.")}
+            {tx("Take a photo of an ingredient label, a product without a barcode, clothing or an activity. Ingredient lists are checked with our rules; everything else is recognised automatically.")}
           </p>
 
           {(photoUrl || remotePhotoUrl) ? (
@@ -600,7 +654,7 @@ export function ProductScannerPage() {
                 onClick={() => {
                   setIngredientPhoto(undefined);
                   setRemotePhotoUrl("");
-                  photoExtraction.reset();
+                  photoScan.reset();
                   productPhotoExtraction.reset();
                   ingredientAnalysis.reset();
                 }}
@@ -609,7 +663,7 @@ export function ProductScannerPage() {
               </button>
             </div>
           ) : (
-            <IngredientCamera onCapture={readIngredientPhoto} />
+            <IngredientCamera onCapture={scanPhoto} />
           )}
 
           <div className="upload-alternative">
@@ -622,19 +676,37 @@ export function ProductScannerPage() {
               onChange={(event) => {
                 const file = event.target.files?.[0];
                 if (!file) return;
-                readIngredientPhoto(file);
+                scanPhoto(file);
               }}
             />
             </label>
           </div>
 
-          {(photoExtraction.isPending || productPhotoExtraction.isPending) && (
-            <div className="loading"><LoaderCircle />{tx("Reading label…")}</div>
+          {photoScan.isPending && (
+            <div className="loading"><LoaderCircle className="spin" />{tx("Recognising the photo…")}</div>
           )}
-          {(photoExtraction.error || productPhotoExtraction.error) && (
+          {productPhotoExtraction.isPending && (
+            <div className="loading"><LoaderCircle className="spin" />{tx("Reading label…")}</div>
+          )}
+          {(photoScan.error || productPhotoExtraction.error) && (
             <div className="inline-note">
-              {(photoExtraction.error || productPhotoExtraction.error)?.message}
+              {(photoScan.error || productPhotoExtraction.error)?.message}
             </div>
+          )}
+          {photoScan.data && !ingredientAnalysis.data && (
+            <>
+              <UniversalResult result={photoScan.data} />
+              {photoScan.data.gtin && (
+                <button
+                  type="button"
+                  className="primary-button"
+                  onClick={() => void navigate(`/product/${encodeURIComponent(photoScan.data.gtin ?? "")}`)}
+                >
+                  <ScanBarcode aria-hidden="true" />
+                  <span>{tx("See the product")}</span>
+                </button>
+              )}
+            </>
           )}
 
           <form
@@ -644,7 +716,7 @@ export function ProductScannerPage() {
               if (ingredientsText.trim()) ingredientAnalysis.mutate(ingredientsText);
             }}
           >
-            <label htmlFor="ingredients-text">{tx("Ingredients")}</label>
+            <label htmlFor="ingredients-text">{tx("Or type the ingredients")}</label>
             <textarea
               id="ingredients-text"
               value={ingredientsText}
