@@ -10,6 +10,20 @@ Memòria del projecte entre sessions: **què es va decidir, per què i què es v
 
 ---
 
+## 2026-11-22 — Escàner universal: codi de barres o càmera, i què fa la IA
+- **Demanat**: qualsevol codi de barres o QR (menjar, roba, cosmètica amb el cruelty free de la marca, activitats), pestanyes «Codi de barres» i «Càmera», i una càmera universal (una activitat com muntar a cavall, o un producte sense codi). L'MCP no es descarta del tot per als QR que porten a una web desconeguda. **(Nils)**
+- **Com**:
+  - Una foto o un enllaç desconegut (botó «Comprova aquest enllaç») es classifica amb Gemini: etiqueta, menjar, cosmètica, roba, activitat, lloc, carta o altres (`universal-analyzer.ts`).
+  - Els productes d'Open Products Facts es jutgen pel nom.
+  - La marca de cosmètica es consulta amb Google Search i es mostren les fonts. **(deduït)**
+- **Regles de qualitat** (deduït):
+  - Una etiqueta d'ingredients només es transcriu; el veredicte el dona el classificador determinista.
+  - El reconeixement automàtic mai no dona «vegà» definitiu (`capAutomatedVerdict`) i sempre es mostra com a «Reconeixement automàtic».
+  - Un «cruelty free» sense cap font de cerca es descarta.
+- **Enllaços**: es comproven només si la persona ho demana, perquè alguns QR porten enllaços privats (pagaments, invitacions).
+- **MCP**: el cas dels QR desconeguts el cobreix el servidor (descarrega la pàgina amb protecció SSRF i la classifica). Un MCP només caldria si un agent d'IA hagués de triar entre eines, i aquí el flux és fix. Es pot reconsiderar si apareixen casos que el flux fix no resol. **(deduït; Nils no ho descarta)**
+- **Cost**: cada foto, enllaç comprovat o marca nova és una crida a Gemini (les marques es desen 24 h a la memòria). Es mesura amb els comptadors `gemini.scan_photo`, `gemini.scan_text` i `gemini.brand`.
+
 ## 2026-11-22 — Receptes desactivades fins que tinguin la qualitat de la resta
 - **Decisió**: el receptari i el veganitzador de receptes queden amagats (enllaços, targeta de la portada i rutes `/recipes`, que redirigeixen a l'inici). El codi es manté; es tornen a activar amb `RECIPES_ENABLED` a `apps/web/src/features.ts`. **(Nils)**
 - **Per què**: «millor un abast més limitat però d'alta qualitat que no pas qualitat heterogènia». **(Nils)** Matisa l'entrada «L'abast ampli és deliberat» del 16-11: l'amplitud es manté on la qualitat és alta.

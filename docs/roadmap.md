@@ -68,9 +68,9 @@ Backlog viu en tres blocs: **Ara** (màxim 5 ítems), **Després** (ordenat) i *
 Sense data. No és una prohibició: es puja a «Després» quan tingui sentit.
 
 **Escàner i productes**
-- 🟠 Alternatives veganes per a productes no vegans (Open Food Facts).
-- 🟠 Cosmètica i higiene: ingredients d'origen animal ja es detecten amb Open Beauty Facts; falta informació fiable sobre experimentació animal més enllà de les etiquetes.
-- 🟠 Moda, calçat i materials: Open Products Facts ja identifica el producte, però no hi ha dades de materials; caldria llegir l'etiqueta de composició (OCR).
+- 🟠 Alternatives veganes per a productes no vegans des d'Open Food Facts (la càmera ja en suggereix de forma automàtica).
+- 🟡 Llegir l'etiqueta de composició de la roba amb les regles deterministes (avui la roba es jutja per reconeixement automàtic).
+- 🟡 Desar a Supabase les consultes de marques cruelty free (avui, 24 h a la memòria de l'API).
 - 🔵 Historial d'escaneig sincronitzat i base de dades global de productes.
 
 **Mapa i restaurants**

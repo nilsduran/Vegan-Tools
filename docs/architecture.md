@@ -165,6 +165,9 @@ flowchart TD
 - `POST /v1/ingredients/classify` — Deterministically classify raw ingredient text.
 - `POST /v1/ingredients/extract` — OCR ingredient text from a photographed product label.
 - `POST /v1/recipes/veganize` — Substitute non-vegan ingredients with plant-based alternatives.
+- `POST /v1/scan/photo` — Universal camera: what a photo shows (label, food, cosmetic, clothing, activity, place, menu) and whether it involves animals.
+- `POST /v1/scan/url` — What an unknown scanned link is (page downloaded with SSRF protection and classified).
+- `GET /v1/brands/cruelty-free?name=` — Whether a cosmetics brand tests on animals, with web sources.
 
 ---
 
