@@ -76,8 +76,6 @@ export function BarcodeCamera({ onDetected }: { onDetected: (value: string) => v
     let active = true;
     let stream: MediaStream | undefined;
     let frame = 0;
-    let lastValue = "";
-    let hits = 0;
 
     const start = async () => {
       setError("");
@@ -132,39 +130,18 @@ export function BarcodeCamera({ onDetected }: { onDetected: (value: string) => v
         return;
       }
 
-      // Every other frame only the centre is read, so a small code held far from
-      // a fixed-focus desktop webcam fills more of what the reader sees.
-      const crop = document.createElement("canvas");
-      let useCrop = false;
-      const frameSource = (video: HTMLVideoElement): CanvasImageSource => {
-        useCrop = !useCrop;
-        const width = video.videoWidth;
-        const height = video.videoHeight;
-        if (!useCrop || !width || !height) return video;
-        crop.width = Math.round(width * 0.7);
-        crop.height = Math.round(height * 0.6);
-        crop.getContext("2d", { willReadFrequently: true })?.drawImage(video, width * 0.15, height * 0.2, crop.width, crop.height, 0, 0, crop.width, crop.height);
-        return crop;
-      };
-
       const detect = async () => {
         if (!active || !videoRef.current) return;
         try {
-          const results = await detector.detect(frameSource(videoRef.current));
-          // A barcode whose check digit fails is a misread: keep scanning.
+          const results = await detector.detect(videoRef.current);
+          // ZXing only returns codes that decode completely (EAN/UPC check digit
+          // included), and measured on degraded webcam frames it never returned a
+          // wrong code (scripts/bench-barcode-reader.ts). So the first valid read
+          // is enough: waiting for a second one doubled the wait on blurry webcams.
           const value = results
             .map((result) => result.rawValue)
             .find((raw) => raw && classifyScannedCode(raw).kind !== "invalid_gtin") ?? "";
-          // Two matching reads confirm a code. Frames without a read (e.g. the centre
-          // crop missing a large code) do not reset the count; a different code does.
           if (value) {
-            if (value === lastValue) hits += 1;
-            else {
-              lastValue = value;
-              hits = 1;
-            }
-          }
-          if (hits >= 2) {
             navigator.vibrate?.(100);
             onDetected(value);
             return;
@@ -312,7 +289,7 @@ export function BarcodeCamera({ onDetected }: { onDetected: (value: string) => v
     <>
     <div className="camera-frame">
       <video ref={videoRef} muted playsInline aria-label={tx("Barcode")} />
-      <p className="camera-hint" aria-hidden="true">{tx("Point at a barcode or QR code")}</p>
+      <p className="camera-hint" aria-hidden="true">{tx("Fill half the picture with the code and keep it sharp")}</p>
       {torchAvailable && (
         <button
           type="button"

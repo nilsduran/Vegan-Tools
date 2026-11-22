@@ -1007,6 +1007,7 @@ export const caPhrases = {
   "Scanned menu": "Carta escanejada",
   "Other product": "Altres productes",
   "Point at a barcode or QR code": "Apunta a un codi de barres o QR",
+  "Fill half the picture with the code and keep it sharp": "Que el codi ocupi mig requadre i es vegi nítid",
   "Turn on the light": "Encén la llum",
   "Turn off the light": "Apaga la llum",
   "This menu may be out of date: restaurants change their dishes. Check with the staff before ordering.":
