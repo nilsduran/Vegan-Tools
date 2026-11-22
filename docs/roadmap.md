@@ -32,7 +32,7 @@ Backlog viu en tres blocs: **Ara** (màxim 5 ítems), **Després** (ordenat) i *
 
 ### Fase 1 — Beta Barcelona
 1. 🟠 **Validar el classificador d'ingredients amb productes reals** (`packages/domain`)
-   - El conjunt daurat ja dona 0 falsos vegans i bloqueja la CI, però són 182 etiquetes netes. Falta provar-lo amb textos reals d'Open Food Facts i amb sortida d'OCR (errors de lectura, paraules partides).
+   - El conjunt daurat ja dona 0 falsos vegans i bloqueja la CI, però són 182 etiquetes netes. Des del 22-11-2026, `npm run eval:scan` també prova 21 productes reals d'Open Food Facts (19/21, 0 falsos vegans). Falta ampliar-lo amb sortida d'OCR (errors de lectura, paraules partides) i fotos pròpies a `eval/photos`.
    - Resolt el 22-11-2026: un origen vegetal declarat («lecitina de gira-sol», «E471 (palma)», «glicerina vegetal») ja no fa dubtós el producte (classificador `2026.11.3`).
 2. 🟠 **Pre-analitzar 100 cartes de Barcelona** perquè la primera visita trobi contingut a la memòria cau.
 3. 🟠 **Proves E2E dels fluxos que falten** (`e2e/`): ja hi ha l'escàner amb càmera simulada, la comprovació d'ingredients i les pàgines principals, en mòbil i escriptori. Falten cerca → fitxa → carta i el registre al diari.

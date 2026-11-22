@@ -10,6 +10,24 @@ Memòria del projecte entre sessions: **què es va decidir, per què i què es v
 
 ---
 
+## 2026-11-22 — Conjunt d'avaluació amb casos reals i on encaixa cada tècnica d'IA
+- **Fet**: `npm run eval:scan` passa 56 casos reals (`eval/scan-cases.json`): 21 codis de barres de supermercat, 13 webs (Viquipèdia, zoo, aquari, Santuari Gaia), 14 descripcions de roba i activitats, 8 marques de cosmètica. Es pot executar per grups (`-- barcodes`) i surt amb error si hi ha algun fals vegà. **(Nils ho va demanar)**
+- **Primera execució** (22-11-2026):
+  - Webs i descripcions: 26/26 correctes.
+  - Marques: 6 correctes, Garnier sense resposta (el resum deia «certificada» però sense fonts de cerca, i la regla el descarta) i 1 error de quota.
+  - Codis de barres: 10/21, amb **1 fals vegà**.
+- **Què es va trobar i arreglar** (deduït):
+  - El text d'ingredients per defecte de la Nutella a Open Food Facts era «sugar, palm oil». Ara es classifiquen tots els idiomes, guanya el més restrictiu, i els al·lèrgens declarats (llet, ou, peix) descarten «vegà».
+  - Open Food Facts respon amb pàgines d'error quan rep moltes peticions seguides; ara es reintenta una vegada.
+  - Després dels arranjaments, codis de barres 19/21 i 0 falsos vegans. Els 2 restants són caigudes puntuals d'Open Food Facts.
+- **Límits** (deduït):
+  - Les expectatives de 4 marques estan marcades `review: true`.
+  - Encara no hi ha fotos: es posen en local a `eval/photos` (fora de git, per privacitat i per l'Espai Segur).
+- **Tècniques d'IA valorades** (deduït; Nils va demanar no descartar-les sense pensar-hi):
+  - **Primer**: revisar només els plats que surten vegans a les cartes; les correccions de la comunitat com a dades; coincidència aproximada per als errors d'OCR; doble resposta a les fotos.
+  - **Barat i obert**: un servidor MCP públic perquè els assistents d'IA consultin Vegan Tools.
+  - **Per més endavant**: models propis per destil·lació (quan hi hagi milers de correccions) i LangGraph (si la cerca de reserva passa de 2–3 passos).
+
 ## 2026-11-22 — Escàner universal: codi de barres o càmera, i què fa la IA
 - **Demanat**: qualsevol codi de barres o QR (menjar, roba, cosmètica amb el cruelty free de la marca, activitats), pestanyes «Codi de barres» i «Càmera», i una càmera universal (una activitat com muntar a cavall, o un producte sense codi). L'MCP no es descarta del tot per als QR que porten a una web desconeguda. **(Nils)**
 - **Com**:
