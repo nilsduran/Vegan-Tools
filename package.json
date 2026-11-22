@@ -23,6 +23,7 @@
     "test": "vitest run",
     "test:watch": "vitest",
     "test:e2e": "playwright test",
+    "eval:scan": "tsx scripts/eval-scan.ts",
     "test:coverage": "tsx scripts/benchmark-restaurant-coverage.ts",
     "build:lexicon": "node scripts/build-animal-lexicon.mjs",
     "audit:pins": "node scripts/audit-curated-pins.mjs",

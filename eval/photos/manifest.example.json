@@ -1,0 +1,5 @@
+[
+  { "file": "etiqueta-galetes.jpg", "subject": ["ingredient_label"], "expect": "vegetarian" },
+  { "file": "jaqueta-pell.jpg", "subject": ["clothing"], "expect": "not_vegan" },
+  { "file": "cartell-hipica.jpg", "subject": ["activity"], "expect": "not_vegan" }
+]
