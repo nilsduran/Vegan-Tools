@@ -7,6 +7,7 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import { getCuisineIcon } from "../utils/cuisine-icon";
+import { attachBasemap, supportsWebGL, type BasemapHandle } from "../utils/basemap";
 import L from "leaflet";
 import "leaflet/dist/leaflet.css";
 import { Crosshair, LoaderCircle, Maximize2, Search } from "lucide-react";
@@ -131,36 +132,6 @@ function createUserLocationIcon() {
   });
 }
 
-/**
- * Basemap: OpenFreeMap vector tiles (free, no API key, no usage limits), rendered through
- * MapLibre GL inside Leaflet so pins, clustering and popups keep working unchanged.
- * Positron is used for light mode because it has no POI icons competing with our pins.
- */
-const OPENFREEMAP_STYLE_URLS = {
-  light: "https://tiles.openfreemap.org/styles/positron",
-  dark: "https://tiles.openfreemap.org/styles/dark",
-} as const;
-
-const OPENFREEMAP_ATTRIBUTION =
-  '<a href="https://openfreemap.org" target="_blank" rel="noreferrer">OpenFreeMap</a> &copy; <a href="https://www.openmaptiles.org/" target="_blank" rel="noreferrer">OpenMapTiles</a> Data from <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noreferrer">OpenStreetMap</a>';
-
-/** Last-resort raster fallback, only for devices without WebGL (light, policy-compliant usage). */
-const OSM_RASTER_FALLBACK = {
-  url: "https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png",
-  attribution:
-    '&copy; <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noreferrer">OpenStreetMap</a> contributors',
-};
-
-function supportsWebGL(): boolean {
-  try {
-    const canvas = document.createElement("canvas");
-    return Boolean(canvas.getContext("webgl2") || canvas.getContext("webgl"));
-  } catch {
-    return false;
-  }
-}
-
-type MaplibreBasemapLayer = L.Layer & { getMaplibreMap(): { setStyle(style: string): unknown } };
 
 export function RestaurantMap({
   restaurants,
@@ -193,7 +164,7 @@ export function RestaurantMap({
   onMapClickRef.current = onMapClick;
   const mapContainerRef = useRef<HTMLDivElement>(null);
   const mapInstanceRef = useRef<L.Map | null>(null);
-  const basemapLayerRef = useRef<MaplibreBasemapLayer | null>(null);
+  const basemapRef = useRef<BasemapHandle | null>(null);
   const effectiveThemeRef = useRef(effectiveTheme);
   effectiveThemeRef.current = effectiveTheme;
   const markersGroupRef = useRef<L.LayerGroup | null>(null);
@@ -380,48 +351,18 @@ export function RestaurantMap({
       preferCanvas: true,
     });
 
-    // Basemap: OpenFreeMap vector styles via MapLibre GL (loaded lazily so the ~800 kB
-    // renderer never lands in the main bundle). Raster OSM only when WebGL is unavailable.
-    let basemapCancelled = false;
-    const containerEl = mapContainerRef.current;
-    const addRasterFallback = (reason: string) => {
-      if (basemapCancelled) return;
-      console.warn(`[RestaurantMap] ${reason}. Falling back to raster OpenStreetMap tiles.`);
-      containerEl.classList.add("map-tiles-osm");
-      L.tileLayer(OSM_RASTER_FALLBACK.url, {
-        attribution: OSM_RASTER_FALLBACK.attribution,
-        subdomains: "abc",
-        maxNativeZoom: 19,
-        maxZoom: 20,
-      }).addTo(map);
-    };
-
-    if (supportsWebGL()) {
-      Promise.all([
-        import("maplibre-gl"),
-        import("@maplibre/maplibre-gl-leaflet"),
-        // MapLibre resolves its worker next to its own chunk by default, which Vite doesn't emit;
-        // point it at the hashed asset explicitly (works in dev and production).
-        import("maplibre-gl/dist/maplibre-gl-worker.mjs?url"),
-        import("maplibre-gl/dist/maplibre-gl.css"),
-      ])
-        .then(([maplibre, bridge, worker]) => {
-          if (basemapCancelled) return;
-          maplibre.setWorkerUrl(worker.default);
-          const layer = bridge.maplibreGL({
-            style: OPENFREEMAP_STYLE_URLS[effectiveThemeRef.current],
-            // Shown immediately via Leaflet's attribution control (the bridge reads customAttribution).
-            attributionControl: { customAttribution: OPENFREEMAP_ATTRIBUTION },
-          }) as unknown as MaplibreBasemapLayer;
-          layer.addTo(map); // goes into Leaflet's tilePane, below markers and popups
-          basemapLayerRef.current = layer;
-        })
-        .catch((error: unknown) => {
-          addRasterFallback(`Vector basemap failed to load (${String(error)})`);
-        });
-    } else {
-      addRasterFallback("WebGL is not available");
-    }
+    // Basemap chain (CARTO Voyager, Geoapify, OpenFreeMap, OSM raster): see utils/basemap.ts.
+    basemapRef.current = attachBasemap(
+      map,
+      effectiveThemeRef.current,
+      {
+        cartoKey: import.meta.env.VITE_CARTO_API_KEY,
+        geoapifyKey: import.meta.env.VITE_GEOAPIFY_API_KEY,
+      },
+      { webgl: supportsWebGL(), container: mapContainerRef.current },
+    );
+    // Drop Leaflet's own "Leaflet" prefix; the basemap credits stay.
+    map.attributionControl.setPrefix(false);
 
     // Ensure map container calculates correct dimensions immediately after rendering
     requestAnimationFrame(() => {
@@ -477,17 +418,17 @@ export function RestaurantMap({
     }
 
     return () => {
-      basemapCancelled = true;
-      basemapLayerRef.current = null;
+      basemapRef.current?.remove();
+      basemapRef.current = null;
       resizeObserver?.disconnect();
       map.remove();
       mapInstanceRef.current = null;
     };
   }, []);
 
-  // Switch the vector style when the theme changes
+  // Switch the basemap style (raster URL or vector style) when the theme changes
   useEffect(() => {
-    basemapLayerRef.current?.getMaplibreMap().setStyle(OPENFREEMAP_STYLE_URLS[effectiveTheme]);
+    basemapRef.current?.setTheme(effectiveTheme);
   }, [effectiveTheme]);
 
   const initialLocatedRef = useRef(false);

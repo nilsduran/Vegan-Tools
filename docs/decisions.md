@@ -35,6 +35,12 @@ Memòria del projecte entre sessions: **què es va decidir, per què i què es v
 - **Fet**: en passar el ratolí per la llista ja no es reconstrueixen tots els marcadors, i les etiquetes de nom només es creen on es veuen. Sense canvi visible. **(deduït)**
 - **No fet**: la migració a MapLibre sol (proposta pendent del roadmap). L'ordre de fons preferit del mateix dia (CARTO, Geoapify, OpenFreeMap) fa que MapLibre només es carregui com a reserva, així que cal tornar a mesurar abans de decidir. **(deduït)**
 
+## 2026-11-22 — Ordre preferit dels fons del mapa
+- **Preferència**: CARTO Voyager primer, Geoapify OSM Bright Smooth segon, i OpenFreeMap com a fallback sense clau. Quan una font falla, el mapa passa a la següent. **(Nils)**
+- **Per què**: Nils recorda que els fons anteriors tenien més color que OpenFreeMap `positron`. Voyager i OSM Bright Smooth necessiten clau gratuïta (CARTO des del 25-09-2026 i Geoapify); sense claus el mapa segueix funcionant amb OpenFreeMap. **(Nils)**
+- **Protomaps**: Nils el vol com a tercera opció, però encara no és possible: el fitxer PMTiles del planeta fa uns 120 GB i l'API allotjada necessita clau. Pendent de decidir on s'allotja. **(deduït)**
+- **Atribució**: s'escurça a «© OpenFreeMap © OpenMapTiles © OpenStreetMap», i es treu el prefix «Leaflet». **(Nils ho va demanar)**
+
 ## 2026-11-22 — Idioma accessible sense compte
 - **Problema**: sense iniciar sessió no es podia canviar l'idioma (ni el tema). El selector de la capçalera es va treure el 3-10-2026 (`7b5cd94`) en crear la pàgina de Configuració, que només s'enllaçava des del perfil amb sessió. **(Nils ho va detectar)**
 - **Decisió**: tornar el selector de banderes a la capçalera, a totes les pàgines, i mostrar l'enllaç a Configuració també al perfil sense sessió. **(Nils va triar «capçalera i perfil»)**
