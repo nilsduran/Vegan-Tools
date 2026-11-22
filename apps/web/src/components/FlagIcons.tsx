@@ -1,9 +1,12 @@
-export function FlagUK({ width = 22, height = 15 }: { width?: number; height?: number }) {
+type FlagProps = { width?: number; height?: number; className?: string };
+
+export function FlagUK({ width = 22, height = 15, className }: FlagProps) {
   return (
     <svg
       viewBox="0 0 60 40"
       width={width}
       height={height}
+      className={className}
       preserveAspectRatio="none"
       aria-hidden="true"
       style={{ borderRadius: "2px", overflow: "hidden", flexShrink: 0 }}
@@ -17,12 +20,13 @@ export function FlagUK({ width = 22, height = 15 }: { width?: number; height?: n
   );
 }
 
-export function FlagCatalonia({ width = 22, height = 15 }: { width?: number; height?: number }) {
+export function FlagCatalonia({ width = 22, height = 15, className }: FlagProps) {
   return (
     <svg
       viewBox="0 0 90 60"
       width={width}
       height={height}
+      className={className}
       preserveAspectRatio="none"
       aria-hidden="true"
       style={{ borderRadius: "2px", overflow: "hidden", flexShrink: 0 }}

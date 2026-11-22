@@ -61,6 +61,7 @@ Qualsevol tasca, millora o correcció s'ha de classificar i abordar seguint aque
    - Pujar una branca i obrir la PR és una acció visible: cal el vistiplau d'en Nils, igual que per fusionar-la.
    - Fusió automàtica: amb el vistiplau d'en Nils per fusionar, es pot fer `gh pr merge --auto --merge` just després de crear la PR; GitHub la fusiona sola quan passa la CI i no la fusiona si falla. Activar-la equival a fusionar, així que també necessita el seu vistiplau.
    - Mantenir commits atòmics amb missatges clars i descriptius en català o anglès.
+   - Els commits i les PR no porten cap línia d'atribució (ni `Co-Authored-By`, ni «Generated with…» ni el nom d'un model d'IA). Els missatges només descriuen el canvi.
 
 2. **Cicle de Verificació, Recursos i Piràmide de Tests**:
    - **Comandes selectives per no malgastar recursos (temps/CPU)**:

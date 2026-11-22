@@ -19,7 +19,7 @@ vegan-tools/
 │   │                 # - Supabase PostgreSQL + Storage persistence
 │   └── web/          # React 19 + Vite + plain CSS frontend
 │                     # - Leaflet interactive map with custom clustering & anchor pins
-│                     # - OpenFreeMap vector basemap (MapLibre GL bridge, light/dark)
+│                     # - Basemap chain: CARTO Voyager, Geoapify, OpenFreeMap (light/dark)
 │                     # - PWA service worker with offline precaching
 │                     # - Bilingual i18n (Catalan & English)
 │                     # - Adaptive 420ms search debouncing & bottom sheet UX
@@ -106,10 +106,16 @@ flowchart TD
 
 ### Basemap (Map Tiles)
 
-- **Source**: [OpenFreeMap](https://openfreemap.org) vector tiles (`tiles.openfreemap.org`): free, no API key, no usage limits. Styles: `positron` (light, no POI icons competing with our pins) and `dark`, switched live with the app theme (`apps/web/src/theme.ts`).
-- **Rendering**: Leaflet stays the map engine (pins, clustering, popups, zoom). The vector style is drawn by MapLibre GL inside Leaflet's tile pane via `@maplibre/maplibre-gl-leaflet`. Both are `import()`ed on map mount into the `vendor-maplibre` chunk, so they never load with the main bundle.
-- **Fallback**: Only on devices without WebGL, raster `tile.openstreetmap.org` tiles are used (CSS-inverted in dark mode). This is never the default, keeping us within the OSM tile usage policy.
-- **Attribution**: "OpenFreeMap © OpenMapTiles, Data from OpenStreetMap" in Leaflet's attribution control.
+- **Preference (Nils)**: CARTO Voyager first, then Geoapify OSM Bright Smooth, then OpenFreeMap. The app tries them in that order and moves to the next one if a source fails. Implemented in `apps/web/src/utils/basemap.ts`.
+- **Chain** (the first working source wins):
+  1. **CARTO Voyager** (raster, `basemaps.cartocdn.com`; `dark_all` in dark mode). Needs `VITE_CARTO_API_KEY`: CARTO now requires a free key for raster tiles.
+  2. **Geoapify OSM Bright Smooth** (raster, `maps.geoapify.com`). Needs `VITE_GEOAPIFY_API_KEY` (free plan: 3,000 credits/day).
+  3. **OpenFreeMap** vector tiles (`tiles.openfreemap.org`, `positron` / `dark`): no key, no usage limits. Drawn by MapLibre GL inside Leaflet's tile pane via `@maplibre/maplibre-gl-leaflet`, `import()`ed on map mount into the `vendor-maplibre` chunk. Needs WebGL.
+  4. **OSM raster** `tile.openstreetmap.org` (CSS-inverted in dark mode). Last resort only, never the default, to keep within the OSM tile usage policy.
+- **Automatic fallback**: a raster source is abandoned after 6 tile errors before any tile loads (missing key, invalid key, quota, blocked network). A vector source is abandoned if MapLibre fails to load. Keyed sources without a key are skipped.
+- **Keys in the browser**: `VITE_*` values are compiled into the public bundle. Restrict each key to our domain (HTTP referrer) in the provider's dashboard. Without keys the map uses OpenFreeMap, so the app still works.
+- **Planned, not implemented**: Protomaps (self-hosted PMTiles via `@protomaps/leaflet`) as a further option. The public planet file is about 120 GB and the hosted API needs a key, so it needs a decision on where the file lives first.
+- **Attribution**: "© OpenFreeMap © OpenMapTiles © OpenStreetMap" (or the equivalent credit of the active source), without the "Leaflet" prefix.
 - **Offline**: Workbox caches styles/TileJSON (`StaleWhileRevalidate`) and versioned tiles, fonts and sprites (`CacheFirst`) in `apps/web/vite.config.ts`.
 
 ---
