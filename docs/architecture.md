@@ -160,7 +160,7 @@ flowchart TD
 - `GET /v1/users/:userId/visits` — The user's own diary (owner's token required).
 
 ### Products & Ingredients
-- `GET /v1/products/:gtin` — Retrieve product details and vegan classification by barcode (Open Food Facts).
+- `GET /v1/products/:gtin` — Product and verdict by barcode: Open Food, Beauty and Products Facts combined; without ingredients, a web search for the published list (accepted only if the cited page contains it), judged by the rule engine (`product-resolver.ts`).
 - `POST /v1/products/:gtin/evidence` — Submit user-verified product evidence.
 - `POST /v1/ingredients/classify` — Deterministically classify raw ingredient text.
 - `POST /v1/ingredients/extract` — OCR ingredient text from a photographed product label.

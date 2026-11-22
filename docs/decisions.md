@@ -10,6 +10,21 @@ Memòria del projecte entre sessions: **què es va decidir, per què i què es v
 
 ---
 
+## 2026-11-22 — Productes de qualsevol tipus: combinar fonts, cercar a la web i verificar la cita
+- **Problema real**: una crema solar vegana (Altruist, 8719327023839) sortia «desconeguda» amb Open Food Facts com a font. El producte hi és arxivat com a menjar, sense marca ni ingredients, i el registre buit guanyava. **(Nils ho va trobar; va demanar una solució general, no per a aquest cas)**
+- **Decisió** (`product-resolver.ts`) **(deduït)**:
+  - Es combinen tots els registres d'Open Facts: un registre amb ingredients guanya a un de buit, i si n'hi ha diversos, el més restrictiu.
+  - Sense ingredients enlloc, o amb un codi desconegut, una cerca web identifica el producte (nom, marca, tipus) i en busca la llista d'ingredients.
+  - **La llista només s'accepta si la pàgina citada la conté de debò**: el servidor la descarrega i ho comprova. Gemini a vegades torna llistes completes sense cap font de cerca, i poden ser inventades.
+  - La llista la jutgen les regles. Una declaració vegana del fabricant pot resoldre dubtes d'origen (glicerina), però tot el que ve de la web es queda en «probablement» i es marca com a automàtic.
+  - Una cerca fallida (quota, resposta buida) no es desa, perquè es torni a provar.
+- **Lector de codis** **(deduït)**:
+  - Firefox i els navegadors sense lector natiu usen ara ZXing (WebAssembly, compilat amb l'app) en lloc de ZBar, que llegia malament les webcams d'escriptori.
+  - S'ha afegit «Foto del codi de barres» per quan la càmera en directe no ho aconsegueix.
+  - És un canvi de servei, però per qualitat, no per velocitat: arregla un error que Nils va trobar.
+- **Avaluació**: grup `coverage` amb productes triats primer i buscats després. El grup antic de codis de barres queda marcat com a esbiaixat. **(Nils ho va demanar)**
+- **Límit conegut**: les cerques amb Google són irregulars (respostes buides, quota gratuïta diària) i, en el pla gratuït, el model de reserva (Gemini 3.5 Flash) es queda sense quota aviat.
+
 ## 2026-11-22 — Conjunt d'avaluació amb casos reals i on encaixa cada tècnica d'IA
 - **Fet**: `npm run eval:scan` passa 56 casos reals (`eval/scan-cases.json`): 21 codis de barres de supermercat, 13 webs (Viquipèdia, zoo, aquari, Santuari Gaia), 14 descripcions de roba i activitats, 8 marques de cosmètica. Es pot executar per grups (`-- barcodes`) i surt amb error si hi ha algun fals vegà. **(Nils ho va demanar)**
 - **Primera execució** (22-11-2026):
