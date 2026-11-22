@@ -25,6 +25,7 @@ import {
   type UniversalScanResult,
 } from "@vegan-tools/domain";
 import { recordGeminiCall } from "./usage-counters.js";
+import { downloadPublicUrl, extractVisibleText } from "./menu-discovery.js";
 
 export type ScanLanguage = "ca" | "en";
 
@@ -41,10 +42,56 @@ export interface ScanText {
   hint?: string;
 }
 
+/** What a web search found about a barcode the databases could not answer. */
+export interface ProductResearch {
+  found: boolean;
+  productName?: string;
+  brand?: string;
+  category?: "food" | "cosmetic" | "household" | "clothing" | "other";
+  /** Ingredient list exactly as published by the manufacturer or a shop. */
+  ingredientsText?: string;
+  manufacturerVeganClaim?: boolean;
+  /** Only for products without an ingredient list (materials). */
+  verdict?: DietVerdict;
+  reason?: string;
+  sources: ScanSource[];
+}
+
 export interface UniversalAnalyzer {
   analyzeImage(image: ScanImage, language: ScanLanguage): Promise<UniversalScanResult>;
   analyzeText(input: ScanText, language: ScanLanguage): Promise<UniversalScanResult>;
   findBrandEthics(brand: string, language: ScanLanguage): Promise<BrandEthics>;
+  researchProduct(input: { gtin: string; productName?: string; brand?: string }): Promise<ProductResearch>;
+}
+
+/** Models answer the category in free text ("Sunscreen / Face Fluid"): map it to ours. */
+export function productCategoryOf(value: unknown): ProductResearch["category"] {
+  if (typeof value !== "string") return undefined;
+  const text = value.toLowerCase();
+  if (/cosmetic|skin|sun ?screen|sunscreen|spf|cream|lotion|shampoo|soap|deodorant|make-?up|lipstick|perfume|toothpaste|hygiene|beauty|hair|nail|crema|cosmètic|cosmétique/.test(text)) return "cosmetic";
+  if (/detergent|cleaning|household|laundry|dish|cleaner|neteja|limpieza/.test(text)) return "household";
+  if (/cloth|apparel|shoe|boot|sneaker|bag|jacket|garment|textile|fashion|roba|ropa|calçat/.test(text)) return "clothing";
+  if (/food|drink|beverage|snack|beverage|aliment|comida|menjar|wine|beer|juice/.test(text)) return "food";
+  return "other";
+}
+
+/** Normalises a search-grounded answer about a product. Pure, so it is unit-tested. */
+export function finalizeProductResearch(parsed: Record<string, unknown> | undefined, sources: ScanSource[]): ProductResearch {
+  const text = (value: unknown) => (typeof value === "string" && value.trim() && value.trim().toLowerCase() !== "null" ? value.trim() : undefined);
+  const category = productCategoryOf(parsed?.category);
+  const verdict = VERDICTS.find((value) => value === parsed?.verdict);
+  return {
+    // Without any web source the answer is not trusted at all.
+    found: parsed?.found === true && sources.length > 0,
+    productName: text(parsed?.productName),
+    brand: text(parsed?.brand),
+    category,
+    ingredientsText: text(parsed?.ingredientsText),
+    manufacturerVeganClaim: parsed?.manufacturerVeganClaim === true,
+    verdict,
+    reason: text(parsed?.reason),
+    sources: sources.slice(0, 5),
+  };
 }
 
 /** What the model returns before the quality rules are applied. */
@@ -172,18 +219,71 @@ function isModelMissing(error: unknown) {
 /** Parses the first JSON object in a model's free-text answer (search-grounded calls cannot force JSON). */
 export function parseJsonObject(text: string | undefined): Record<string, unknown> | undefined {
   if (!text) return undefined;
-  const start = text.indexOf("{");
-  const end = text.lastIndexOf("}");
-  if (start < 0 || end <= start) return undefined;
-  try {
-    const value = JSON.parse(text.slice(start, end + 1));
-    return value && typeof value === "object" ? (value as Record<string, unknown>) : undefined;
-  } catch {
-    return undefined;
+  // Each balanced {...} block in order (models sometimes add prose or a second block).
+  for (let start = text.indexOf("{"); start >= 0; start = text.indexOf("{", start + 1)) {
+    let depth = 0;
+    let inString = false;
+    for (let index = start; index < text.length; index += 1) {
+      const char = text[index];
+      if (inString) {
+        if (char === "\\") index += 1;
+        else if (char === '"') inString = false;
+      } else if (char === '"') inString = true;
+      else if (char === "{") depth += 1;
+      else if (char === "}") {
+        depth -= 1;
+        if (depth === 0) {
+          try {
+            const value = JSON.parse(text.slice(start, index + 1));
+            if (value && typeof value === "object") return value as Record<string, unknown>;
+          } catch {
+            // Not valid JSON: try the next block.
+          }
+          break;
+        }
+      }
+    }
   }
+  return undefined;
+}
+
+function normalizeForMatch(value: string) {
+  return value.normalize("NFD").replace(/\p{Diacritic}/gu, "").toLowerCase().replace(/[^a-z0-9]+/g, " ").trim();
+}
+
+/**
+ * Whether an ingredient list really appears on a page: most of its first ingredients
+ * (at least 5 of the first 8) must be found in the page text.
+ */
+export function listAppearsInText(list: string, pageText: string): boolean {
+  const page = ` ${normalizeForMatch(pageText)} `;
+  const items = list
+    .split(/[,;]/)
+    .map((item) => normalizeForMatch(item.replace(/\([^)]*\)/g, "")))
+    .filter((item) => item.length >= 3)
+    .slice(0, 8);
+  if (items.length < 3) return false;
+  const found = items.filter((item) => page.includes(` ${item} `)).length;
+  return found >= Math.min(5, items.length);
+}
+
+/** Web pages a search-grounded answer was based on. */
+function groundingSources(response: GenerateResult): ScanSource[] {
+  const sources: ScanSource[] = [];
+  for (const candidate of response.candidates ?? []) {
+    for (const chunk of candidate.groundingMetadata?.groundingChunks ?? []) {
+      const url = chunk.web?.uri;
+      if (url && !sources.some((source) => source.url === url)) {
+        sources.push({ url, title: chunk.web?.title ?? undefined });
+      }
+    }
+  }
+  return sources;
 }
 
 export class GeminiUniversalAnalyzer implements UniversalAnalyzer {
+  constructor(private readonly download: typeof downloadPublicUrl = downloadPublicUrl) {}
+
   private readonly brandCache = new Map<string, { value: BrandEthics; expiresAt: number }>();
 
   private client(): GoogleGenAI {
@@ -255,6 +355,58 @@ ${input.text.slice(0, 8_000)}
     return finalizeScanAnswer(raw, { url: input.url });
   }
 
+  async researchProduct(input: { gtin: string; productName?: string; brand?: string }): Promise<ProductResearch> {
+    const known = [input.productName && `Name in a product database: ${input.productName}`, input.brand && `Brand: ${input.brand}`]
+      .filter(Boolean)
+      .join("\n");
+    const response = await this.generate(
+      "product_research",
+      {
+        contents: [`Use Google Search to identify the product with barcode (EAN/GTIN) ${input.gtin} and find its ingredient list.
+${known}
+If a product name is given, search by that name (and brand): it comes from a product database for this barcode, so the barcode itself need not appear on the page.
+Prefer the manufacturer's website, then large retailers or pharmacies. For cosmetics the list is the INCI list.
+Answer ONLY with JSON:
+{"found": true or false, "productName": string, "brand": string, "category": "food" | "cosmetic" | "household" | "clothing" | "other",
+ "ingredientsText": the complete ingredient list copied exactly from a page you found, or null,
+ "manufacturerVeganClaim": true only if the manufacturer explicitly states the product is vegan,
+ "verdict": for products without ingredients (clothing, shoes, objects) one of "vegan", "probably_vegan", "non_vegetarian", "unknown" based on their materials, else "unknown",
+ "reason": one short English sentence about the materials, or null,
+ "sourceUrl": the address of the page where you read the ingredient list, or null}
+Never guess or reconstruct an ingredient list. If neither the barcode nor the given name can be matched to a specific product, answer {"found": false}.`],
+        config: { tools: [{ googleSearch: {} }], temperature: 0 },
+      },
+      [process.env.GEMINI_WEBSITE_MODEL ?? "gemini-3.1-flash-lite", "gemini-3.5-flash"],
+    );
+    if (!response.text?.trim()) {
+      // Quota or search outage: a failure, not "no product found", so nothing gets cached.
+      throw new Error("The product web search returned no answer.");
+    }
+    const parsed = parseJsonObject(response.text);
+    const sources = groundingSources(response);
+    const cited = typeof parsed?.sourceUrl === "string" ? parsed.sourceUrl : undefined;
+    const list = typeof parsed?.ingredientsText === "string" ? parsed.ingredientsText : "";
+    if (cited && list && (await this.listIsOnPage(cited, list))) {
+      // The page the model cites really contains the list: that is the source to show.
+      sources.unshift({ url: cited, title: new URL(cited).hostname });
+    } else if (parsed && list) {
+      // An ingredient list that cannot be found on a cited page may be invented.
+      delete parsed.ingredientsText;
+    }
+    return finalizeProductResearch(parsed, sources);
+  }
+
+  /** Downloads the cited page (SSRF-protected) and checks that the ingredient list is really there. */
+  private async listIsOnPage(url: string, list: string): Promise<boolean> {
+    try {
+      const page = await this.download(new URL(url));
+      if (!page.mimetype.includes("html") && !page.mimetype.startsWith("text/")) return false;
+      return listAppearsInText(list, extractVisibleText(page.buffer.toString("utf8")));
+    } catch {
+      return false;
+    }
+  }
+
   async findBrandEthics(brand: string, language: ScanLanguage): Promise<BrandEthics> {
     const key = `${brand.trim().toLowerCase()}|${language}`;
     const cached = this.brandCache.get(key);
@@ -273,15 +425,7 @@ Write "summary" in ${languageName(language)}, at most two sentences, naming the 
       [process.env.GEMINI_WEBSITE_MODEL ?? "gemini-3.1-flash-lite", "gemini-3.5-flash"],
     );
 
-    const sources: ScanSource[] = [];
-    for (const candidate of response.candidates ?? []) {
-      for (const chunk of candidate.groundingMetadata?.groundingChunks ?? []) {
-        const url = chunk.web?.uri;
-        if (url && !sources.some((source) => source.url === url)) {
-          sources.push({ url, title: chunk.web?.title ?? undefined });
-        }
-      }
-    }
+    const sources = groundingSources(response);
     const parsed = parseJsonObject(response.text);
     const status = parsed?.status === "cruelty_free" || parsed?.status === "tests_on_animals" ? parsed.status : "unknown";
     const value: BrandEthics = {

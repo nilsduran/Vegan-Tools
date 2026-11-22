@@ -25,6 +25,7 @@ function fakeAnalyzer(overrides: Partial<UniversalAnalyzer> = {}): UniversalAnal
       sources: [{ url: "https://example.org/leaping-bunny" }],
       checkedAt: "2026-11-22T00:00:00.000Z",
     } satisfies BrandEthics),
+    researchProduct: vi.fn().mockResolvedValue({ found: false, sources: [] }),
     ...overrides,
   };
 }
@@ -100,20 +101,25 @@ describe("scan routes", () => {
     await app.close();
   });
 
-  it("judges Open Products Facts products by name, capped and labelled as automatic", async () => {
+  it("judges products without ingredient data from a web search, capped and labelled as automatic", async () => {
     vi.stubGlobal("fetch", vi.fn(async (input: string | URL | Request) =>
       String(input).includes("openproductsfacts.org")
         ? new Response(JSON.stringify({ status: 1, product: { product_name: "Leather boots" } }), { status: 200 })
         : new Response(JSON.stringify({ status: 0 }), { status: 404 }),
     ));
     const analyzer = fakeAnalyzer({
-      analyzeText: vi.fn().mockResolvedValue(
-        finalizeScanAnswer({ subject: "clothing", title: "Leather boots", verdict: "non_vegetarian", reason: "Made of leather." }),
-      ),
+      researchProduct: vi.fn().mockResolvedValue({
+        found: true,
+        productName: "Leather boots",
+        category: "clothing",
+        verdict: "non_vegetarian",
+        reason: "Made of leather.",
+        sources: [{ url: "https://shop.example/boots" }],
+      }),
     });
     const app = await buildApp({ repo: new MemoryRepository(), universalAnalyzer: analyzer });
     const res = await app.inject({ method: "GET", url: "/v1/products/3017620422003" });
-    expect(res.json()).toMatchObject({ category: "other", verdict: "non_vegetarian", assurance: "external" });
+    expect(res.json()).toMatchObject({ category: "other", verdict: "non_vegetarian", assurance: "unverified" });
     await app.close();
   });
 });
