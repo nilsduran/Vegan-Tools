@@ -418,9 +418,13 @@ export function RestaurantMap({
     }
 
     return () => {
+      resizeObserver?.disconnect();
+      // Stop a running flyTo before the basemap and the map go: the MapLibre bridge
+      // would otherwise handle animation events after removal (see
+      // guardBridgeTransitions in utils/basemap.ts).
+      map.stop();
       basemapRef.current?.remove();
       basemapRef.current = null;
-      resizeObserver?.disconnect();
       map.remove();
       mapInstanceRef.current = null;
     };

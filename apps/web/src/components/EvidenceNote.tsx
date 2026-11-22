@@ -6,7 +6,7 @@
  */
 
 import type { Assurance, Evidence } from "@vegan-tools/domain";
-import { BadgeCheck, Database, Factory, ScanText, ShieldQuestion } from "lucide-react";
+import { BadgeCheck, Database, Factory, ScanText, ShieldQuestion, Sparkles } from "lucide-react";
 import { tx } from "../i18n";
 
 const LEVELS: Record<Assurance, { label: string; detail: string; Icon: typeof BadgeCheck }> = {
@@ -37,8 +37,23 @@ const LEVELS: Record<Assurance, { label: string; detail: string; Icon: typeof Ba
   },
 };
 
-export function EvidenceNote({ assurance, evidence = [] }: { assurance: Assurance; evidence?: Evidence[] }) {
-  const { label, detail, Icon } = LEVELS[assurance];
+const AUTOMATIC = {
+  label: "Automatic recognition",
+  detail: "Found automatically (photo, web page or web search). It is not a verification: check the label or ask when it matters.",
+  Icon: Sparkles,
+};
+
+export function EvidenceNote({
+  assurance,
+  evidence = [],
+  automatic = false,
+}: {
+  assurance: Assurance;
+  evidence?: Evidence[];
+  /** Answer produced by AI recognition rather than by a source or the rule engine. */
+  automatic?: boolean;
+}) {
+  const { label, detail, Icon } = automatic ? AUTOMATIC : LEVELS[assurance];
   const source = assurance === "external" ? evidence[0]?.sourceName : undefined;
   return (
     <p className={`evidence-note evidence-note--${assurance}`}>

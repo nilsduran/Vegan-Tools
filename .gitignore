@@ -19,3 +19,8 @@ apps/web/ios/
 *.tsbuildinfo
 brain-screenshots/
 .e2e-cache/
+
+# Evaluation photos stay local (privacy, size); only the manifest is shared.
+eval/photos/*
+!eval/photos/manifest.example.json
+eval/results/

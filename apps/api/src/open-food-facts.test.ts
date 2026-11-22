@@ -103,4 +103,41 @@ describe("Open Food Facts classification", () => {
     const product = await lookupOpenFoodFacts("3017620422003");
     expect(product?.verdict).toBe(expectedVerdict);
   });
+
+  it("does not trust an incomplete default text: other languages and allergens count (real Nutella data)", async () => {
+    vi.stubGlobal("fetch", vi.fn(async () => new Response(JSON.stringify({
+      product: {
+        product_name: "Nutella",
+        ingredients_text: "sugar, palm oil",
+        ingredients_text_en: "sugar, palm oil",
+        ingredients_text_es: "AZÚCAR, ACEITE VEGETAL, AVELLANAS (13%), LECHE DESCREMADA EN POLVO (8,7%), CACAO MAGRO EN POLVO",
+        allergens_tags: ["en:milk", "en:nuts", "en:soybeans"],
+        ingredients_analysis_tags: ["en:palm-oil", "en:maybe-vegan", "en:vegetarian"],
+      },
+    }), { status: 200 })));
+
+    const product = await lookupOpenFoodFacts("3017620422003");
+    expect(product?.verdict).toBe("vegetarian");
+  });
+
+  it("never calls vegan a product whose declared allergens include milk", async () => {
+    vi.stubGlobal("fetch", vi.fn(async () => new Response(JSON.stringify({
+      product: { ingredients_text: "sugar, cocoa butter", allergens_tags: ["en:milk"] },
+    }), { status: 200 })));
+
+    const product = await lookupOpenFoodFacts("3017620422003");
+    expect(product?.verdict).toBe("probably_vegetarian");
+  });
+
+  it("retries once when Open Food Facts answers with an error page", async () => {
+    const fetchMock = vi
+      .fn()
+      .mockResolvedValueOnce(new Response("<html>busy</html>", { status: 200 }))
+      .mockResolvedValueOnce(new Response(JSON.stringify({ product: { ingredients_text: "gelatina, azúcar" } }), { status: 200 }));
+    vi.stubGlobal("fetch", fetchMock);
+
+    const product = await lookupOpenFoodFacts("3103220044544");
+    expect(fetchMock).toHaveBeenCalledTimes(2);
+    expect(product?.verdict).toBe("non_vegetarian");
+  });
 });

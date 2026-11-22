@@ -47,4 +47,16 @@ describe("GET /v1/products/:gtin across the Open Facts databases", () => {
     expect(res.json()).toMatchObject({ verdict: "unknown", assurance: "unverified" });
     await app.close();
   });
+
+  it("does not cache a product when the web search fails, so it is retried", async () => {
+    stubDatabases({ food: { product_name: "Face fluid" } });
+    const repo = new MemoryRepository();
+    const researchProduct = vi.fn().mockRejectedValue(new Error("quota"));
+    const analyzer = { analyzeImage: vi.fn(), analyzeText: vi.fn(), findBrandEthics: vi.fn(), researchProduct };
+    const app = await buildApp({ repo, universalAnalyzer: analyzer });
+    await app.inject({ method: "GET", url: `/v1/products/${GTIN}` });
+    await app.inject({ method: "GET", url: `/v1/products/${GTIN}` });
+    expect(researchProduct).toHaveBeenCalledTimes(2);
+    await app.close();
+  });
 });

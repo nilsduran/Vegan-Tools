@@ -191,7 +191,7 @@ interface DownloadedPage {
   buffer: Buffer;
 }
 
-async function downloadPublicUrl(initialUrl: URL): Promise<DownloadedPage> {
+export async function downloadPublicUrl(initialUrl: URL): Promise<DownloadedPage> {
   let url = initialUrl;
   for (let redirects = 0; redirects <= 3; redirects += 1) {
     url = await assertPublicUrl(url);
@@ -342,7 +342,7 @@ function extractMenuLinks(html: string, baseUrl: URL) {
   ).values()].map((entry) => entry.url);
 }
 
-function extractVisibleText(html: string) {
+export function extractVisibleText(html: string) {
   const strippedText = decodeEntities(
     html
       .replace(/<(script|style|svg|noscript|template)\b[\s\S]*?<\/\1>/gi, " ")

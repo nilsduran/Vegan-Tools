@@ -125,6 +125,41 @@ export function supportsWebGL(): boolean {
   }
 }
 
+interface BridgeInternals {
+  _map?: L.Map | null;
+  _glMap?: { _actualCanvas: HTMLElement; once(event: string, handler: () => void): void; jumpTo(options: { center: L.LatLng; zoom: number }): void } | null;
+  _transitionEnd(event?: unknown): void;
+  _resizeContainer(): void;
+  _zoomEnd(): void;
+}
+
+/**
+ * @maplibre/maplibre-gl-leaflet 0.1.x schedules work for the next frame when a zoom
+ * transition or resize ends, without checking that the layer is still on a map. If
+ * the map goes away in between (opening a menu during the fly to a restaurant) it
+ * throws "Cannot read properties of null (reading 'getZoom')". Same logic, guarded.
+ * Must run before the layer is added: the bridge binds this handler in onAdd.
+ */
+function guardBridgeTransitions(layer: L.Layer) {
+  const bridge = layer as unknown as BridgeInternals;
+  bridge._transitionEnd = function guardedTransitionEnd(this: BridgeInternals) {
+    L.Util.requestAnimFrame(() => {
+      const map = this._map;
+      const gl = this._glMap;
+      if (!map || !gl) return;
+      const zoom = map.getZoom();
+      const center = map.getCenter();
+      const offset = map.latLngToContainerPoint(map.getBounds().getNorthWest());
+      this._resizeContainer();
+      L.DomUtil.setTransform(gl._actualCanvas, offset, 1);
+      gl.once("moveend", () => {
+        if (this._map && this._glMap) this._zoomEnd();
+      });
+      gl.jumpTo({ center, zoom: zoom - 1 });
+    });
+  };
+}
+
 /**
  * Adds the first working basemap to `map` and moves to the next one when a source fails.
  * The returned handle switches the theme and removes the basemap when the map is destroyed.
@@ -210,6 +245,7 @@ export function attachBasemap(
           style: source.styleFor(theme),
           attributionControl: { customAttribution: source.attribution },
         }) as unknown as NonNullable<typeof layer>;
+        guardBridgeTransitions(created);
         created.addTo(map);
         layer = created;
       })

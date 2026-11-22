@@ -5,6 +5,7 @@
  */
 import { mkdirSync, writeFileSync } from "node:fs";
 import { dirname } from "node:path";
+import { crc32, deflateSync } from "node:zlib";
 
 const L = ["0001101", "0011001", "0010011", "0111101", "0100011", "0110001", "0101111", "0111011", "0110111", "0001011"];
 const G = ["0100111", "0110011", "0011011", "0100001", "0011101", "0111001", "0000101", "0010001", "0001001", "0010111"];
@@ -53,4 +54,43 @@ export function writeBarcodeVideo(path: string, code: string): void {
 
   mkdirSync(dirname(path), { recursive: true });
   writeFileSync(path, Buffer.concat([header, ...Array.from({ length: 10 }, () => frame)]));
+}
+
+/** A grayscale PNG photo of the same EAN-13, for the "photo of the barcode" fallback. */
+export function barcodePng(code: string): Buffer {
+  const width = 640;
+  const height = 360;
+  const moduleWidth = 5;
+  const modules = ean13Modules(code);
+  const left = Math.floor((width - modules.length * moduleWidth) / 2);
+  const rows: Buffer[] = [];
+  for (let y = 0; y < height; y += 1) {
+    const row = Buffer.alloc(width + 1, 255);
+    row[0] = 0; // no PNG filter
+    if (y >= 60 && y < height - 60) {
+      for (let index = 0; index < modules.length; index += 1) {
+        if (modules[index] === "1") row.fill(0, 1 + left + index * moduleWidth, 1 + left + (index + 1) * moduleWidth);
+      }
+    }
+    rows.push(row);
+  }
+  const chunk = (type: string, data: Buffer) => {
+    const length = Buffer.alloc(4);
+    length.writeUInt32BE(data.length);
+    const body = Buffer.concat([Buffer.from(type), data]);
+    const crc = Buffer.alloc(4);
+    crc.writeUInt32BE(crc32(body) >>> 0);
+    return Buffer.concat([length, body, crc]);
+  };
+  const header = Buffer.alloc(13);
+  header.writeUInt32BE(width, 0);
+  header.writeUInt32BE(height, 4);
+  header[8] = 8; // bit depth
+  header[9] = 0; // grayscale
+  return Buffer.concat([
+    Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]),
+    chunk("IHDR", header),
+    chunk("IDAT", deflateSync(Buffer.concat(rows))),
+    chunk("IEND", Buffer.alloc(0)),
+  ]);
 }

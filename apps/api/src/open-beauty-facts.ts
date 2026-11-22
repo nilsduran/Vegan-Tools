@@ -3,6 +3,7 @@ import {
   type Evidence,
   type ProductResult,
 } from "@vegan-tools/domain";
+import { normalizeCosmeticIngredients } from "./product-resolver.js";
 
 interface ObfProduct {
   product_name?: string;
@@ -99,13 +100,7 @@ export async function lookupOpenBeautyFacts(gtin: string): Promise<ProductResult
 
     const isCrueltyFree = detectedCertifications.length > 0;
     const rawIngredients = product.ingredients_text ?? "";
-    const normalizedIngredients = rawIngredients
-      .replace(/\bcera\s+alba\b/gi, "beeswax")
-      .replace(/\bmel\b/gi, "honey")
-      .replace(/\bci\s*75470\b/gi, "carmine")
-      .replace(/\blanolin\s+cera\b/gi, "lanolin")
-      .replace(/\bshellac\s+cera\b/gi, "shellac")
-      .replace(/\bsnail\s+secretion\s+filtrate\b/gi, "snail mucin");
+    const normalizedIngredients = normalizeCosmeticIngredients(rawIngredients);
 
     const analysis = classifyIngredients(normalizedIngredients, {
       assurance: "external",

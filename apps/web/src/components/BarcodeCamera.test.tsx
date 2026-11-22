@@ -2,13 +2,15 @@
 import { cleanup, render, screen, waitFor } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
-// Mirrors the real ZBar polyfill: it only knows these formats and its
-// constructor throws on any other one.
+// A reader that, like ZBar did, throws on formats it does not know: the
+// detector must only ask for supported formats.
 const ZBAR_FORMATS = ["codabar", "code_39", "code_93", "code_128", "ean_8", "ean_13", "itf", "qr_code", "upc_a", "upc_e"];
 const constructedWith: string[][] = [];
 
-vi.mock("@undecaf/barcode-detector-polyfill", () => ({
-  BarcodeDetectorPolyfill: class {
+vi.mock("zxing-wasm/reader/zxing_reader.wasm?url", () => ({ default: "/zxing_reader.wasm" }));
+vi.mock("barcode-detector/ponyfill", () => ({
+  prepareZXingModule: vi.fn(),
+  BarcodeDetector: class {
     static async getSupportedFormats() {
       return ZBAR_FORMATS;
     }
@@ -44,7 +46,7 @@ describe("BarcodeCamera without a native BarcodeDetector (iPhone, Firefox, Chrom
     vi.restoreAllMocks();
   });
 
-  it("asks the polyfill only for the formats it supports", async () => {
+  it("asks the reader only for the formats it supports", async () => {
     await createBarcodeDetector();
     expect(constructedWith[0]).toEqual(expect.arrayContaining(["ean_13", "qr_code"]));
     expect(constructedWith[0]).not.toContain("aztec");

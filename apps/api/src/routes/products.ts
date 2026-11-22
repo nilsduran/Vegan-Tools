@@ -18,6 +18,8 @@ import type { Repository } from "../store.js";
 import { lookupOpenFoodFacts } from "../open-food-facts.js";
 import { lookupOpenBeautyFacts } from "../open-beauty-facts.js";
 import { lookupOpenProductsFacts } from "../open-products-facts.js";
+import type { UniversalAnalyzer } from "../universal-analyzer.js";
+import { applyResearch, needsResearch, pickPrimaryRecord } from "../product-resolver.js";
 import type { IngredientExtractor } from "../ingredient-extractor.js";
 import { authenticateRequest, createTokenVerifier, type TokenVerifier } from "../auth.js";
 
@@ -41,6 +43,8 @@ export interface ProductRoutesOptions {
   repo: Repository;
   ingredientExtractor: IngredientExtractor;
   verifyToken?: TokenVerifier;
+  /** Web search for products whose ingredients no database has (product-resolver.ts). */
+  universalAnalyzer?: UniversalAnalyzer;
 }
 
 export async function productRoutes(app: FastifyInstance, options: ProductRoutesOptions) {
@@ -56,8 +60,7 @@ export async function productRoutes(app: FastifyInstance, options: ProductRoutes
     const cached = await repo.getProduct(gtin);
     if (cached?.classifierVersion === CLASSIFIER_VERSION) return cached;
 
-    // The three databases are asked at once (a barcode is in at most one of
-    // them in practice) and food wins over cosmetics over other products.
+    // Every database is asked at once; records are combined (product-resolver.ts).
     const lookups = await Promise.allSettled([
       lookupOpenFoodFacts(gtin),
       lookupOpenBeautyFacts(gtin),
@@ -68,11 +71,28 @@ export async function productRoutes(app: FastifyInstance, options: ProductRoutes
         request.log.warn({ error: lookup.reason }, "Open Facts lookup failed");
       }
     }
-    const product = lookups
-      .map((lookup) => (lookup.status === "fulfilled" ? lookup.value : undefined))
-      .find((candidate): candidate is ProductResult => Boolean(candidate));
+    const records = lookups.flatMap((lookup) => (lookup.status === "fulfilled" && lookup.value ? [lookup.value] : []));
+    let product = pickPrimaryRecord(records);
+
+    // Cache only answers worth keeping: a failed web search must be retried next time.
+    let cacheable = true;
+    if (needsResearch(product) && options.universalAnalyzer) {
+      // No ingredient list anywhere, or an unknown barcode: search the web.
+      try {
+        const research = await withTimeout(
+          options.universalAnalyzer.researchProduct({ gtin, productName: product?.productName, brand: product?.brand }),
+          35_000,
+          "Product web search took too long.",
+        );
+        product = applyResearch(gtin, product, research);
+      } catch (error) {
+        cacheable = false;
+        request.log.warn({ error: error instanceof Error ? error.message : error }, "Product web search failed");
+      }
+    }
+
     if (product) {
-      await repo.saveProduct(product);
+      if (cacheable) await repo.saveProduct(product);
       return product;
     }
 

@@ -1,4 +1,4 @@
-import { SCANNED_GTIN } from "./support/barcode-video";
+import { SCANNED_GTIN, barcodePng } from "./support/barcode-video";
 import { expect, mockJson, test } from "./support/app";
 
 const product = {
@@ -41,7 +41,7 @@ test("explains how to enable a denied camera and still allows typing ingredients
   await expect(page.getByText(/Camera access is unavailable/)).toBeVisible();
   await expect(page.getByRole("button", { name: /How to enable camera/ })).toBeVisible();
 
-  await page.getByRole("tab", { name: /Ingredients/ }).click();
+  await page.getByRole("tab", { name: /Camera/ }).click();
   await page.locator("#ingredients-text").fill("Ingredients: wheat flour, cod, olive oil, salt");
   await page.getByRole("button", { name: /Check ingredients/ }).click();
   await expect(page.locator(".verdict-non_vegetarian").first()).toBeVisible();
@@ -97,4 +97,75 @@ test("a misread barcode number is rejected instead of looked up", async ({ page 
   await page.locator("#barcode").press("Enter");
   await expect(page.getByRole("alert")).toContainText(/not valid|no és vàlid/);
   await expect(page).toHaveURL(/\/scanner$/);
+});
+
+test("the camera recognises an activity from a photo", async ({ page }) => {
+  await page.addInitScript(() => {
+    navigator.mediaDevices.getUserMedia = () =>
+      Promise.reject(new DOMException("Permission denied", "NotAllowedError"));
+  });
+  await mockJson(page, /\/v1\/scan\/photo/, {
+    subject: "activity",
+    title: "Horse riding",
+    verdict: "non_vegetarian",
+    reason: "Horses are used for riding.",
+    concerns: ["Animals used for entertainment"],
+    alternatives: ["Visit an animal sanctuary"],
+    findings: [],
+    traces: [],
+    assurance: "unverified",
+    sources: [],
+  });
+
+  await page.goto("/scanner");
+  await page.getByRole("tab", { name: /Camera|Càmera/ }).click();
+  await page.locator('input[type="file"]').setInputFiles({
+    name: "horse.jpg",
+    mimeType: "image/jpeg",
+    buffer: Buffer.from([0xff, 0xd8, 0xff, 0xd9]),
+  });
+
+  await expect(page.getByRole("heading", { name: "Horse riding" })).toBeVisible();
+  await expect(page.getByText("Visit an animal sanctuary")).toBeVisible();
+  await expect(page.getByText(/Automatic recognition|Reconeixement automàtic/)).toBeVisible();
+});
+
+test("an unknown link can be checked and its page is classified", async ({ page }) => {
+  await page.addInitScript(() => {
+    navigator.mediaDevices.getUserMedia = () =>
+      Promise.reject(new DOMException("Permission denied", "NotAllowedError"));
+  });
+  await mockJson(page, /\/v1\/scan\/url$/, {
+    subject: "activity",
+    title: "Rutes a cavall",
+    verdict: "non_vegetarian",
+    reason: "Horses are ridden.",
+    concerns: [],
+    alternatives: [],
+    findings: [],
+    traces: [],
+    assurance: "unverified",
+    sources: [],
+  });
+
+  await page.goto("/scanner");
+  await page.locator("#barcode").fill("https://hipica.example/");
+  await page.locator("#barcode").press("Enter");
+  await page.getByRole("button", { name: /Check this link|Comprova aquest enllaç/ }).click();
+  await expect(page.getByRole("heading", { name: "Rutes a cavall" })).toBeVisible();
+});
+
+test("a photo of the barcode works when the live camera does not", async ({ page }) => {
+  await page.addInitScript(() => {
+    navigator.mediaDevices.getUserMedia = () =>
+      Promise.reject(new DOMException("Permission denied", "NotAllowedError"));
+  });
+  await mockJson(page, new RegExp(`/v1/products/${SCANNED_GTIN}$`), product);
+  await page.goto("/scanner");
+  await page.getByTestId("barcode-photo-input").setInputFiles({
+    name: "barcode.png",
+    mimeType: "image/png",
+    buffer: barcodePng(SCANNED_GTIN),
+  });
+  await expect(page.getByRole("heading", { name: "E2E oat drink" })).toBeVisible({ timeout: 15_000 });
 });
