@@ -466,6 +466,8 @@ export const caPhrases = {
   "Scientific evidence hierarchy to verify ingredients.": "Jerarquia d'evidències contrastades per avalar cada ingredient.",
   "Check ingredients in seconds, discover vegan-friendly restaurants on the map and veganize any recipe with ease.":
     "Comprova ingredients amb la càmera, descobreix restaurants 100% vegans i adapta qualsevol recepta en segons.",
+  "Check ingredients in seconds and find out what you can order at any restaurant.":
+    "Comprova ingredients en segons i descobreix què pots demanar a qualsevol restaurant.",
   "Search restaurant, city or barcode…": "Cerca un restaurant, ciutat o codi de barres…",
   "Scan barcodes or take photos of ingredient labels to instantly flag animal derivatives and E-numbers.":
     "Escaneja el codi de barres o fes una foto a l'etiqueta d'ingredients per detectar additius i derivats animals.",
