@@ -10,7 +10,7 @@
 - 📚 **Evidence-Led Resources**: Educational guides covering ethics, evidence-based nutrition ([VeganHealth.org](https://veganhealth.org)), documentaries, and sanctuary directories.
 - 🌐 **Bilingual (Catalan & English)**: Complete UI, classification, and recipe content localized in both Catalan and English.
 
-Live website: [vegan-tools.onrender.com](https://vegan-tools.onrender.com)
+Live website: [vegantools.org](https://vegantools.org)
 
 ---
 
@@ -57,7 +57,7 @@ Live website: [vegan-tools.onrender.com](https://vegan-tools.onrender.com)
 ## 🏗️ Monorepo Architecture
 
 ```
-VeganTools/
+Vegan-Tools/
 ├── packages/
 │   └── domain/          # Shared TypeScript domain models, Zod schemas, cookbook recipes, ingredient logic
 ├── apps/
@@ -83,7 +83,7 @@ VeganTools/
 ### 1. Clone & Install
 ```bash
 git clone https://github.com/nilsduran/Vegan-Tools.git
-cd VeganTools
+cd Vegan-Tools
 npm install
 ```
 
