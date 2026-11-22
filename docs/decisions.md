@@ -10,6 +10,18 @@ Memòria del projecte entre sessions: **què es va decidir, per què i què es v
 
 ---
 
+## 2026-11-22 — Webcams de baixa qualitat i cosmètica dubtosa
+- **Lector** **(deduït, mesurat)**:
+  - Amb `scripts/bench-barcode-reader.ts` (fotogrames sintètics de webcam de 640×480), la lectura depèn de tenir unes 3 píxels per barra i poc desenfocament; cap opció del lector ho canvia gaire.
+  - El retall del centre empitjorava la lectura i s'ha tret.
+  - S'accepta la primera lectura vàlida (ZXing no va donar mai cap codi erroni), cosa que redueix a la meitat l'espera quan només alguns fotogrames es llegeixen.
+  - Enfocar la imatge per programa es va descartar: +3 lectures de 72 al triple de CPU.
+  - Per a una webcam d'escriptori, el límit és físic (resolució i enfocament fix): la foto del codi és la sortida.
+- **Cosmètica** **(Nils va trobar el cas: Bulldog, vegana i cruelty free, sortia «dubtosa»)**:
+  - La cerca web ara també es fa si el dubte només ve d'ingredients d'origen incert, o si un producte que no és menjar no té marca.
+  - Es manté la llista de la base de dades; la web hi afegeix la marca i la declaració vegana del fabricant.
+  - S'ha tret l'avís «sense certificació cruelty-free a les bases de dades obertes», que donava a entendre el contrari del que volia dir.
+
 ## 2026-11-22 — Segona revisió dels plats vegans, errors d'OCR i dos fluxos més amb E2E
 - **Plats vegans** (`menu-verification.ts`) **(deduït)**:
   - Les regles passen pel nom i la descripció dels plats «vegans».
