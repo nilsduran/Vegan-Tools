@@ -8,7 +8,7 @@
 import type { ScanSubject, UniversalScanResult } from "@vegan-tools/domain";
 import { tx, useLanguage } from "../i18n";
 import { localizeGeneratedText } from "../generated-i18n";
-import { BrandCrueltyFree } from "./BrandCrueltyFree";
+import { BrandCrueltyFree, BrandVerdictPending, useCosmeticVerdict } from "./BrandCrueltyFree";
 import { EvidenceNote } from "./EvidenceNote";
 import { IngredientFindings } from "./IngredientFindings";
 import { VerdictBadge } from "./VerdictBadge";
@@ -32,21 +32,38 @@ export function isDietarySubject(subject: ScanSubject) {
 export function UniversalResult({ result }: { result: UniversalScanResult }) {
   const language = useLanguage();
   const fromRules = result.assurance === "label_based";
+  const cosmeticBrand = result.subject === "cosmetic" ? result.brand : undefined;
+  const combined = useCosmeticVerdict(result.verdict, result.reason, cosmeticBrand);
+  if (combined.waiting) {
+    return (
+      <article className="product-result universal-result">
+        <div className="product-result-body">
+          {result.title && <h2>{result.title}</h2>}
+          {result.brand && <p className="muted">{result.brand}</p>}
+          <BrandVerdictPending />
+        </div>
+      </article>
+    );
+  }
+  // A brand that tests on animals settles it: the model's guesses would contradict it.
+  const concerns = combined.testsOnAnimals ? [] : result.concerns;
   return (
     <article className="product-result universal-result">
       <div className="product-result-body">
         <div className="universal-result-badges">
-          <VerdictBadge verdict={result.verdict} context={isDietarySubject(result.subject) ? "diet" : "general"} />
+          <VerdictBadge verdict={combined.verdict} context={isDietarySubject(result.subject) ? "diet" : "general"} />
           <span className="product-category-chip">{tx(SUBJECT_LABELS[result.subject])}</span>
         </div>
         {result.title && <h2>{result.title}</h2>}
         {result.brand && <p className="muted">{result.brand}</p>}
-        {result.reason && (
-          <p className="result-reason">{fromRules ? localizeGeneratedText(result.reason, language) : result.reason}</p>
+        {combined.reason && (
+          <p className="result-reason">
+            {fromRules && !combined.testsOnAnimals ? localizeGeneratedText(combined.reason, language) : combined.reason}
+          </p>
         )}
-        {result.concerns.length > 0 && (
+        {concerns.length > 0 && (
           <ul className="universal-concerns">
-            {result.concerns.map((concern) => <li key={concern}>{concern}</li>)}
+            {concerns.map((concern) => <li key={concern}>{concern}</li>)}
           </ul>
         )}
         {result.findings.length > 0 && <IngredientFindings findings={result.findings} compact />}
@@ -59,7 +76,7 @@ export function UniversalResult({ result }: { result: UniversalScanResult }) {
             <ul>{result.alternatives.map((item) => <li key={item}>{item}</li>)}</ul>
           </div>
         )}
-        {result.subject === "cosmetic" && result.brand && <BrandCrueltyFree brand={result.brand} />}
+        {cosmeticBrand && <BrandCrueltyFree brand={cosmeticBrand} />}
         <EvidenceNote assurance={result.assurance} automatic={!fromRules} />
       </div>
     </article>

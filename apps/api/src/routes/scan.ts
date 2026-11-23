@@ -109,20 +109,22 @@ export async function scanRoutes(app: FastifyInstance, options: ScanRoutesOption
         // The address usually names the product, so a web search can still
         // identify it, citing the pages it used.
         request.log.info({ error }, "Link could not be downloaded; searching the web instead");
+        // Both at once, so a busy provider does not add their waits up: the
+        // cited search wins; the address words are the fallback.
+        const words = addressWords(scanned.url);
+        const fromAddress = words
+          ? analyzer
+              .analyzeText({ text: words, url: scanned.url, hint: "Only the web address is known: the page could not be opened." }, language)
+              .then((result) => judgedFromAddressOnly(result, language))
+          : undefined;
+        fromAddress?.catch(() => {});
         try {
           return await analyzer.researchLink(scanned.url, language);
         } catch (searchError) {
           request.log.warn({ error: searchError }, "Link research failed; judging the address words");
-          const words = addressWords(scanned.url);
-          if (!words) return reply.code(503).send(unavailable(searchError, "This link could not be checked.", { showMessage: false }));
+          if (!fromAddress) return reply.code(503).send(unavailable(searchError, "This link could not be checked.", { showMessage: false }));
           try {
-            return judgedFromAddressOnly(
-              await analyzer.analyzeText(
-                { text: words, url: scanned.url, hint: "Only the web address is known: the page could not be opened." },
-                language,
-              ),
-              language,
-            );
+            return await fromAddress;
           } catch (textError) {
             return reply.code(503).send(unavailable(textError, "This link could not be checked.", { showMessage: false }));
           }

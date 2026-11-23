@@ -5,6 +5,7 @@
  */
 
 import { useQuery } from "@tanstack/react-query";
+import type { DietVerdict } from "@vegan-tools/domain";
 import { ExternalLink, LoaderCircle, Rabbit } from "lucide-react";
 import { getBrandEthics } from "../api";
 import { tx, useLanguage } from "../i18n";
@@ -15,25 +16,64 @@ const STATUS_LABELS = {
   unknown: "No reliable information about animal testing was found",
 } as const;
 
-export function BrandCrueltyFree({ brand }: { brand: string }) {
+function brandName(brand: string) {
+  return brand.split(",")[0]?.trim() ?? brand;
+}
+
+/** One request per brand and language, shared by the verdict and the brand card. */
+function useBrandEthics(brand: string | undefined) {
   const language = useLanguage();
-  const name = brand.split(",")[0]?.trim() ?? brand;
-  const ethics = useQuery({
+  const name = brand ? brandName(brand) : "";
+  return useQuery({
     queryKey: ["brand-ethics", name.toLowerCase(), language],
     queryFn: () => getBrandEthics(name, language),
+    enabled: Boolean(name),
     staleTime: 24 * 60 * 60 * 1000,
     retry: false,
   });
+}
 
-  if (ethics.isPending) {
-    return (
-      <p className="brand-ethics brand-ethics--loading">
-        <LoaderCircle className="spin" aria-hidden="true" />
-        {tx("Checking whether the brand tests on animals…")}
-      </p>
-    );
+/** Already not vegan from the ingredients: the brand cannot change that. */
+const NOT_VEGAN: DietVerdict[] = ["non_vegetarian", "vegetarian", "probably_vegetarian"];
+
+/**
+ * One verdict for a cosmetic: the product's own answer combined with whether the
+ * brand (or its parent company) tests on animals. While the brand is being
+ * checked there is no verdict yet, so the page never shows one answer and then
+ * contradicts it a few seconds later.
+ */
+export function useCosmeticVerdict(verdict: DietVerdict, reason: string, brand: string | undefined) {
+  const ethics = useBrandEthics(brand);
+  if (!brand || NOT_VEGAN.includes(verdict)) return { verdict, reason, waiting: false, testsOnAnimals: false };
+  if (ethics.isLoading) return { verdict, reason, waiting: true, testsOnAnimals: false };
+  if (ethics.data?.status === "tests_on_animals") {
+    // A fixed sentence, not a generated one: the same case always reads the same.
+    return {
+      verdict: "non_vegetarian" as DietVerdict,
+      reason: tx("Not cruelty-free: the brand or its parent company tests on animals."),
+      waiting: false,
+      testsOnAnimals: true,
+    };
   }
-  if (ethics.isError) return null;
+  return { verdict, reason, waiting: false, testsOnAnimals: false };
+}
+
+/** Shown where the verdict goes while the brand is being checked. */
+export function BrandVerdictPending() {
+  return (
+    <p className="brand-ethics brand-ethics--loading" role="status">
+      <LoaderCircle className="spin" aria-hidden="true" />
+      {tx("Checking whether the brand tests on animals…")}
+    </p>
+  );
+}
+
+export function BrandCrueltyFree({ brand }: { brand: string }) {
+  const name = brandName(brand);
+  const ethics = useBrandEthics(brand);
+
+  // While loading, the verdict area already says the brand is being checked.
+  if (ethics.isPending || ethics.isError) return null;
 
   const { status, summary, parentCompany, sources } = ethics.data;
   return (

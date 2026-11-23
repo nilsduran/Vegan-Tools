@@ -26,7 +26,7 @@ import {
   extractProductIngredientText,
   getProduct,
 } from "../api";
-import { BrandCrueltyFree } from "../components/BrandCrueltyFree";
+import { BrandCrueltyFree, BrandVerdictPending, useCosmeticVerdict } from "../components/BrandCrueltyFree";
 import { UniversalResult } from "../components/UniversalResult";
 import { BarcodeCamera, BarcodePhotoButton } from "../components/BarcodeCamera";
 import { IngredientFindings } from "../components/IngredientFindings";
@@ -159,6 +159,9 @@ export function ProductScannerPage() {
     queryFn: () => getProduct(routeGtin ?? ""),
     enabled: Boolean(routeGtin),
   });
+  // Cosmetics: the verdict waits for the brand check, so it is given once.
+  const cosmeticBrand = lookup.data && productCategory(lookup.data) === "beauty" ? lookup.data.brand : undefined;
+  const productVerdict = useCosmeticVerdict(lookup.data?.verdict ?? "unknown", lookup.data?.reason ?? "", cosmeticBrand);
 
   useDocumentHead({
     title: routeGtin && lookup.data ? `${lookup.data.productName || routeGtin} · ${t("scanner")}` : t("scanner"),
@@ -471,7 +474,9 @@ export function ProductScannerPage() {
               )}
               <div className="product-result-body">
                 <div style={{ display: "flex", flexWrap: "wrap", alignItems: "center", gap: "0.5rem", marginBottom: "0.4rem" }}>
-                  <VerdictBadge verdict={lookup.data.verdict} context={productCategory(lookup.data) === "food" ? "diet" : "general"} />
+                  {!productVerdict.waiting && (
+                    <VerdictBadge verdict={productVerdict.verdict} context={productCategory(lookup.data) === "food" ? "diet" : "general"} />
+                  )}
                   <span className="product-category-chip">
                     {{ food: tx("Food"), beauty: tx("Cosmetics & Care"), other: tx("Other product") }[productCategory(lookup.data)]}
                   </span>
@@ -520,11 +525,15 @@ export function ProductScannerPage() {
                     ))}
                   </div>
                 )}
-                <p className="result-reason">{localizeGeneratedText(lookup.data.reason, language)}</p>
-                <FlaggedIngredientChips findings={lookup.data.findings} language={language} />
-                {productCategory(lookup.data) === "beauty" && lookup.data.brand && (
-                  <BrandCrueltyFree brand={lookup.data.brand} />
+                {productVerdict.waiting ? (
+                  <BrandVerdictPending />
+                ) : (
+                  <p className="result-reason">
+                    {productVerdict.testsOnAnimals ? productVerdict.reason : localizeGeneratedText(lookup.data.reason, language)}
+                  </p>
                 )}
+                <FlaggedIngredientChips findings={lookup.data.findings} language={language} />
+                {cosmeticBrand && <BrandCrueltyFree brand={cosmeticBrand} />}
                 <EvidenceNote
                   assurance={lookup.data.assurance}
                   evidence={lookup.data.evidence}

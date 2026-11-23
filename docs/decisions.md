@@ -12,6 +12,11 @@ Memòria del projecte entre sessions: **què es va decidir, per què i què es v
 
 ## 2026-11-23 — Càmera negra a Firefox i neteja de l'escàner
 
+- **Cosmètics: un sol veredicte, després de comprovar la marca.** Abans sortia «Desconegut» i, uns segons després, la comprovació de la marca deia que l'empresa mare experimenta amb animals. Ara el veredicte espera la marca, tret que els ingredients ja diguin «no vegà». Si la marca experimenta amb animals, el veredicte és «No vegà» amb una frase fixa (no generada): el mateix cas sempre es llegeix igual. **(ho ha demanat en Nils)**
+- **«Empresa mare», mai «empresa matriu».** **(ho ha demanat en Nils)**
+- **Les respostes de la IA van en l'idioma de la interfície**, encara que la pàgina estigui en un altre idioma. **(ho ha demanat en Nils)**
+- **Temps màxim de 45 s per resposta de Gemini**, amb 25 s per model. Un model saturat pot trigar més de 30 s a respondre «ocupat». Per a enllaços bloquejats, la cerca i les paraules de l'adreça van en paral·lel. **(deduït de les proves)**
+- **Productes sense res d'origen animal plausible** (videojocs, electrònica): «Probablement vegà». **Productes on és plausible** (cosmètica, bolquers amb loció, roba) i sense informació: «Desconegut», pel principi de màxima precaució. **(proposat, pendent que en Nils ho confirmi)**
 - **Enllaços de botigues provats amb 8 productes triats abans de mirar el resultat** (Amazon, Decathlon, Lush, Carrefour). Decathlon, Carrefour i, a vegades, Lush bloquegen la descàrrega (403). Ara: pàgina → cerca web amb fonts → paraules de l'adreça. **Des de l'adreça sola es pot dir «no vegà» (llana, xocolata amb llet), però mai «vegà»**: un veredicte positiu es torna «desconegut». **(deduït, principi de màxima precaució)**
 - **La llista d'ingredients d'una pàgina la jutgen les regles, no el model.** I en menjar sense llista, «no vegetarià» només es manté si les regles troben carn, peix o gelatina a l'explicació del model: Gemini deia que la Nutella i les galetes amb xocolata amb llet eren «no vegetarianes». **(deduït de les proves)**
 - **La cerca web per a pàgines bloquejades depèn de la quota de Google Search grounding**, que avui donava 429. És la mateixa decisió de quota/facturació pendent d'en Nils. **(pendent)**
