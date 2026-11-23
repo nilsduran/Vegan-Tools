@@ -40,6 +40,12 @@ describe("finalizeScanAnswer (quality rules)", () => {
     expect(horseRiding).toMatchObject({ verdict: "non_vegetarian", assurance: "unverified" });
   });
 
+  it("accepts a list sent as a single string (grounded searches have no schema)", () => {
+    const result = finalizeScanAnswer({ subject: "clothing", title: "Jumper", verdict: "non_vegetarian", reason: "Wool.", concerns: "merino wool" as unknown as string[] });
+    expect(result.concerns).toEqual(["merino wool"]);
+    expect(result.alternatives).toEqual([]);
+  });
+
   it("judges an ingredient label with the rule engine, not the model", () => {
     const result = finalizeScanAnswer({
       subject: "ingredient_label",
@@ -167,6 +173,19 @@ describe("links to pages that cannot be downloaded", () => {
     expect(res.statusCode).toBe(200);
     expect(researchLink).toHaveBeenCalledWith("https://93.184.216.34/p/merino-wool-jumper", "ca");
     expect(res.json()).toMatchObject({ title: "Merino wool jumper", verdict: "non_vegetarian" });
+    await app.close();
+  });
+
+  it("treats a shop's robot check as a blocked page, not as the product", async () => {
+    const researchLink = vi.fn().mockResolvedValue(horseRiding);
+    const analyzeText = vi.fn().mockResolvedValue(horseRiding);
+    const app = await buildApp({ repo: new MemoryRepository(), universalAnalyzer: fakeAnalyzer({ researchLink, analyzeText }) });
+    const captcha = "<html><title>Amazon.es</title><p>Enter the characters you see below</p><form action='/errors/validateCaptcha'></form></html>";
+    vi.stubGlobal("fetch", vi.fn().mockResolvedValue(new Response(captcha, { status: 200, headers: { "content-type": "text/html" } })));
+    const res = await app.inject({ method: "POST", url: "/v1/scan/url", payload: { url: "https://93.184.216.34/dp/B08GCK4MYS" } });
+    expect(res.statusCode).toBe(200);
+    expect(researchLink).toHaveBeenCalled();
+    expect(analyzeText).not.toHaveBeenCalledWith(expect.objectContaining({ title: "Amazon.es" }), expect.anything());
     await app.close();
   });
 

@@ -123,6 +123,15 @@ const VERDICTS: DietVerdict[] = [
   "unknown",
 ];
 
+/**
+ * Grounded searches cannot use a response schema, so a model sometimes sends a
+ * list as one string ("concerns": "wool"). Accept both.
+ */
+function textList(value: unknown): string[] {
+  const items = Array.isArray(value) ? value : typeof value === "string" ? [value] : [];
+  return items.filter((item): item is string => typeof item === "string" && item.trim() !== "").map((item) => item.trim());
+}
+
 /** Applies the quality rules to a model answer. Pure, so it is unit-tested. */
 export function finalizeScanAnswer(
   raw: RawScanAnswer,
@@ -136,8 +145,8 @@ export function finalizeScanAnswer(
     subject,
     title: raw.title?.trim() || "",
     brand: raw.brand?.trim() || undefined,
-    concerns: (raw.concerns ?? []).filter(Boolean).slice(0, 6),
-    alternatives: (raw.alternatives ?? []).filter(Boolean).slice(0, 4),
+    concerns: textList(raw.concerns).slice(0, 6),
+    alternatives: textList(raw.alternatives).slice(0, 4),
     gtin,
     menuUrl: subject === "menu" && extras.url ? extras.url : undefined,
     sources: extras.sources ?? [],
@@ -177,7 +186,7 @@ export function finalizeScanAnswer(
   // verdict stands only if the rules find flesh (meat, fish, gelatine...) in the
   // model's own explanation; otherwise it is "probably vegetarian" (still not vegan).
   if (subject === "food" && verdict === "non_vegetarian") {
-    const explanation = [raw.title, raw.reason, ...(raw.concerns ?? [])].filter(Boolean).join(", ");
+    const explanation = [raw.title, raw.reason, ...textList(raw.concerns)].filter(Boolean).join(", ");
     if (classifyIngredients(explanation).verdict !== "non_vegetarian") verdict = "probably_vegetarian";
   }
   return {

@@ -43,6 +43,14 @@ export function pageSummary(html: string): string {
     .slice(0, 8_000);
 }
 
+/**
+ * A shop's robot check (Amazon answers some requests with a small captcha page,
+ * status 200). Judging it would describe the robot check, not the product.
+ */
+export function isBotWall(html: string): boolean {
+  return html.length < 20_000 && /captcha|robot check|are you a human|verify you are human|api-services-support@amazon/i.test(html);
+}
+
 /** The words of a product address ("/p/merino-wool-jumper/R-123" → "merino wool jumper"). */
 export function addressWords(url: string): string {
   const { hostname, pathname } = new URL(url);
@@ -104,6 +112,7 @@ export async function scanRoutes(app: FastifyInstance, options: ScanRoutesOption
       let page: Awaited<ReturnType<typeof download>>;
       try {
         page = await download(new URL(scanned.url));
+        if (page.mimetype.includes("html") && isBotWall(page.buffer.toString("utf8"))) throw new Error("The shop answered with a robot check.");
       } catch (error) {
         // Shops often refuse automated downloads (403, bot walls, timeouts).
         // The address usually names the product, so a web search can still

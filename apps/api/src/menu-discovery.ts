@@ -214,7 +214,8 @@ export async function downloadPublicUrl(initialUrl: URL): Promise<DownloadedPage
     }
     if (!response.ok) throw new Error(`The restaurant website returned ${response.status}.`);
     const mimetype = response.headers.get("content-type")?.split(";")[0]?.trim().toLowerCase() ?? "";
-    const maximum = mimetype === "application/pdf" ? 10 * 1024 * 1024 : 2 * 1024 * 1024;
+    // Shop product pages are heavy (an Amazon one is about 2.3 MB of HTML).
+    const maximum = mimetype === "application/pdf" ? 10 * 1024 * 1024 : 5 * 1024 * 1024;
     const declaredSize = Number(response.headers.get("content-length") ?? "0");
     if (declaredSize > maximum) throw new Error("The discovered menu is too large.");
     const buffer = Buffer.from(await response.arrayBuffer());
