@@ -111,6 +111,9 @@ export interface RawScanAnswer {
   gtin?: string;
 }
 
+/** Older-generation model that stays available when the newer ones are overloaded. */
+export const BACKUP_MODEL = "gemini-2.5-flash";
+
 const VERDICTS: DietVerdict[] = [
   "vegan",
   "probably_vegan",
@@ -341,7 +344,10 @@ export class GeminiUniversalAnalyzer implements UniversalAnalyzer {
   }
 
   private models() {
-    return [process.env.GEMINI_MODEL ?? "gemini-3.5-flash-lite", "gemini-3.1-flash-lite", "gemini-3.5-flash"];
+    // The last model is an older generation kept as a backup: on 23 November 2026
+    // the two newer backups answered 503 (overloaded) and 429 (quota) at once,
+    // so every photo failed whenever the first model was busy.
+    return [process.env.GEMINI_MODEL ?? "gemini-3.5-flash-lite", "gemini-3.1-flash-lite", "gemini-3.5-flash", BACKUP_MODEL];
   }
 
   async analyzeImage(image: ScanImage, language: ScanLanguage): Promise<UniversalScanResult> {
@@ -425,7 +431,7 @@ Answer ONLY with JSON:
 Never guess or reconstruct an ingredient list. If neither the barcode nor the given name can be matched to a specific product, answer {"found": false}.`],
         config: { tools: [{ googleSearch: {} }], temperature: 0 },
       },
-      [process.env.GEMINI_WEBSITE_MODEL ?? "gemini-3.1-flash-lite", "gemini-3.5-flash"]
+      [process.env.GEMINI_WEBSITE_MODEL ?? "gemini-3.1-flash-lite", "gemini-3.5-flash", BACKUP_MODEL]
     ];
     // Search-grounded answers are sometimes empty: one more try before giving up.
     let response = await this.generate(...params);

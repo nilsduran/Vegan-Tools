@@ -88,6 +88,10 @@ export function BarcodeCamera({ onDetected }: { onDetected: (value: string) => v
   const [canShowPermissionHelp, setCanShowPermissionHelp] = useState(false);
   const [retryCount, setRetryCount] = useState(0);
   const trackRef = useRef<MediaStreamTrack | null>(null);
+  // A front (selfie) camera is shown mirrored, like a video call: otherwise
+  // moving the product right moves it left on screen and aiming is hard.
+  // Only the preview is flipped; the reader gets the real frames.
+  const [mirrored, setMirrored] = useState(false);
   const [torchAvailable, setTorchAvailable] = useState(false);
   const [torchOn, setTorchOn] = useState(false);
 
@@ -112,7 +116,10 @@ export function BarcodeCamera({ onDetected }: { onDetected: (value: string) => v
         // Some webcams open in Firefox but never send a frame in the mode a size
         // request selects (a black picture). After a few seconds without frames,
         // reopen with no size request: the camera's own default mode.
+        // Full HD first: a fixed-focus laptop webcam reads a code only with
+        // enough pixels per bar (scripts/bench-barcode-reader.ts).
         const attempts: MediaTrackConstraints[] = [
+          { facingMode: "environment", width: { ideal: 1920 }, height: { ideal: 1080 } },
           { facingMode: "environment", width: { ideal: 1280 } },
           { facingMode: "environment" },
         ];
@@ -139,6 +146,7 @@ export function BarcodeCamera({ onDetected }: { onDetected: (value: string) => v
           trackRef.current = track;
           const capabilities = (track?.getCapabilities?.() ?? {}) as { torch?: boolean; focusMode?: string[] };
           setTorchAvailable(Boolean(capabilities.torch));
+          setMirrored(track?.getSettings?.().facingMode !== "environment");
           if (capabilities.focusMode?.includes("continuous")) {
             void track?.applyConstraints({ advanced: [{ focusMode: "continuous" } as MediaTrackConstraintSet] }).catch(() => {});
           }
@@ -285,7 +293,7 @@ export function BarcodeCamera({ onDetected }: { onDetected: (value: string) => v
   // people think the code had to fit inside it.
   return (
     <div className="camera-frame">
-      <video ref={videoRef} muted playsInline aria-label={tx("Barcode")} />
+      <video ref={videoRef} muted playsInline aria-label={tx("Barcode")} className={mirrored ? "mirrored" : undefined} />
       {torchAvailable && (
         <button
           type="button"

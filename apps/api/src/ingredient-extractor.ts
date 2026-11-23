@@ -4,6 +4,7 @@
  * from packaged food photos and product labels.
  */
 
+import { BACKUP_MODEL } from "./universal-analyzer.js";
 import { GoogleGenAI } from "@google/genai";
 import { recordGeminiCall } from "./usage-counters.js";
 
@@ -29,6 +30,7 @@ export class GeminiIngredientExtractor implements IngredientExtractor {
       process.env.GEMINI_MODEL ?? "gemini-3.5-flash-lite",
       "gemini-3.1-flash-lite",
       "gemini-3.5-flash",
+      BACKUP_MODEL,
     ])];
     let response: Awaited<ReturnType<typeof ai.models.generateContent>> | undefined;
     let lastError: unknown;
