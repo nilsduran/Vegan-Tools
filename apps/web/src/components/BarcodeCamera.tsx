@@ -89,6 +89,22 @@ export async function createBarcodeDetector(wanted: string[] = LIVE_BARCODE_FORM
   return new DetectorClass({ formats: formats.length > 0 ? formats : ["qr_code"] });
 }
 
+/**
+ * Whether the preview should be mirrored like a video call. Only a phone's rear
+ * camera is not: a computer's webcam faces the person even when the browser
+ * echoes the requested facingMode ("environment") back in its settings.
+ */
+export function isFrontCamera(track: MediaStreamTrack | null): boolean {
+  let facingMode: string | undefined;
+  try {
+    facingMode = track?.getSettings?.().facingMode;
+  } catch {
+    facingMode = undefined;
+  }
+  const touchDevice = typeof navigator !== "undefined" && navigator.maxTouchPoints > 0;
+  return !(facingMode === "environment" && touchDevice);
+}
+
 /** How much to zoom where the camera allows it (phones). See applyCameraExtras. */
 const SCAN_ZOOM = 1.5;
 
@@ -214,8 +230,8 @@ export function BarcodeCamera({ onDetected, onPhoto }: { onDetected: (value: str
         try {
           const track = stream.getVideoTracks?.()[0] ?? null;
           trackRef.current = track;
+          setMirrored(isFrontCamera(track));
           setTorchAvailable(applyCameraExtras(track).torch);
-          setMirrored(track?.getSettings?.().facingMode !== "environment");
         } catch {
           setTorchAvailable(false);
         }

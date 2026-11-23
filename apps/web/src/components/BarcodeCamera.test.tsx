@@ -25,7 +25,7 @@ vi.mock("barcode-detector/ponyfill", () => ({
   },
 }));
 
-import { BarcodeCamera, createBarcodeDetector, PHOTO_BARCODE_FORMATS } from "./BarcodeCamera";
+import { BarcodeCamera, createBarcodeDetector, isFrontCamera, PHOTO_BARCODE_FORMATS } from "./BarcodeCamera";
 
 const fakeStream = () => ({ getTracks: () => [{ stop: vi.fn() }] }) as unknown as MediaStream;
 
@@ -80,6 +80,19 @@ describe("BarcodeCamera without a native BarcodeDetector (iPhone, Firefox, Chrom
     render(<BarcodeCamera onDetected={vi.fn()} />);
     await waitFor(() => expect(applyConstraints).toHaveBeenCalledWith({ advanced: [{ zoom: 1.5 }] }));
     expect(applyConstraints).toHaveBeenCalledWith({ advanced: [{ focusMode: "continuous" }] });
+  });
+
+  it("mirrors a computer's webcam even when it reports the rear-camera mode", () => {
+    const track = (facingMode?: string) => ({ getSettings: () => ({ facingMode }) }) as unknown as MediaStreamTrack;
+    const touch = Object.getOwnPropertyDescriptor(navigator, "maxTouchPoints");
+    Object.defineProperty(navigator, "maxTouchPoints", { configurable: true, value: 0 });
+    expect(isFrontCamera(track("environment"))).toBe(true);
+    expect(isFrontCamera(track(undefined))).toBe(true);
+    Object.defineProperty(navigator, "maxTouchPoints", { configurable: true, value: 5 });
+    expect(isFrontCamera(track("environment"))).toBe(false);
+    expect(isFrontCamera(track("user"))).toBe(true);
+    if (touch) Object.defineProperty(navigator, "maxTouchPoints", touch);
+    else delete (navigator as { maxTouchPoints?: number }).maxTouchPoints;
   });
 
   it("has a shutter only when the page wants photos", async () => {
