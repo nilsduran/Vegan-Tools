@@ -252,6 +252,15 @@ button:disabled { cursor: not-allowed; opacity: .55; }
 .camera-torch { position: absolute; top: .7rem; right: .7rem; display: grid; place-items: center; width: 44px; height: 44px; border: 0; border-radius: 50%; color: white; background: rgb(0 0 0 / 50%); }
 .camera-torch[aria-pressed="true"] { color: #1f2924; background: var(--lime); }
 .camera-torch svg { width: 20px; height: 20px; }
+.camera-shutter { position: absolute; bottom: .9rem; left: 50%; transform: translateX(-50%); display: grid; place-items: center; width: 64px; height: 64px; border: 4px solid white; border-radius: 50%; color: #1f2924; background: rgb(255 255 255 / 85%); box-shadow: 0 2px 10px rgb(0 0 0 / 35%); }
+.camera-shutter svg { width: 26px; height: 26px; }
+.camera-shutter:disabled { opacity: .6; }
+.camera-caption { margin: .5rem 0 0; font-size: .82rem; text-align: center; }
+.scan-upload-button { position: relative; display: inline-flex; align-items: center; gap: .45rem; margin-top: .6rem; cursor: pointer; }
+.scan-upload-button input { position: absolute; inset: 0; opacity: 0; cursor: pointer; }
+.typed-ingredients { margin-top: 1.2rem; }
+.typed-ingredients > summary { cursor: pointer; color: var(--green); font-weight: 700; font-size: .9rem; }
+.typed-ingredients[open] > summary { margin-bottom: .6rem; }
 .camera-error { display: flex; align-items: center; justify-content: center; gap: .7rem; min-height: 160px; padding: 2rem; border: 1px dashed #bdc4bd; border-radius: 24px; color: var(--muted); background: white; text-align: center; }
 .camera-start { display: grid; place-items: center; min-height: 260px; padding: 2rem; border: 1px solid var(--line); border-radius: 16px; background: white; text-align: center; }
 .camera-start > svg { width: 38px; height: 38px; color: var(--green); }
@@ -340,19 +349,11 @@ button:disabled { cursor: not-allowed; opacity: .55; }
   resize: vertical;
 }
 .text-analysis-form > .primary-button { justify-self: end; }
-.ingredient-camera-start { display: grid; place-items: center; min-height: 260px; padding: 2rem; border: 1px solid var(--line); border-radius: 16px; background: white; text-align: center; }
-.ingredient-camera-start > svg { width: 40px; height: 40px; margin-bottom: .7rem; color: var(--green); }
-.ingredient-camera-start > span { margin: .35rem 0 1.2rem; color: var(--muted); font-size: .88rem; }
-.ingredient-camera-frame { position: relative; overflow: hidden; max-height: 70vh; border-radius: 16px; background: #111; }
-.ingredient-camera-frame video { width: 100%; height: 100%; object-fit: cover; display: block; }
 .document-guide { position: absolute; inset: 6%; border: 2px dashed rgb(255 255 255 / 70%); border-radius: 10px; pointer-events: none; }
 .capture-button { position: absolute; bottom: 1rem; left: 50%; display: inline-flex; align-items: center; gap: .5rem; padding: .75rem 1rem; transform: translateX(-50%); border: 0; border-radius: 999px; color: var(--green-dark); background: white; font-weight: 800; }
 .ingredient-photo-preview { display: grid; gap: .7rem; }
 .ingredient-photo-preview img { width: 100%; max-height: 430px; object-fit: contain; border: 1px solid var(--line); border-radius: 14px; background: #f1f2ee; }
 .ingredient-photo-preview button { justify-self: end; }
-.upload-alternative { display: flex; align-items: center; justify-content: center; gap: .7rem; margin: .9rem 0; color: var(--muted); font-size: .85rem; }
-.upload-alternative label { cursor: pointer; }
-.upload-alternative input { position: absolute; width: 1px; height: 1px; opacity: 0; }
 .text-analysis-form textarea { margin-bottom: 0.85rem; }
 .form-actions { display: flex; align-items: center; justify-content: space-between; gap: .7rem; margin-top: 0.5rem; margin-bottom: 2rem; }
 .ingredient-result, .analysis-result {
@@ -4479,7 +4480,6 @@ button:disabled { cursor: not-allowed; opacity: .55; }
 
 [data-theme="dark"] .product-not-found-card,
 [data-theme="dark"] .camera-start,
-[data-theme="dark"] .ingredient-camera-start,
 [data-theme="dark"] .camera-error {
   background: var(--bg-card) !important;
   border-color: var(--line) !important;
@@ -6064,7 +6064,4 @@ button:disabled { cursor: not-allowed; opacity: .55; }
 
 .source-links { display: flex; flex-wrap: wrap; align-items: center; gap: .35rem .7rem; margin: .5rem 0 0; color: var(--muted); font-size: .85rem; }
 
-.barcode-photo-row { display: flex; flex-wrap: wrap; align-items: center; gap: .6rem; margin-top: .6rem; }
-.barcode-photo-row p { margin: 0; font-size: .85rem; }
-.barcode-photo-button input { display: none; }
 

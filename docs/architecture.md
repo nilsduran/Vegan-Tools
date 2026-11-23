@@ -242,7 +242,7 @@ Rules:
 
 - **A feature that uses a device API** (camera, geolocation, file pickers) needs an E2E test in both profiles. Mocking the component in a page test is not coverage of that component: the scanner camera broke in October 2026 on every device without a native `BarcodeDetector`, and the only test mocked `BarcodeCamera` away.
 - **E2E tests start with the API unreachable** and mock only what they need. Pages must render, and throw no uncaught error, when the API is down or cold.
-- **Known gap**: the fake camera exists only in Chromium, so iPhone Safari is covered through the same code path (the ZBar polyfill, which Chromium on Linux and Windows also uses) but not by a real WebKit run.
+- **Known gap**: the fake camera exists only in Chromium, so iPhone Safari is covered through the same code path (ZXing-C++ in WebAssembly through the `barcode-detector` ponyfill, which Chromium on Linux and Windows also uses) but not by a real WebKit run.
 
 ### Speed targets
 

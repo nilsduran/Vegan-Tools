@@ -18,7 +18,9 @@ vi.mock("../api.js", () => ({
   getBrandEthics: vi.fn(),
 }));
 
+const readCodeFromPhoto = vi.fn<(file: File) => Promise<string | undefined>>(async () => undefined);
 vi.mock("../components/BarcodeCamera.js", () => ({
+  readCodeFromPhoto: (file: File) => readCodeFromPhoto(file),
   BarcodeCamera: ({ onDetected }: { onDetected: (code: string) => void }) => (
     <div data-testid="mock-barcode-camera">
       <button type="button" onClick={() => onDetected("3017620422003")}>
@@ -26,7 +28,6 @@ vi.mock("../components/BarcodeCamera.js", () => ({
       </button>
     </div>
   ),
-  BarcodePhotoButton: () => null,
 }));
 
 function renderScanner(initialEntry = "/product") {
@@ -145,7 +146,7 @@ describe("ProductScannerPage Form UI", () => {
     expect(screen.getByText("Vegan", { selector: ".verdict" })).toBeDefined();
   });
 
-  it("switches to Ingredients mode and classifies typed ingredient text", async () => {
+  it("classifies typed ingredient text", async () => {
     const user = userEvent.setup();
 
     vi.mocked(api.classifyIngredientList).mockResolvedValueOnce({
@@ -160,9 +161,6 @@ describe("ProductScannerPage Form UI", () => {
     });
 
     renderScanner("/product");
-
-    const ingredientsTab = screen.getByRole("tab", { name: /camera/i });
-    fireEvent.click(ingredientsTab);
 
     const textarea = screen.getByPlaceholderText(/Ingredients: cocoa mass/i);
     expect(textarea).toBeDefined();
@@ -261,7 +259,6 @@ describe("ProductScannerPage Form UI", () => {
     });
 
     renderScanner("/product");
-    fireEvent.click(screen.getByRole("tab", { name: /camera/i }));
 
     const fileInput = document.querySelector('input[type="file"]') as HTMLInputElement;
     const testFile = new File(["dummy content"], "label.jpg", { type: "image/jpeg" });
@@ -276,6 +273,16 @@ describe("ProductScannerPage Form UI", () => {
         "Oat flakes, sugar, sunflower oil",
       );
     });
+  });
+
+  it("reads a code in a photo on the device instead of sending the photo away", async () => {
+    readCodeFromPhoto.mockResolvedValueOnce("3017620422003");
+    renderScanner("/product");
+    const fileInput = screen.getByTestId("scan-photo-input") as HTMLInputElement;
+    fireEvent.change(fileInput, { target: { files: [new File(["x"], "barcode.jpg", { type: "image/jpeg" })] } });
+
+    await waitFor(() => expect(api.getProduct).toHaveBeenCalledWith("3017620422003"));
+    expect(api.analyzeScanPhoto).not.toHaveBeenCalled();
   });
 
   it("shows an activity as not vegan with alternatives", async () => {
@@ -293,7 +300,6 @@ describe("ProductScannerPage Form UI", () => {
     });
 
     renderScanner("/product");
-    fireEvent.click(screen.getByRole("tab", { name: /camera/i }));
     const fileInput = document.querySelector('input[type="file"]') as HTMLInputElement;
     fireEvent.change(fileInput, { target: { files: [new File(["x"], "horse.jpg", { type: "image/jpeg" })] } });
 

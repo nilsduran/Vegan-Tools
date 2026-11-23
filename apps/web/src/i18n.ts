@@ -160,6 +160,10 @@ export const caPhrases = {
   "Read ingredient label": "Llegeix l'etiqueta d'ingredients",
   "Check label": "Comprova l'etiqueta",
   "Retake photo": "Torna a fer la foto",
+  "Scanner": "Escàner",
+  "Take a photo": "Fes una foto",
+  "Your photo": "La teva foto",
+  "Codes are read by themselves. For anything else (a label, clothing…), take a photo.": "Els codis es llegeixen sols. Per a qualsevol altra cosa (una etiqueta, roba…), fes una foto.",
   "or": "o",
   "Upload an image": "Puja una imatge",
   "Reading label…": "S'està llegint l'etiqueta…",
@@ -169,7 +173,6 @@ export const caPhrases = {
   "Allergen trace warning": "Avís de traces d'al·lèrgens",
   "Photograph the ingredient label": "Fotografia l'etiqueta d'ingredients",
   "Keep the full list in focus and avoid glare.": "Mantén tota la llista enfocada i evita els reflexos.",
-  "Open camera": "Obre la càmera",
   "Capture label": "Captura l'etiqueta",
   "Camera access is unavailable. Enter the barcode below.":
     "No es pot accedir a la càmera. Introdueix el codi de barres a continuació.",
@@ -183,8 +186,6 @@ export const caPhrases = {
     "El lector de codis no s'ha pogut iniciar en aquest dispositiu. Introdueix el codi de barres a continuació.",
   "Play video": "Reprodueix el vídeo",
   "Loads YouTube": "Es carrega des de YouTube",
-  "Camera access is unavailable. Upload an image below instead.":
-    "No es pot accedir a la càmera. Puja una imatge a continuació.",
   "Use your camera to scan a barcode.": "Utilitza la càmera per escanejar un codi de barres.",
   "Start camera": "Inicia la càmera",
   "Recipe Veganizer": "Veganitzador de receptes",
@@ -249,8 +250,6 @@ export const caPhrases = {
     "No s'ha trobat cap restaurant coincident. Prova d'afegir una ciutat o zona.",
   "Restaurant search failed.": "Ha fallat la cerca de restaurants.",
   "Analysis failed.": "Ha fallat l'anàlisi.",
-  "Product check method": "Mètode de comprovació del producte",
-  "Barcode checker": "Comprovador de codis de barres",
   "Ingredient checker": "Comprovador d'ingredients",
   "Ingredients checker": "Comprovador d'ingredients",
   "Ingredients: cocoa mass, sugar, cocoa butter… May contain milk.":
@@ -967,17 +966,11 @@ export const caPhrases = {
     "Plats classificats automàticament a partir d'una foto o PDF de la carta.",
   "Check with the staff when in doubt.": "Confirma-ho amb el personal si tens dubtes.",
   "Food": "Alimentació",
-  "Photo of the barcode": "Foto del codi de barres",
   "No code was found in the photo. Try a closer, sharper photo or type the number.":
     "No s'ha trobat cap codi a la foto. Prova una foto més propera i nítida, o escriu el número.",
   "Camera": "Càmera",
-  "Camera checker": "Comprovació amb càmera",
   "Scan any product or paste any link, and we'll tell you whether it's vegan.":
     "Escaneja qualsevol producte o enganxa qualsevol enllaç, i et direm si és vegà o no.",
-  "Take a photo of an ingredient label, a product without a barcode, clothing or an activity. Ingredient lists are checked with our rules; everything else is recognised automatically.":
-    "Fes una foto d'una etiqueta d'ingredients, un producte sense codi, roba o una activitat. Les llistes d'ingredients es comproven amb les nostres regles; la resta es reconeix automàticament.",
-  "Take a photo of what you want to check": "Fes una foto del que vulguis comprovar",
-  "A label, a product, clothing, an activity…": "Una etiqueta, un producte, roba, una activitat…",
   "Take photo": "Fes la foto",
   "Recognising the photo…": "Reconeixent la foto…",
   "See the product": "Mira el producte",
