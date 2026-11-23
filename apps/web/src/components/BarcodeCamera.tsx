@@ -40,6 +40,26 @@ prepareZXingModule({
   },
 });
 
+const FIRST_FRAME_TIMEOUT_MS = 3500;
+
+/**
+ * Starts the video and says whether it really started within `timeoutMs`.
+ * `play()` only settles once the first frame arrives; with a camera that sends
+ * nothing it never does.
+ */
+async function playWithin(video: HTMLVideoElement, timeoutMs: number): Promise<boolean> {
+  let timer: number | undefined;
+  const timeout = new Promise<false>((resolve) => {
+    timer = window.setTimeout(() => resolve(false), timeoutMs);
+  });
+  try {
+    const played = video.play().then(() => true);
+    return await Promise.race([played, timeout]);
+  } finally {
+    window.clearTimeout(timer);
+  }
+}
+
 /**
  * Creates a detector for every format the reader in use actually supports.
  *
@@ -95,16 +115,34 @@ export function BarcodeCamera({ onDetected }: { onDetected: (value: string) => v
         }
         // Asking for more than the camera has (e.g. Full HD on a 720p webcam) left
         // Firefox on Windows showing a black picture, so keep the request modest.
-        stream = await navigator.mediaDevices.getUserMedia({
-          video: { facingMode: "environment", width: { ideal: 1280 } },
-        });
-        if (!active || !videoRef.current) return;
-        if (debugCamera) {
-          const settings = stream.getVideoTracks?.()[0]?.getSettings?.();
-          setDebugInfo(`camera opened ${settings?.width ?? "?"}×${settings?.height ?? "?"} · waiting for frames…`);
+        // Some webcams open in Firefox but never send a frame in the mode a size
+        // request selects (a black picture). After a few seconds without frames,
+        // reopen with no size request: the camera's own default mode.
+        const attempts: MediaTrackConstraints[] = [
+          { facingMode: "environment", width: { ideal: 1280 } },
+          { facingMode: "environment" },
+        ];
+        let playing = false;
+        for (const [index, video] of attempts.entries()) {
+          stream = await navigator.mediaDevices.getUserMedia({ video });
+          if (!active || !videoRef.current) {
+            stream.getTracks().forEach((track) => track.stop());
+            return;
+          }
+          if (debugCamera) {
+            const settings = stream.getVideoTracks?.()[0]?.getSettings?.();
+            setDebugInfo(`camera opened ${settings?.width ?? "?"}×${settings?.height ?? "?"} (attempt ${index + 1}) · waiting for frames…`);
+          }
+          videoRef.current.srcObject = stream;
+          playing = await playWithin(videoRef.current, FIRST_FRAME_TIMEOUT_MS);
+          if (!active) return;
+          if (playing) break;
+          console.warn(`[BarcodeCamera] No frames from the camera (attempt ${index + 1})`);
+          videoRef.current.srcObject = null;
+          stream.getTracks().forEach((track) => track.stop());
+          stream = undefined;
         }
-        videoRef.current.srcObject = stream;
-        await videoRef.current.play();
+        if (!playing || !stream) throw new DOMException("The camera sends no image.", "NotReadableError");
         // Light and focus are extras: a device without them still scans.
         try {
           const track = stream.getVideoTracks?.()[0] ?? null;
@@ -129,7 +167,12 @@ export function BarcodeCamera({ onDetected }: { onDetected: (value: string) => v
       } catch (error) {
         console.error("[BarcodeCamera] Camera could not start", error);
         stream?.getTracks().forEach((track) => track.stop());
-        setError(tx("Camera access is unavailable. Enter the barcode below."));
+        const noPicture = error instanceof DOMException && error.message === "The camera sends no image.";
+        setError(
+          noPicture
+            ? tx("The camera opened but sends no picture. Close other apps using it and retry, or take a photo.")
+            : tx("Camera access is unavailable. Enter the barcode below."),
+        );
         setCanShowPermissionHelp(isCameraPermissionError(error));
         setShowPermissionModal(false);
         return;

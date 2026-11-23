@@ -175,6 +175,8 @@ export const caPhrases = {
   "Capture label": "Captura l'etiqueta",
   "Camera access is unavailable. Enter the barcode below.":
     "No es pot accedir a la càmera. Introdueix el codi de barres a continuació.",
+  "The camera opened but sends no picture. Close other apps using it and retry, or take a photo.":
+    "La càmera s'ha obert però no envia imatge. Tanca les altres aplicacions que la facin servir i torna-ho a provar, o fes una foto.",
   "The barcode reader could not start on this device. Enter the barcode below.":
     "El lector de codis no s'ha pogut iniciar en aquest dispositiu. Introdueix el codi de barres a continuació.",
   "Play video": "Reprodueix el vídeo",
