@@ -28,7 +28,7 @@ import {
 } from "../api";
 import { BrandCrueltyFree } from "../components/BrandCrueltyFree";
 import { UniversalResult } from "../components/UniversalResult";
-import { BarcodeCamera } from "../components/BarcodeCamera";
+import { BarcodeCamera, BarcodePhotoButton } from "../components/BarcodeCamera";
 import { IngredientFindings } from "../components/IngredientFindings";
 import { IngredientCamera } from "../components/IngredientCamera";
 import { VerdictBadge } from "../components/VerdictBadge";
@@ -372,7 +372,19 @@ export function ProductScannerPage() {
             className="barcode-form"
             onSubmit={(event) => {
               event.preventDefault();
-              if (code.trim()) runLookup(code.trim());
+              const value = code.trim();
+              if (!value) return;
+              // A pasted link was chosen on purpose: check it straight away
+              // instead of showing the "code detected" step a scan gets.
+              const typed = classifyScannedCode(value);
+              if (typed.kind === "menu_url") {
+                void navigate(`/scan/menu?url=${encodeURIComponent(typed.url)}`);
+              } else if (typed.kind === "url") {
+                runLookup(value);
+                checkLink(typed.url);
+              } else {
+                runLookup(value);
+              }
             }}
           >
             <label htmlFor="barcode">{t("manualCode")}</label>
@@ -384,11 +396,13 @@ export function ProductScannerPage() {
                 autoComplete="off"
                 value={code}
                 onChange={(event) => setCode(event.target.value)}
-                placeholder="3017620422003"
+                placeholder={tx("3017620422003 or https://…")}
               />
               <button className="primary-button" disabled={!code.trim()}>{t("lookUp")}</button>
             </div>
           </form>}
+
+          {!routeGtin && <BarcodePhotoButton onDetected={runLookup} />}
 
           {routeGtin && lookup.isPending && (
             <div className="loading">

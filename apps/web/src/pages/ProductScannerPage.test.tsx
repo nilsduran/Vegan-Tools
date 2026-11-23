@@ -26,6 +26,7 @@ vi.mock("../components/BarcodeCamera.js", () => ({
       </button>
     </div>
   ),
+  BarcodePhotoButton: () => null,
 }));
 
 function renderScanner(initialEntry = "/product") {
@@ -92,7 +93,7 @@ describe("ProductScannerPage Form UI", () => {
 
     renderScanner("/product");
 
-    const input = screen.getByLabelText(/enter barcode/i);
+    const input = screen.getByLabelText(/enter a barcode/i);
     expect(input).toBeDefined();
 
     await user.type(input, "3017620422003");

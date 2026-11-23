@@ -90,10 +90,6 @@ export function BarcodeCamera({ onDetected }: { onDetected: (value: string) => v
   const trackRef = useRef<MediaStreamTrack | null>(null);
   const [torchAvailable, setTorchAvailable] = useState(false);
   const [torchOn, setTorchOn] = useState(false);
-  // /scanner?camera-debug=1 shows what the camera really delivers (resolution,
-  // frame rate, reader time), to tell hardware limits from software ones.
-  const debugCamera = typeof window !== "undefined" && new URLSearchParams(window.location.search).has("camera-debug");
-  const [debugInfo, setDebugInfo] = useState("");
 
   useEffect(() => {
     if (!started) return;
@@ -113,8 +109,6 @@ export function BarcodeCamera({ onDetected }: { onDetected: (value: string) => v
         if (!navigator.mediaDevices?.getUserMedia) {
           throw new DOMException("Camera access is unavailable in this browser.", "SecurityError");
         }
-        // Asking for more than the camera has (e.g. Full HD on a 720p webcam) left
-        // Firefox on Windows showing a black picture, so keep the request modest.
         // Some webcams open in Firefox but never send a frame in the mode a size
         // request selects (a black picture). After a few seconds without frames,
         // reopen with no size request: the camera's own default mode.
@@ -128,10 +122,6 @@ export function BarcodeCamera({ onDetected }: { onDetected: (value: string) => v
           if (!active || !videoRef.current) {
             stream.getTracks().forEach((track) => track.stop());
             return;
-          }
-          if (debugCamera) {
-            const settings = stream.getVideoTracks?.()[0]?.getSettings?.();
-            setDebugInfo(`camera opened ${settings?.width ?? "?"}×${settings?.height ?? "?"} (attempt ${index + 1}) · waiting for frames…`);
           }
           videoRef.current.srcObject = stream;
           playing = await playWithin(videoRef.current, FIRST_FRAME_TIMEOUT_MS);
@@ -149,15 +139,6 @@ export function BarcodeCamera({ onDetected }: { onDetected: (value: string) => v
           trackRef.current = track;
           const capabilities = (track?.getCapabilities?.() ?? {}) as { torch?: boolean; focusMode?: string[] };
           setTorchAvailable(Boolean(capabilities.torch));
-          if (debugCamera && track) {
-            const settings = track.getSettings();
-            const max = (track.getCapabilities?.() ?? {}) as { width?: { max?: number }; height?: { max?: number }; frameRate?: { max?: number } };
-            const supported = max.width?.max ? `${max.width.max}×${max.height?.max ?? "?"} @${Math.round(max.frameRate?.max ?? 0)}fps` : "not reported by this browser";
-            const video = videoRef.current;
-            setDebugInfo(
-              `delivered ${settings.width ?? video?.videoWidth}×${settings.height ?? video?.videoHeight} @${Math.round(settings.frameRate ?? 0)}fps · camera max ${supported} · ${track.label || "camera"}`,
-            );
-          }
           if (capabilities.focusMode?.includes("continuous")) {
             void track?.applyConstraints({ advanced: [{ focusMode: "continuous" } as MediaTrackConstraintSet] }).catch(() => {});
           }
@@ -194,13 +175,7 @@ export function BarcodeCamera({ onDetected }: { onDetected: (value: string) => v
       const detect = async () => {
         if (!active || !videoRef.current) return;
         try {
-          const started = performance.now();
           const results = await detector.detect(videoRef.current);
-          if (debugCamera) {
-            const ms = Math.round(performance.now() - started);
-            const video = videoRef.current;
-            setDebugInfo((previous) => `${previous.split(" · reader")[0]} · reader ${ms} ms/frame on ${video?.videoWidth}×${video?.videoHeight}${(globalThis as { BarcodeDetector?: unknown }).BarcodeDetector ? " (native)" : " (ZXing)"}`);
-          }
           // ZXing only returns codes that decode completely (EAN/UPC check digit
           // included), and measured on degraded webcam frames it never returned a
           // wrong code (scripts/bench-barcode-reader.ts). So the first valid read
@@ -233,55 +208,12 @@ export function BarcodeCamera({ onDetected }: { onDetected: (value: string) => v
     };
   }, [onDetected, started, retryCount]);
 
-  const [photoMessage, setPhotoMessage] = useState("");
-  // A still photo is sharper than a live frame (autofocus, full resolution):
-  // the fallback when the live reader struggles.
+  // From the camera-permission help: a photo when the live camera is refused.
   const handleNativeCapture = async (file: File) => {
-    setPhotoMessage("");
-    try {
-      const detector = await createBarcodeDetector();
-      const img = new Image();
-      img.src = URL.createObjectURL(file);
-      await img.decode();
-      const results = await detector.detect(img);
-      URL.revokeObjectURL(img.src);
-      const value = results
-        .map((result) => result.rawValue)
-        .find((raw) => raw && classifyScannedCode(raw).kind !== "invalid_gtin");
-      if (value) {
-        navigator.vibrate?.(100);
-        onDetected(value);
-      } else {
-        setPhotoMessage(tx("No code was found in the photo. Try a closer, sharper photo or type the number."));
-      }
-    } catch (error) {
-      console.error("[BarcodeCamera] Could not read a barcode from the photo", error);
-      setPhotoMessage(tx("No code was found in the photo. Try a closer, sharper photo or type the number."));
-    }
+    const value = await readBarcodeFromPhoto(file);
+    if (value) onDetected(value);
+    else setError(tx(NO_CODE_IN_PHOTO));
   };
-
-  // One element in both views (live camera and camera error), so a photo chosen
-  // while the view switches is never lost.
-  const photoRow = (
-    <div className="barcode-photo-row" key="barcode-photo-row">
-    <label className="secondary-button barcode-photo-button">
-      <ImagePlus aria-hidden="true" />
-      <span>{tx("Photo of the barcode")}</span>
-      <input
-        type="file"
-        accept="image/*"
-        capture="environment"
-        data-testid="barcode-photo-input"
-        onChange={(event) => {
-          const file = event.target.files?.[0];
-          event.target.value = "";
-          if (file) void handleNativeCapture(file);
-        }}
-      />
-    </label>
-    {photoMessage && <p className="muted" role="status">{photoMessage}</p>}
-    </div>
-  );
 
   if (!started) {
     return (
@@ -326,7 +258,6 @@ export function BarcodeCamera({ onDetected }: { onDetected: (value: string) => v
             </button>
           </div>
         </div>
-        {photoRow}
 
         <CameraPermissionModal
           isOpen={showPermissionModal}
@@ -353,11 +284,8 @@ export function BarcodeCamera({ onDetected }: { onDetected: (value: string) => v
   // No aiming box: the reader scans the whole picture, and a box only made
   // people think the code had to fit inside it.
   return (
-    <>
     <div className="camera-frame">
       <video ref={videoRef} muted playsInline aria-label={tx("Barcode")} />
-      <p className="camera-hint" aria-hidden="true">{tx("Fill half the picture with the code and keep it sharp")}</p>
-      {debugCamera && debugInfo && <p className="camera-debug">{debugInfo}</p>}
       {torchAvailable && (
         <button
           type="button"
@@ -370,7 +298,62 @@ export function BarcodeCamera({ onDetected }: { onDetected: (value: string) => v
         </button>
       )}
     </div>
-    {photoRow}
-    </>
+  );
+}
+
+const NO_CODE_IN_PHOTO = "No code was found in the photo. Try a closer, sharper photo or type the number.";
+
+/** Reads a barcode or QR code from a still photo; undefined when none is readable. */
+async function readBarcodeFromPhoto(file: File): Promise<string | undefined> {
+  const url = URL.createObjectURL(file);
+  try {
+    const detector = await createBarcodeDetector();
+    const img = new Image();
+    img.src = url;
+    await img.decode();
+    const results = await detector.detect(img);
+    const value = results
+      .map((result) => result.rawValue)
+      .find((raw) => raw && classifyScannedCode(raw).kind !== "invalid_gtin");
+    if (value) navigator.vibrate?.(100);
+    return value;
+  } catch (error) {
+    console.error("[BarcodeCamera] Could not read a barcode from the photo", error);
+    return undefined;
+  } finally {
+    URL.revokeObjectURL(url);
+  }
+}
+
+/**
+ * A still photo is sharper than a live frame (autofocus, full resolution): the
+ * fallback when the live reader struggles or the camera is unavailable.
+ */
+export function BarcodePhotoButton({ onDetected }: { onDetected: (value: string) => void }) {
+  const [message, setMessage] = useState("");
+  return (
+    <div className="barcode-photo-row">
+      <label className="secondary-button barcode-photo-button">
+        <ImagePlus aria-hidden="true" />
+        <span>{tx("Photo of the barcode")}</span>
+        <input
+          type="file"
+          accept="image/*"
+          capture="environment"
+          data-testid="barcode-photo-input"
+          onChange={(event) => {
+            const file = event.target.files?.[0];
+            event.target.value = "";
+            if (!file) return;
+            setMessage("");
+            void readBarcodeFromPhoto(file).then((value) => {
+              if (value) onDetected(value);
+              else setMessage(tx(NO_CODE_IN_PHOTO));
+            });
+          }}
+        />
+      </label>
+      {message && <p className="muted" role="status">{message}</p>}
+    </div>
   );
 }

@@ -78,9 +78,9 @@ test("a restaurant menu QR code leads to the dishes I can order", async ({ page 
   });
 
   await page.goto("/scanner");
+  // A pasted link is checked straight away, with no "code detected" step.
   await page.locator("#barcode").fill("https://bar-e2e.example/carta");
   await page.locator("#barcode").press("Enter");
-  await page.getByRole("button", { name: /See what I can order|Mira què puc demanar/ }).click();
 
   await expect(page).toHaveURL(/\/scan\/menu\?url=/);
   await expect(page.getByText("Amanida de cigrons")).toBeVisible();
@@ -151,7 +151,6 @@ test("an unknown link can be checked and its page is classified", async ({ page 
   await page.goto("/scanner");
   await page.locator("#barcode").fill("https://hipica.example/");
   await page.locator("#barcode").press("Enter");
-  await page.getByRole("button", { name: /Check this link|Comprova aquest enllaç/ }).click();
   await expect(page.getByRole("heading", { name: "Rutes a cavall" })).toBeVisible();
 });
 

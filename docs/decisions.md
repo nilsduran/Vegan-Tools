@@ -10,6 +10,13 @@ Memòria del projecte entre sessions: **què es va decidir, per què i què es v
 
 ---
 
+## 2026-11-23 — Càmera negra a Firefox i neteja de l'escàner
+
+- **La imatge negra era la càmera ocupada per una altra pestanya**, no la resolució. Firefox l'obria però no enviava cap fotograma. Ara, si en 3,5 s no arriba cap fotograma, l'escàner la reobre sense demanar mida i, si continua sense imatge, mostra un missatge clar en lloc d'un requadre negre. També es demana 1280 d'amplada en lloc de Full HD. **(diagnosticat amb en Nils)**
+- **Fora el mode de diagnòstic `?camera-debug` i el text d'ajuda sobre la imatge.** El diagnòstic ja havia fet la seva feina, i el text tapava la imatge. **(ho ha demanat en Nils)**
+- **El camp manual accepta enllaços i els comprova de seguida**, sense el pas «codi detectat» que té un escaneig. La foto del codi de barres va sota el camp manual. **(ho ha demanat en Nils)**
+- **El nom de la pestanya continua sent «Escàner».** «És vegà?» es va considerar, però és més llarg i encaixa pitjor amb la icona a la barra del mòbil. **(en Nils ho deixa així de moment)**
+
 ## 2026-11-22 — Webcams de baixa qualitat i cosmètica dubtosa
 - **Lector** **(deduït, mesurat)**:
   - Amb `scripts/bench-barcode-reader.ts` (fotogrames sintètics de webcam de 640×480), la lectura depèn de tenir unes 3 píxels per barra i poc desenfocament; cap opció del lector ho canvia gaire.
