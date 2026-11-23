@@ -86,7 +86,7 @@ export async function scanRoutes(app: FastifyInstance, options: ScanRoutesOption
           languageOf(request.query.language),
         );
       } catch (error) {
-        request.log.warn({ error }, "Photo scan failed");
+        request.log.warn({ err: error }, "Photo scan failed");
         return reply.code(503).send(unavailable(error, "The photo could not be recognised."));
       }
     },
@@ -108,7 +108,7 @@ export async function scanRoutes(app: FastifyInstance, options: ScanRoutesOption
         // Shops often refuse automated downloads (403, bot walls, timeouts).
         // The address usually names the product, so a web search can still
         // identify it, citing the pages it used.
-        request.log.info({ error }, "Link could not be downloaded; searching the web instead");
+        request.log.info({ err: error }, "Link could not be downloaded; searching the web instead");
         // Both at once, so a busy provider does not add their waits up: the
         // cited search wins; the address words are the fallback.
         const words = addressWords(scanned.url);
@@ -121,7 +121,7 @@ export async function scanRoutes(app: FastifyInstance, options: ScanRoutesOption
         try {
           return await analyzer.researchLink(scanned.url, language);
         } catch (searchError) {
-          request.log.warn({ error: searchError }, "Link research failed; judging the address words");
+          request.log.warn({ err: searchError }, "Link research failed; judging the address words");
           if (!fromAddress) return reply.code(503).send(unavailable(searchError, "This link could not be checked.", { showMessage: false }));
           try {
             return await fromAddress;
@@ -157,7 +157,7 @@ export async function scanRoutes(app: FastifyInstance, options: ScanRoutesOption
           language,
         );
       } catch (error) {
-        request.log.warn({ error }, "Link scan failed");
+        request.log.warn({ err: error }, "Link scan failed");
         return reply.code(503).send(unavailable(error, "This link could not be checked."));
       }
     },
@@ -172,7 +172,7 @@ export async function scanRoutes(app: FastifyInstance, options: ScanRoutesOption
       try {
         return await analyzer.findBrandEthics(name, languageOf(request.query.language));
       } catch (error) {
-        request.log.warn({ error }, "Brand lookup failed");
+        request.log.warn({ err: error }, "Brand lookup failed");
         return reply.code(503).send(unavailable(error, "The brand could not be checked."));
       }
     },

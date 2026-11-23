@@ -136,7 +136,6 @@ export type UniversalScanResult = z.infer<typeof universalScanResultSchema>;
 export const brandEthicsSchema = z.object({
   brand: z.string(),
   status: z.enum(["cruelty_free", "tests_on_animals", "unknown"]),
-  parentCompany: z.string().optional(),
   summary: z.string(),
   sources: z.array(scanSourceSchema).default([]),
   checkedAt: z.string(),

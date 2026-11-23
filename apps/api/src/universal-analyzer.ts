@@ -201,8 +201,8 @@ function languageName(language: ScanLanguage) {
  * app's terminology.
  */
 function writeIn(language: ScanLanguage, fields: string) {
-  const terms = language === "ca" ? ' In Catalan, a parent company is "empresa mare" (never "empresa matriu").' : "";
-  return `Write ${fields} in ${languageName(language)}, even when the page, label or sources are in another language.${terms}`;
+  const example = language === "ca" ? ' (e.g. "cuir", not "leather")' : "";
+  return `Write ${fields} in ${languageName(language)}, even when the page, label or sources are in another language; translate material and ingredient names too${example}.`;
 }
 
 const SCAN_RULES = `You help ethical vegans (antispeciesist: no animal use of any kind) decide about what they see.
@@ -514,9 +514,10 @@ Never guess or reconstruct an ingredient list. If neither the barcode nor the gi
       "brand",
       {
         contents: [`Use Google Search to find out whether the cosmetics or household brand "${brand}" tests on animals.
-Look for current certifications (Leaping Bunny, PETA Beauty Without Bunnies, Cruelty Free International), sales where animal testing is required by law, and whether its parent company tests on animals.
-Answer ONLY with JSON: {"status": "cruelty_free" | "tests_on_animals" | "unknown", "parentCompany": string or null, "summary": string}.
-Use "cruelty_free" only if a recognised certification or an explicit, current no-testing policy covering the brand is found; otherwise "unknown".
+Judge the brand itself, worldwide (mainland China included), not its parent company or sister brands.
+Look for current certifications (Leaping Bunny, PETA Beauty Without Bunnies, Cruelty Free International) and for whether the brand tests, has its products or ingredients tested, or sells where the law requires animal testing of its products.
+Answer ONLY with JSON: {"status": "cruelty_free" | "tests_on_animals" | "unknown", "summary": string}.
+Use "cruelty_free" only if a recognised certification or an explicit, current no-testing policy covering the brand everywhere is found; otherwise "unknown". Do not mention the parent company.
 ${writeIn(language, '"summary"')} At most two sentences, naming the certification or source.`],
         config: { tools: [{ googleSearch: {} }], temperature: 0 },
       },
@@ -530,8 +531,7 @@ ${writeIn(language, '"summary"')} At most two sentences, naming the certificatio
       brand,
       // A "cruelty free" answer without any search source is not trusted.
       status: status === "cruelty_free" && sources.length === 0 ? "unknown" : status,
-      parentCompany: typeof parsed?.parentCompany === "string" && parsed.parentCompany ? parsed.parentCompany : undefined,
-      summary: typeof parsed?.summary === "string" ? parsed.summary.replace(/empresa matriu/gi, "empresa mare") : "",
+      summary: typeof parsed?.summary === "string" ? parsed.summary : "",
       sources: sources.slice(0, 5),
       checkedAt: new Date().toISOString(),
     };

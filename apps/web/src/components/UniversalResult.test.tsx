@@ -51,11 +51,10 @@ describe("UniversalResult for cosmetics", () => {
       brand: "SomeBrand",
       status: "tests_on_animals",
       summary: "Sold where animal testing is required.",
-      parentCompany: "Parent Group",
       sources: [],
       checkedAt: "2026-11-23T00:00:00.000Z",
     });
-    expect(await screen.findByText(/Not cruelty-free: the brand or its parent company tests on animals/)).toBeTruthy();
+    expect(await screen.findByText(/Not cruelty-free: the brand tests on animals/)).toBeTruthy();
     expect(screen.getByText("Not vegan")).toBeTruthy();
     // The model's guess ("possible animal testing") would only repeat it vaguely.
     expect(screen.queryByText("Possible animal testing")).toBeNull();

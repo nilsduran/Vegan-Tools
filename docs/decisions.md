@@ -12,6 +12,8 @@ Memòria del projecte entre sessions: **què es va decidir, per què i què es v
 
 ## 2026-11-23 — Càmera negra a Firefox i neteja de l'escàner
 
+- **Cruelty-free: compta només la marca, a tot el món (Xina inclosa), no l'empresa mare.** Substitueix el criteri d'abans, que també castigava la marca per l'empresa mare (CeraVe per L'Oréal). Si la marca en si no experimenta amb animals, n'hi ha prou. L'empresa mare ja no es demana ni es mostra. **(ho ha decidit en Nils)**
+- **Pel·lícules i videojocs (producció amb animals, escenes no veganes) queden fora de la primera versió.** Aparcat al roadmap. **(ho ha decidit en Nils)**
 - **Cosmètics: un sol veredicte, després de comprovar la marca.** Abans sortia «Desconegut» i, uns segons després, la comprovació de la marca deia que l'empresa mare experimenta amb animals. Ara el veredicte espera la marca, tret que els ingredients ja diguin «no vegà». Si la marca experimenta amb animals, el veredicte és «No vegà» amb una frase fixa (no generada): el mateix cas sempre es llegeix igual. **(ho ha demanat en Nils)**
 - **«Empresa mare», mai «empresa matriu».** **(ho ha demanat en Nils)**
 - **Les respostes de la IA van en l'idioma de la interfície**, encara que la pàgina estigui en un altre idioma. **(ho ha demanat en Nils)**

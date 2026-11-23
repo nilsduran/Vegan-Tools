@@ -12,7 +12,7 @@ import { tx, useLanguage } from "../i18n";
 
 const STATUS_LABELS = {
   cruelty_free: "The brand does not test on animals",
-  tests_on_animals: "The brand or its parent company tests on animals",
+  tests_on_animals: "The brand tests on animals",
   unknown: "No reliable information about animal testing was found",
 } as const;
 
@@ -38,7 +38,7 @@ const NOT_VEGAN: DietVerdict[] = ["non_vegetarian", "vegetarian", "probably_vege
 
 /**
  * One verdict for a cosmetic: the product's own answer combined with whether the
- * brand (or its parent company) tests on animals. While the brand is being
+ * brand itself tests on animals (worldwide; the parent company does not count). While the brand is being
  * checked there is no verdict yet, so the page never shows one answer and then
  * contradicts it a few seconds later.
  */
@@ -50,7 +50,7 @@ export function useCosmeticVerdict(verdict: DietVerdict, reason: string, brand: 
     // A fixed sentence, not a generated one: the same case always reads the same.
     return {
       verdict: "non_vegetarian" as DietVerdict,
-      reason: tx("Not cruelty-free: the brand or its parent company tests on animals."),
+      reason: tx("Not cruelty-free: the brand tests on animals."),
       waiting: false,
       testsOnAnimals: true,
     };
@@ -75,7 +75,7 @@ export function BrandCrueltyFree({ brand }: { brand: string }) {
   // While loading, the verdict area already says the brand is being checked.
   if (ethics.isPending || ethics.isError) return null;
 
-  const { status, summary, parentCompany, sources } = ethics.data;
+  const { status, summary, sources } = ethics.data;
   return (
     <div className={`brand-ethics brand-ethics--${status}`}>
       <p className="brand-ethics-title">
@@ -83,7 +83,6 @@ export function BrandCrueltyFree({ brand }: { brand: string }) {
         <strong>{name}: {tx(STATUS_LABELS[status])}</strong>
       </p>
       {summary && <p>{summary}</p>}
-      {parentCompany && <p className="muted">{tx("Parent company")}: {parentCompany}</p>}
       {sources.length > 0 && (
         <ul className="brand-ethics-sources">
           {sources.slice(0, 3).map((source) => (

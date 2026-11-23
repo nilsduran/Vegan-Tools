@@ -998,11 +998,9 @@ export const caPhrases = {
   "Web search": "Cerca web",
   "Checking whether the brand tests on animals…": "Comprovant si la marca experimenta amb animals…",
   "The brand does not test on animals": "La marca no experimenta amb animals",
-  "The brand or its parent company tests on animals": "La marca o la seva empresa mare experimenta amb animals",
+  "The brand tests on animals": "La marca experimenta amb animals",
   "No reliable information about animal testing was found": "No s'ha trobat informació fiable sobre experimentació animal",
-  "Parent company": "Empresa mare",
-  "Not cruelty-free: the brand or its parent company tests on animals.":
-    "No és cruelty-free: la marca o la seva empresa mare experimenta amb animals.",
+  "Not cruelty-free: the brand tests on animals.": "No és cruelty-free: la marca experimenta amb animals.",
   "Automatic web search. Check the sources before relying on it.":
     "Cerca web automàtica. Consulta les fonts abans de fiar-te'n.",
   "This barcode number is not valid. Check the digits and try again.":
