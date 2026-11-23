@@ -93,11 +93,16 @@ export function BarcodeCamera({ onDetected }: { onDetected: (value: string) => v
         if (!navigator.mediaDevices?.getUserMedia) {
           throw new DOMException("Camera access is unavailable in this browser.", "SecurityError");
         }
-        // Full HD reads small and dense barcodes from further away.
+        // Asking for more than the camera has (e.g. Full HD on a 720p webcam) left
+        // Firefox on Windows showing a black picture, so keep the request modest.
         stream = await navigator.mediaDevices.getUserMedia({
-          video: { facingMode: "environment", width: { ideal: 1920 }, height: { ideal: 1080 } },
+          video: { facingMode: "environment", width: { ideal: 1280 } },
         });
         if (!active || !videoRef.current) return;
+        if (debugCamera) {
+          const settings = stream.getVideoTracks?.()[0]?.getSettings?.();
+          setDebugInfo(`camera opened ${settings?.width ?? "?"}×${settings?.height ?? "?"} · waiting for frames…`);
+        }
         videoRef.current.srcObject = stream;
         await videoRef.current.play();
         // Light and focus are extras: a device without them still scans.
