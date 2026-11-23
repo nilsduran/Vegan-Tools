@@ -33,6 +33,18 @@ const NON_OFFICIAL_HOSTS = [
   "x.com",
 ];
 
+const SOCIAL_HOSTS = ["facebook.com", "instagram.com", "tiktok.com", "twitter.com", "x.com"];
+
+/** A social network profile: no menu can be read from it. */
+export function isSocialProfile(value: string) {
+  try {
+    const hostname = new URL(/^https?:\/\//i.test(value.trim()) ? value.trim() : `https://${value.trim()}`).hostname.toLowerCase().replace(/^www\./, "");
+    return SOCIAL_HOSTS.some((social) => hostname === social || hostname.endsWith(`.${social}`));
+  } catch {
+    return false;
+  }
+}
+
 export function isPlausibleOfficialWebsite(value: string) {
   try {
     const raw = !/^https?:\/\//i.test(value.trim()) ? `https://${value.trim()}` : value.trim();

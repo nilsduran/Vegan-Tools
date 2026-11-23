@@ -11,6 +11,7 @@ import {
   informativeMenuReason,
   menuDisplayText,
   menuDraftSchema,
+  NOT_A_MENU_ERROR,
   visibleMenuDescription,
   type MenuDraft,
 } from "@vegan-tools/domain";
@@ -77,7 +78,8 @@ Classify dishes without dairy or egg as "vegan", and dishes with dairy or egg as
         },
       })),
       {
-        text: `${drinksInstruction}${dietaryContextInstruction}
+        text: `First decide "isMenu": true when the files are the menu of one restaurant, bar, café, hotel or delivery store (its dishes or drinks, with or without prices), even with other page content around it. False for anything else: articles, encyclopedia or blog posts about food or menus, reviews, guides listing several restaurants, recipes, app or software pages. When "isMenu" is false, return no sections.
+${drinksInstruction}${dietaryContextInstruction}
 Translate display text to English while retaining each original dish name.
 Also translate section names, dish names and dish descriptions to Catalan.
 The "name" must be the full translated dish name as printed, including meaningful qualifiers such as "with pappa al pomodoro and arugula".
@@ -110,6 +112,7 @@ Return JSON matching the supplied schema.${options?.highAccuracy ? "\nExtract wi
         responseSchema: {
           type: Type.OBJECT,
           properties: {
+            isMenu: { type: Type.BOOLEAN },
             restaurantName: { type: Type.STRING },
             originalLanguage: { type: Type.STRING },
             sections: {
@@ -152,7 +155,7 @@ Return JSON matching the supplied schema.${options?.highAccuracy ? "\nExtract wi
               },
             },
           },
-          required: ["restaurantName", "originalLanguage", "sections"],
+          required: ["isMenu", "restaurantName", "originalLanguage", "sections"],
         },
       },
     });
@@ -211,6 +214,8 @@ Return JSON matching the supplied schema.${options?.highAccuracy ? "\nExtract wi
         throw new Error("Failed to parse menu analysis JSON from AI response.");
       }
     }
+
+    if (parsed.isMenu === false) throw new Error(NOT_A_MENU_ERROR);
 
     const analyzed = menuDraftSchema.parse({
       ...menu,

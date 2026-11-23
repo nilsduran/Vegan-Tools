@@ -222,7 +222,7 @@ Decide what is shown, as "subject":
 - clothing: clothes, shoes, bags, accessories, furniture or other material goods.
 - activity: an activity, show, excursion, sport or event (e.g. horse riding, zoo, aquarium, circus, bullfight, dolphin show, camel or elephant ride, fishing, hunting, rodeo, races).
 - place: a venue or business that is not a restaurant menu (shop, farm, sanctuary, museum...).
-- menu: a restaurant or bar menu.
+- menu: the menu of one restaurant, bar or café (its own list of dishes or drinks). Reviews, articles, guides or encyclopedia pages about restaurants, food or menus are not menus (use place or other).
 - other: anything else.
 "verdict" for the subject:
 - vegan: no animal products and no animal use. probably_vegan: likely, but something cannot be confirmed.

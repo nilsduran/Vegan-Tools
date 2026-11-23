@@ -1,4 +1,5 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
+import { NOT_A_MENU_ERROR } from "@vegan-tools/domain";
 import { buildApp } from "./app.js";
 import { MemoryRepository } from "./store.js";
 import type { MenuAnalyzer } from "./menu-analyzer.js";
@@ -645,6 +646,43 @@ describe("API", () => {
       restaurantName: "Chosen Kitchen",
       sourceUrl: "https://example.com/menu.pdf",
     });
+    await app.close();
+  });
+
+  it("says when a scanned link is not a menu, and accepts delivery pages but not social profiles", async () => {
+    const analyzer: MenuAnalyzer = {
+      async analyze() {
+        throw new Error(NOT_A_MENU_ERROR);
+      },
+    };
+    const discoverer: MenuDiscoverer = {
+      async discover(websiteUrl) {
+        return {
+          sourceUrl: websiteUrl,
+          upload: { filename: "page.txt", mimetype: "text/plain", buffer: Buffer.from("An article about menus") },
+        };
+      },
+    };
+    const app = await buildApp(new MemoryRepository(), analyzer, undefined, discoverer);
+    const social = await app.inject({
+      method: "POST",
+      url: "/v1/menus/discover",
+      payload: { websiteUrl: "https://www.instagram.com/some.restaurant/" },
+    });
+    expect(social.statusCode).toBe(422);
+    const delivery = await app.inject({
+      method: "POST",
+      url: "/v1/menus/discover",
+      payload: { websiteUrl: "https://glovoapp.com/es/bcn/stores/some-restaurant" },
+    });
+    expect(delivery.statusCode).toBe(202);
+    const draft = delivery.json();
+    await new Promise((resolve) => setImmediate(resolve));
+    const read = await app.inject({
+      method: "GET",
+      url: `/v1/menus/analyses/${draft.id}?token=${encodeURIComponent(draft.editToken)}`,
+    });
+    expect(read.json()).toMatchObject({ status: "failed", error: NOT_A_MENU_ERROR });
     await app.close();
   });
 
