@@ -260,7 +260,9 @@ button:disabled { cursor: not-allowed; opacity: .55; }
 .mode-tabs button.active { color: var(--green-dark); background: white; box-shadow: 0 1px 3px rgb(31 41 36 / 10%); }
 .checker-panel { min-height: 300px; }
 .checker-intro { margin: 0 0 1rem; color: var(--muted); line-height: 1.55; }
-.page-heading .checker-disclaimer { margin-top: .65rem; color: #7a6650; font-size: .82rem; line-height: 1.45; }
+/* A tool page: the title should not push the camera below the fold. */
+.page-heading--compact { margin-bottom: 1.2rem; }
+.page-heading--compact h1 { font-size: clamp(1.8rem, 4vw, 2.4rem); margin-bottom: .4rem; }
 .barcode-form { margin: 1.4rem 0; }
 .barcode-form label { display: block; margin-bottom: .45rem; font-size: .85rem; font-weight: 750; }
 .barcode-form > div { display: flex; gap: .6rem; }

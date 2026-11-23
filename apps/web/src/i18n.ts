@@ -153,8 +153,6 @@ export const caPhrases = {
   "Is this vegan?": "Això és vegà?",
   "Scan a barcode or check the ingredient label directly.":
     "Escaneja un codi de barres o comprova directament l'etiqueta d'ingredients.",
-  "Product recipes can change. Check the current package when the result matters.":
-    "Les receptes dels productes poden canviar. Comprova l'envàs actual quan el resultat sigui important.",
   "Barcode": "Codi de barres",
   "Ingredients": "Ingredients",
   "Checking product…": "S'està comprovant el producte…",
@@ -175,6 +173,10 @@ export const caPhrases = {
   "Capture label": "Captura l'etiqueta",
   "Camera access is unavailable. Enter the barcode below.":
     "No es pot accedir a la càmera. Introdueix el codi de barres a continuació.",
+  "Automatic recognition is busy right now. Try again in a minute.":
+    "El reconeixement automàtic està saturat ara mateix. Torna-ho a provar d'aquí a un minut.",
+  "This link could not be checked.": "No s'ha pogut comprovar aquest enllaç.",
+  "The photo could not be recognised.": "No s'ha pogut reconèixer la foto.",
   "The camera opened but sends no picture. Close other apps using it and retry, or take a photo.":
     "La càmera s'ha obert però no envia imatge. Tanca les altres aplicacions que la facin servir i torna-ho a provar, o fes una foto.",
   "The barcode reader could not start on this device. Enter the barcode below.":
@@ -970,8 +972,8 @@ export const caPhrases = {
     "No s'ha trobat cap codi a la foto. Prova una foto més propera i nítida, o escriu el número.",
   "Camera": "Càmera",
   "Camera checker": "Comprovació amb càmera",
-  "Scan any barcode or QR code, or take a photo of what you want to check.":
-    "Escaneja qualsevol codi de barres o QR, o fes una foto del que vulguis comprovar.",
+  "Scan any product or paste any link, and we'll tell you whether it's vegan.":
+    "Escaneja qualsevol producte o enganxa qualsevol enllaç, i et direm si és vegà o no.",
   "Take a photo of an ingredient label, a product without a barcode, clothing or an activity. Ingredient lists are checked with our rules; everything else is recognised automatically.":
     "Fes una foto d'una etiqueta d'ingredients, un producte sense codi, roba o una activitat. Les llistes d'ingredients es comproven amb les nostres regles; la resta es reconeix automàticament.",
   "Take a photo of what you want to check": "Fes una foto del que vulguis comprovar",

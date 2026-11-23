@@ -12,6 +12,9 @@ Memòria del projecte entre sessions: **què es va decidir, per què i què es v
 
 ## 2026-11-23 — Càmera negra a Firefox i neteja de l'escàner
 
+- **Enllaços de botigues provats amb 8 productes triats abans de mirar el resultat** (Amazon, Decathlon, Lush, Carrefour). Decathlon, Carrefour i, a vegades, Lush bloquegen la descàrrega (403). Ara: pàgina → cerca web amb fonts → paraules de l'adreça. **Des de l'adreça sola es pot dir «no vegà» (llana, xocolata amb llet), però mai «vegà»**: un veredicte positiu es torna «desconegut». **(deduït, principi de màxima precaució)**
+- **La llista d'ingredients d'una pàgina la jutgen les regles, no el model.** I en menjar sense llista, «no vegetarià» només es manté si les regles troben carn, peix o gelatina a l'explicació del model: Gemini deia que la Nutella i les galetes amb xocolata amb llet eren «no vegetarianes». **(deduït de les proves)**
+- **La cerca web per a pàgines bloquejades depèn de la quota de Google Search grounding**, que avui donava 429. És la mateixa decisió de quota/facturació pendent d'en Nils. **(pendent)**
 - **La imatge negra era la càmera ocupada per una altra pestanya**, no la resolució. Firefox l'obria però no enviava cap fotograma. Ara, si en 3,5 s no arriba cap fotograma, l'escàner la reobre sense demanar mida i, si continua sense imatge, mostra un missatge clar en lloc d'un requadre negre. També es demana 1280 d'amplada en lloc de Full HD. **(diagnosticat amb en Nils)**
 - **Fora el mode de diagnòstic `?camera-debug` i el text d'ajuda sobre la imatge.** El diagnòstic ja havia fet la seva feina, i el text tapava la imatge. **(ho ha demanat en Nils)**
 - **El camp manual accepta enllaços i els comprova de seguida**, sense el pas «codi detectat» que té un escaneig. La foto del codi de barres va sota el camp manual. **(ho ha demanat en Nils)**

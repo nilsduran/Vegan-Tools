@@ -38,6 +38,8 @@ export interface ScanText {
   /** Page title, description and visible text, or a product name and brand. */
   text: string;
   url?: string;
+  /** Page title, shown as the source's name. */
+  title?: string;
   /** Extra context for the model, e.g. "identified by barcode in Open Products Facts". */
   hint?: string;
 }
@@ -62,6 +64,8 @@ export interface UniversalAnalyzer {
   analyzeText(input: ScanText, language: ScanLanguage): Promise<UniversalScanResult>;
   findBrandEthics(brand: string, language: ScanLanguage): Promise<BrandEthics>;
   researchProduct(input: { gtin: string; productName?: string; brand?: string }): Promise<ProductResearch>;
+  /** A product page that cannot be downloaded (shops often block it): identified by a web search. */
+  researchLink(url: string, language: ScanLanguage): Promise<UniversalScanResult>;
 }
 
 /** Models answer the category in free text ("Sunscreen / Face Fluid"): map it to ours. */
@@ -137,6 +141,21 @@ export function finalizeScanAnswer(
   };
 
   const labelText = raw.ingredientsText?.trim();
+  // A list read from a page (shop, manufacturer) is judged by the rules too,
+  // never by the model's opinion; it is not the label in hand, so it stays
+  // an automated answer.
+  if ((subject === "food" || subject === "cosmetic") && labelText && labelText.split(/[,;]/).length >= 3) {
+    const analysis = classifyIngredients(labelText, { assurance: "unverified" });
+    return {
+      ...base,
+      verdict: capAutomatedVerdict(analysis.verdict),
+      reason: analysis.reason,
+      ingredientsText: labelText,
+      findings: analysis.findings,
+      traces: analysis.traces,
+      assurance: "unverified",
+    };
+  }
   if (subject === "ingredient_label" && labelText) {
     const analysis = classifyIngredients(labelText, { assurance: "label_based", fromPhoto: true });
     return {
@@ -150,7 +169,14 @@ export function finalizeScanAnswer(
     };
   }
 
-  const verdict = VERDICTS.includes(raw.verdict as DietVerdict) ? (raw.verdict as DietVerdict) : "unknown";
+  let verdict = VERDICTS.includes(raw.verdict as DietVerdict) ? (raw.verdict as DietVerdict) : "unknown";
+  // Models call dairy "non-vegetarian" despite the instructions. For food, that
+  // verdict stands only if the rules find flesh (meat, fish, gelatine...) in the
+  // model's own explanation; otherwise it is "probably vegetarian" (still not vegan).
+  if (subject === "food" && verdict === "non_vegetarian") {
+    const explanation = [raw.title, raw.reason, ...(raw.concerns ?? [])].filter(Boolean).join(", ");
+    if (classifyIngredients(explanation).verdict !== "non_vegetarian") verdict = "probably_vegetarian";
+  }
   return {
     ...base,
     verdict: capAutomatedVerdict(verdict),
@@ -168,7 +194,7 @@ function languageName(language: ScanLanguage) {
 
 const SCAN_RULES = `You help ethical vegans (antispeciesist: no animal use of any kind) decide about what they see.
 Decide what is shown, as "subject":
-- ingredient_label: a list of ingredients is readable. Transcribe it exactly in "ingredientsText" (including "may contain" statements); do not judge it, another system does.
+- ingredient_label: a photo where a list of ingredients is readable. Transcribe it exactly in "ingredientsText" (including "may contain" statements); do not judge it, another system does.
 - food: a food or drink product or dish without a readable ingredient list.
 - cosmetic: cosmetics, hygiene, cleaning or household chemicals.
 - clothing: clothes, shoes, bags, accessories, furniture or other material goods.
@@ -178,14 +204,15 @@ Decide what is shown, as "subject":
 - other: anything else.
 "verdict" for the subject:
 - vegan: no animal products and no animal use. probably_vegan: likely, but something cannot be confirmed.
-- vegetarian / probably_vegetarian: food with dairy, egg or honey but no slaughter.
+- vegetarian / probably_vegetarian: food with dairy, egg or honey but no slaughter. Milk, egg or honey alone NEVER make a food non_vegetarian.
 - non_vegetarian: contains animal flesh, or (for non-food) uses animals or animal materials: leather, wool, silk, down, fur, animal testing, animals used for entertainment, riding, work or display.
 - unknown: not enough information.
 Be precise and conservative: never call something vegan when animal use is plausible and unconfirmed.
 Sanctuaries that rescue animals without breeding, riding or selling them are vegan places.
 "reason": one or two short sentences. "concerns": the specific animal-related issues (empty if none).
 "alternatives": up to three vegan alternatives when the verdict is not vegan (e.g. visiting an animal sanctuary instead of horse riding).
-"title": a short name of what is shown. "brand": brand if visible. "gtin": a barcode number only if clearly visible.`;
+"title": a short name of what is shown. "brand": brand if visible. "gtin": a barcode number only if clearly visible.
+For a food or cosmetic product page, copy its ingredient list exactly in "ingredientsText" when the page shows one (another system judges it).`;
 
 const SCAN_SCHEMA = {
   type: Type.OBJECT,
@@ -352,7 +379,29 @@ ${input.text.slice(0, 8_000)}
     );
     const raw = parseJsonObject(response.text) as RawScanAnswer | undefined;
     if (!raw) throw new Error("This content could not be recognised.");
-    return finalizeScanAnswer(raw, { url: input.url });
+    return finalizeScanAnswer(raw, {
+      url: input.url,
+      sources: input.url ? [{ url: input.url, title: input.title || undefined }] : [],
+    });
+  }
+
+  async researchLink(url: string, language: ScanLanguage): Promise<UniversalScanResult> {
+    const response = await this.generate(
+      "scan_link_search",
+      {
+        contents: [`${SCAN_RULES}
+Write "reason", "concerns" and "alternatives" in ${languageName(language)}.
+The page at this address cannot be downloaded: ${url}
+Use Google Search to find out which product or thing it is (the address often names it) and its ingredients or materials, from the manufacturer or shops.
+Copy an ingredient list in "ingredientsText" only exactly as published. If you cannot identify it, use verdict "unknown".
+Answer only with one JSON object with the keys: subject, title, brand, verdict, reason, concerns, alternatives, ingredientsText.`],
+        config: { tools: [{ googleSearch: {} }], temperature: 0 },
+      },
+      this.models(),
+    );
+    const raw = parseJsonObject(response.text) as RawScanAnswer | undefined;
+    if (!raw) throw new Error("This link could not be checked.");
+    return finalizeScanAnswer(raw, { url, sources: groundingSources(response) });
   }
 
   async researchProduct(input: { gtin: string; productName?: string; brand?: string }): Promise<ProductResearch> {

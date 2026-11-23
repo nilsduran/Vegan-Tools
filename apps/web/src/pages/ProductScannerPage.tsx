@@ -275,12 +275,9 @@ export function ProductScannerPage() {
 
   return (
     <div className="page narrow-page">
-      <header className="page-heading">
+      <header className="page-heading page-heading--compact">
         <h1>{t("scanner")}</h1>
-        <p>{tx("Scan any barcode or QR code, or take a photo of what you want to check.")}</p>
-        <p className="checker-disclaimer">
-          {tx("Product recipes can change. Check the current package when the result matters.")}
-        </p>
+        <p>{tx("Scan any product or paste any link, and we'll tell you whether it's vegan.")}</p>
       </header>
 
       {!routeGtin && <div className="mode-tabs" role="tablist" aria-label={tx("Product check method")}>
@@ -365,7 +362,7 @@ export function ProductScannerPage() {
             </div>
           )}
 
-          {linkScan.error && <div className="error-banner" role="alert">{linkScan.error.message}</div>}
+          {linkScan.error && <div className="error-banner" role="alert">{tx(linkScan.error.message)}</div>}
           {linkScan.data && !linkScan.data.menuUrl && !linkScan.data.gtin && <UniversalResult result={linkScan.data} />}
 
           {!routeGtin && <form
@@ -686,7 +683,7 @@ export function ProductScannerPage() {
           )}
           {(photoScan.error || productPhotoExtraction.error) && (
             <div className="inline-note">
-              {(photoScan.error || productPhotoExtraction.error)?.message}
+              {tx((photoScan.error || productPhotoExtraction.error)?.message ?? "")}
             </div>
           )}
           {photoScan.data && !ingredientAnalysis.data && (
