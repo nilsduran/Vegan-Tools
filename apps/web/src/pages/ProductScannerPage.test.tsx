@@ -63,6 +63,36 @@ describe("ProductScannerPage Form UI", () => {
     localStorage.clear();
   });
 
+  it("explains an Amazon warehouse sticker and checks an Amazon product code", async () => {
+    const user = userEvent.setup();
+    vi.mocked(api.analyzeScanUrl).mockResolvedValue({
+      subject: "food",
+      title: "Multivitamin",
+      verdict: "unknown",
+      reason: "The ingredient list could not be checked.",
+      concerns: [],
+      alternatives: [],
+      findings: [],
+      traces: [],
+      assurance: "unverified",
+      sources: [],
+    });
+    renderScanner("/product");
+    const input = screen.getByLabelText(/enter a barcode/i);
+
+    await user.type(input, "X000YDE42L");
+    await user.click(screen.getByRole("button", { name: /look up/i }));
+    expect(await screen.findByText("This is an Amazon warehouse sticker")).toBeDefined();
+    expect(api.analyzeScanUrl).not.toHaveBeenCalled();
+
+    await user.clear(input);
+    await user.type(input, "B07PGL2ZSL");
+    await user.click(screen.getByRole("button", { name: /look up/i }));
+    await waitFor(() => expect(api.analyzeScanUrl).toHaveBeenCalledWith("https://www.amazon.es/dp/B07PGL2ZSL", expect.anything()));
+    expect(api.analyzeScanUrl).toHaveBeenCalledTimes(1);
+    expect(await screen.findByRole("heading", { name: "Multivitamin" })).toBeDefined();
+  });
+
   it("allows entering a barcode manually and searching for it", async () => {
     const user = userEvent.setup();
     const mockProduct: ProductResult = {

@@ -14,7 +14,13 @@ export type ScannedCode =
   /** Looks like a barcode number but the check digit is wrong: a misread or a typo. */
   | { kind: "invalid_gtin"; digits: string }
   | { kind: "menu_url"; url: string }
-  | { kind: "url"; url: string }
+  /** `asin`: an Amazon product code read from a label, turned into its shop page. */
+  | { kind: "url"; url: string; asin?: string }
+  /**
+   * A shop's own warehouse sticker (Amazon FNSKU "X00..."): it identifies the
+   * item in that shop's stock, not the product, and no public source maps it.
+   */
+  | { kind: "store_label"; code: string }
   | { kind: "text"; text: string };
 
 const OPEN_FACTS_HOSTS = [
@@ -47,6 +53,13 @@ export function classifyScannedCode(raw: string): ScannedCode {
     }
     return { kind: "invalid_gtin", digits: compact };
   }
+
+  // Amazon labels: "B0..." is the product (ASIN), "X00..." only the warehouse
+  // sticker (FNSKU). Both are 10 characters of capitals and digits.
+  if (/^B0[0-9A-Z]{8}$/.test(compact)) {
+    return { kind: "url", url: `https://www.amazon.es/dp/${compact}`, asin: compact };
+  }
+  if (/^X00[0-9A-Z]{7}$/.test(compact)) return { kind: "store_label", code: compact };
 
   let url: URL | undefined;
   try {

@@ -4,7 +4,7 @@
  * photo ingredient OCR, text ingredient classification, and Safe Space non-vegan image protection.
  */
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { useMutation, useQuery } from "@tanstack/react-query";
 import { useNavigate, useParams } from "react-router-dom";
 import {
@@ -148,6 +148,7 @@ export function ProductScannerPage() {
   const [scannedUrl, setScannedUrl] = useState("");
   const [scannedIsMenu, setScannedIsMenu] = useState(false);
   const [scannedText, setScannedText] = useState("");
+  const [storeLabel, setStoreLabel] = useState("");
   const [codeError, setCodeError] = useState("");
   const [recentScans, setRecentScans] = useState<RecentScanItem[]>(getStoredRecentScans);
   const [revealedImages, setRevealedImages] = useState<Record<string, boolean>>({});
@@ -218,6 +219,7 @@ export function ProductScannerPage() {
     setScannedUrl("");
     setScannedIsMenu(false);
     setScannedText("");
+    setStoreLabel("");
     setCodeError("");
 
     const scanned = classifyScannedCode(cleanValue);
@@ -235,6 +237,12 @@ export function ProductScannerPage() {
         return;
       case "url":
         setScannedUrl(scanned.url);
+        // An Amazon product code (ASIN) on a label: the product itself was
+        // scanned, so check its page straight away.
+        if (scanned.asin) checkLinkRef.current(scanned.url);
+        return;
+      case "store_label":
+        setStoreLabel(scanned.code);
         return;
       case "text":
         setScannedText(scanned.text);
@@ -282,6 +290,7 @@ export function ProductScannerPage() {
     ingredientAnalysis.reset();
   };
 
+  const checkLinkRef = useRef<(url: string) => void>(() => {});
   const checkLink = (url: string) => {
     linkScan.mutate(url, {
       onSuccess: (result) => {
@@ -290,6 +299,7 @@ export function ProductScannerPage() {
       },
     });
   };
+  checkLinkRef.current = checkLink;
 
   return (
     <div className="page narrow-page">
@@ -312,10 +322,25 @@ export function ProductScannerPage() {
 
         {codeError && <div className="error-banner" role="alert">{codeError}</div>}
 
+        {storeLabel && (
+          <div className="scanner-external-result" role="status">
+            <strong>{tx("This is an Amazon warehouse sticker")}</strong>
+            <p className="muted scanned-text">{storeLabel}</p>
+            <p>{tx("It identifies the item in Amazon's stock, not the product. Scan the product's own barcode (it is often under the sticker) or take a photo of its label.")}</p>
+            <div className="not-found-actions">
+              <button type="button" className="secondary-button" onClick={() => setStoreLabel("")}>
+                <RotateCcw aria-hidden="true" />
+                <span>{tx("Scan another")}</span>
+              </button>
+            </div>
+          </div>
+        )}
+
         {scannedText && (
           <div className="scanner-external-result" role="status">
             <strong>{tx("Code detected")}</strong>
             <p className="muted scanned-text">{scannedText}</p>
+            <p>{tx("This code does not identify a product. Scan the product's barcode or take a photo of its label.")}</p>
             <div className="not-found-actions">
               <button type="button" className="secondary-button" onClick={() => setScannedText("")}>
                 <RotateCcw aria-hidden="true" />
@@ -411,7 +436,7 @@ export function ProductScannerPage() {
               void navigate(`/scan/menu?url=${encodeURIComponent(typed.url)}`);
             } else if (typed.kind === "url") {
               runLookup(value);
-              checkLink(typed.url);
+              if (!typed.asin) checkLink(typed.url); // an ASIN is checked by runLookup
             } else {
               runLookup(value);
             }

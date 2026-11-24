@@ -6,7 +6,7 @@
  */
 
 import type { Assurance, Evidence } from "@vegan-tools/domain";
-import { BadgeCheck, Database, Factory, ScanText, ShieldQuestion, Sparkles } from "lucide-react";
+import { BadgeCheck, Database, Factory, ScanText, ShieldQuestion } from "lucide-react";
 import { tx } from "../i18n";
 
 const LEVELS: Record<Assurance, { label: string; detail: string; Icon: typeof BadgeCheck }> = {
@@ -37,10 +37,10 @@ const LEVELS: Record<Assurance, { label: string; detail: string; Icon: typeof Ba
   },
 };
 
-const AUTOMATIC = {
+// No icon: Nils does not want the "sparkles" star for automatic answers.
+const AUTOMATIC: { label: string; detail: string; Icon?: typeof BadgeCheck } = {
   label: "Automatic recognition",
   detail: "Found automatically (photo, web page or web search). It is not a verification: check the label or ask when it matters.",
-  Icon: Sparkles,
 };
 
 export function EvidenceNote({
@@ -53,11 +53,11 @@ export function EvidenceNote({
   /** Answer produced by AI recognition rather than by a source or the rule engine. */
   automatic?: boolean;
 }) {
-  const { label, detail, Icon } = automatic ? AUTOMATIC : LEVELS[assurance];
+  const { label, detail, Icon } = automatic ? AUTOMATIC : (LEVELS[assurance] as typeof AUTOMATIC);
   const source = assurance === "external" ? evidence[0]?.sourceName : undefined;
   return (
     <p className={`evidence-note evidence-note--${assurance}`}>
-      <Icon aria-hidden="true" />
+      {Icon && <Icon aria-hidden="true" />}
       <span>
         <strong>
           {tx("Source")}: {tx(label)}
