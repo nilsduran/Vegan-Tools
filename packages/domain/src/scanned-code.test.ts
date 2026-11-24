@@ -35,6 +35,13 @@ describe("classifyScannedCode", () => {
     expect(classifyScannedCode("www.restaurant.example/menu")).toMatchObject({ kind: "menu_url", url: "https://www.restaurant.example/menu" });
   });
 
+  it("turns an Amazon product code into its page and recognises Amazon warehouse stickers", () => {
+    expect(classifyScannedCode("B07PGL2ZSL")).toEqual({ kind: "url", url: "https://www.amazon.es/dp/B07PGL2ZSL", asin: "B07PGL2ZSL" });
+    expect(classifyScannedCode("X000YDE42L")).toEqual({ kind: "store_label", code: "X000YDE42L" });
+    // Ordinary words are not codes.
+    expect(classifyScannedCode("BOOKSHELF1")).toMatchObject({ kind: "text" });
+  });
+
   it("keeps other links and text apart", () => {
     expect(classifyScannedCode("https://example.com/about")).toEqual({ kind: "url", url: "https://example.com/about" });
     expect(classifyScannedCode("WIFI:S:Cafe;T:WPA;P:secret;;")).toMatchObject({ kind: "text" });

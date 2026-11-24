@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { lookupOpenFoodFacts } from "./open-food-facts.js";
+import { looksLikeCosmetic, lookupOpenFoodFacts } from "./open-food-facts.js";
 
 describe("Open Food Facts classification", () => {
   afterEach(() => {
@@ -139,5 +139,20 @@ describe("Open Food Facts classification", () => {
     const product = await lookupOpenFoodFacts("3103220044544");
     expect(fetchMock).toHaveBeenCalledTimes(2);
     expect(product?.verdict).toBe("non_vegetarian");
+  });
+});
+
+describe("cosmetics filed in Open Food Facts", () => {
+  it("recognises them by category in any language or by their name", () => {
+    // Real record: Altruist sunscreen, added to the food database in Dutch.
+    expect(looksLikeCosmetic({
+      product_name: "Altruist Dermatologist SPF50 Face Fluid",
+      categories_tags: ["nl:Verzorging", "nl:Zonbescherming", "nl:Zonnebrand", "nl:Zonnebrand mini"],
+    })).toBe(true);
+    expect(looksLikeCosmetic({ product_name: "Crema solar SPF 30", categories_tags: [] })).toBe(true);
+    expect(looksLikeCosmetic({ product_name: "Shampoo", categories_tags: ["fr:soins-capillaires"] })).toBe(true);
+    // Food stays food.
+    expect(looksLikeCosmetic({ product_name: "Sunflower oil", categories_tags: ["en:plant-based-foods", "en:sunflower-oils"] })).toBe(false);
+    expect(looksLikeCosmetic({ product_name: "Soap nuts cookies", categories_tags: ["en:biscuits"] })).toBe(false);
   });
 });

@@ -82,6 +82,20 @@ const VERDICT_SEVERITY: Record<ProductResult["verdict"], number> = {
  * text was just "sugar, palm oil"). Every language is classified and the most
  * restrictive result wins; ties go to the longest text.
  */
+/**
+ * Cosmetics added to Open Food Facts by mistake (a Dutch sunscreen filed as
+ * food, with "nl:Zonnebrand" categories). Categories are free text in any
+ * language, so they are matched by word, without accents.
+ */
+const COSMETIC_CATEGORY = /(?:^|-)(?:beauty|cosmetics?|cosmetiques?|cosmetica|cosmetica|skin-?care|sun-?(?:protection|screen|cream|care)|personal-care|body-care|face-care|hygiene|shampoos?|deodorants?|toothpastes?|soaps?|verzorging|huidverzorging|zonbescherming|zonnebrand|korperpflege|sonnenschutz|hautpflege|protector-solar|proteccion-solar|proteccio-solar|cuidado-personal|higiene|soins?|creme-solaire|protection-solaire)(?:-|$)/;
+const COSMETIC_NAME = /\b(?:spf\s?\d+|sunscreen|sun cream|crema solar|protector solar|creme solaire|zonnebrand|shampoo|champu|xampu|deodorant|desodorante?|toothpaste|pasta de dents|pasta de dientes)\b/;
+
+export function looksLikeCosmetic(product: Pick<OffProduct, "product_name" | "categories_tags">): boolean {
+  const plain = (value: string) => value.normalize("NFD").replace(/\p{Diacritic}/gu, "").toLowerCase();
+  const categories = (product.categories_tags ?? []).map((tag) => plain(tag.replace(/^[a-z]{2}:/i, "")).trim().replace(/\s+/g, "-"));
+  return categories.some((category) => COSMETIC_CATEGORY.test(category)) || COSMETIC_NAME.test(plain(product.product_name ?? ""));
+}
+
 export function mostRestrictiveIngredients(product: OffProduct): { text: string; analysis: ReturnType<typeof classifyIngredients> } {
   const texts = [
     product.ingredients_text,
@@ -244,6 +258,6 @@ export async function lookupOpenFoodFacts(gtin: string): Promise<ProductResult |
     verifiedAt: capturedAt,
     revision: 1,
     evidence: [evidence],
-    category: "food",
+    category: looksLikeCosmetic(product) ? "beauty" : "food",
   };
 }
