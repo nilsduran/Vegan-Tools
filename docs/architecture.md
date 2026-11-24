@@ -237,6 +237,8 @@ What "good enough to ship" means, and which check enforces each part. `npm run c
 | Golden classification set | Vitest (`golden-benchmark.test.ts`) | Any animal product read as vegan; classifier speed | `npm test` |
 | End to end | Playwright (`e2e/`) | Real browser flows on a **desktop** and a **mobile** (Pixel 7, touch) profile, the scanner through a fake camera, speed budgets | `npm run test:e2e`, CI `E2E` |
 | Live providers | `npm run smoke:api` | Deployed API and provider keys work | Before a deploy, by hand |
+| Real-world scans | `npm run eval:scan`, `npm run eval:menus` | Real barcodes, links and cosmetics brands (`eval/scan-cases.json`); real menus vs look-alikes (`eval/menu-links.json`). Spend Gemini quota | By hand, against an API without Supabase |
+| Camera frames | `scripts/bench-barcode-formats.ts`, `scripts/read-frame.ts` | Reader speed per format; why a saved real frame is or is not read | By hand |
 
 Rules:
 

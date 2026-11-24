@@ -12,6 +12,17 @@ Memòria del projecte entre sessions: **què es va decidir, per què i què es v
 
 ## 2026-11-24 — Codis d'Amazon i cosmètics mal classificats
 
+- **Pendents de decidir per en Nils:**
+  - **Quota de Gemini.** El 23 i 24-11-2026 es va exhaurir (429). Mentre passa, fallen la cerca web de productes i enllaços, les fotos i les marques; la lectura de codis no en depèn. Decidir facturació o un altre pla.
+  - **Marca 100 % vegana.** Proposta: si la comprovació de la marca troba (amb fonts) que tota la gamma és vegana, un producte sense ingredients passa de «Desconegut» a «Probablement vegà», amb una frase fixa. Mai «Vegà». No implementat.
+  - **Productes sense res d'origen animal plausible** (videojocs, electrònica): «Probablement vegà»; on és plausible i no hi ha informació, «Desconegut» (entrada del 23-11-2026, encara sense confirmar).
+- **Base de dades pròpia (proposta, no implementada).** Discutida el 23-11-2026; és al roadmap.
+  - Una sola base de dades (el Postgres de Supabase), una taula per tipus de cosa: `productes` (ampliant l'actual per codi de barres), `marques` i `usos_amagats`. Cap dada de qui consulta.
+  - Productes: categoria lliure (la dona la IA; cap codi en depèn), manera de jutjar fixa (composició, materials, procés amagat, experimentació de la marca, experimentació obligatòria per llei, ús d'animals, redirecció), composició o materials, veredicte i motiu de les regles (text fix en els dos idiomes), fonts, mes de comprovació i revisat a mà. Es guarda la composició perquè, si milloren les regles, es pugui tornar a jutjar tot sense IA.
+  - Marques: només per a cosmètica i neteja. Estat, certificació, fonts, mes de comprovació, revisat. No es guarda el resum generat: la interfície escriu una frase fixa a partir de l'estat. **La data no es mostra mai** (en Nils no la vol a la interfície); es guarda el mes per revisar cada 6 mesos de mica en mica, i els «desconeguts» al cap d'un mes, per no gastar tota la quota alhora.
+  - Usos amagats: categoria → què pot portar d'origen animal → explicació → font. Prou petita per anar sencera a la instrucció de la IA; sense RAG ni vistes materialitzades.
+  - Tipus de salut (medicaments i suplements): l'experimentació obligatòria per llei no penalitza; els excipients sí (gelatina, lactosa, D3 de lanolina). Vi i cervesa (clarificants), com a millora del menjar.
+
 - **Cap icona d'«estrelles» (Sparkles) per a les respostes automàtiques.** A en Nils no li agrada; la nota «Reconeixement automàtic» va sense icona. **(ho ha demanat en Nils)**
 - **Adhesius d'Amazon.** `X00…` (FNSKU) és l'etiqueta de magatzem d'Amazon: identifica l'article al seu estoc, no el producte, i cap font pública no la tradueix. Ara l'escàner ho diu i demana el codi de barres de l'envàs o una foto. `B0…` (ASIN) sí que és el producte: es comprova la seva pàgina d'Amazon directament. **(ho va trobar en Nils amb un multivitamínic)**
 - **Cosmètics arxivats com a menjar a Open Food Facts.** Una crema solar Altruist hi era amb categories en neerlandès («Zonnebrand») i sortia com a menjar. Ara les categories i el nom (p. ex. «SPF 50») es reconeixen com a cosmètica en diversos idiomes. Sense llista d'ingredients continua sent «Desconegut» fins que la cerca web (Gemini) la trobi. **(ho va trobar en Nils)**

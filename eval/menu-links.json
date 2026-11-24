@@ -1,0 +1,27 @@
+{
+  "description": "Links scanned from restaurant tables and look-alikes. 'menu': true means the link really is one venue's menu; false are curveballs that look like menus (an article, a review, an app page). Checked 2026-11-24; some shops change or remove their links over time.",
+  "cases": [
+    { "menu": true, "url": "https://mercerbarcelona.com/contenidos/downloads/restaurantes-cartas/es/5-19/carta-le-bouchon.pdf", "note": "Site's TLS chain is incomplete: browsers cope, Node does not." },
+    { "menu": true, "url": "https://editionhotels.com/wp-content/uploads/2025/04/All-day-dining-Veraz_ES.pdf" },
+    { "menu": true, "url": "https://pos.do/ca/barcelona/restaurant/vegetalia-barcelona", "note": "Redirects with a meta refresh." },
+    { "menu": true, "url": "https://teresacarles.com/wp-content/uploads/2026/08/ago24-BCN-CAT.pdf", "note": "13.5 MB PDF." },
+    { "menu": true, "url": "https://carta.menu/restaurants/barcelona/virens/menu", "note": "Long menu: analysis took over 3 minutes." },
+    { "menu": true, "url": "https://carta.menu/restaurants/barcelona/barnabier/menu" },
+    { "menu": true, "url": "https://carta.menu/restaurants/barcelona/biocenter" },
+    { "menu": true, "url": "https://lacarte.menu/restaurants/barcelona/barbas-4/menu" },
+    { "menu": true, "url": "https://carta.menu/restaurants/barcelona/bioxoco/menu" },
+    { "menu": true, "url": "https://glovoapp.com/ca/es/lleida/stores/teresa-carles-lleida", "note": "Delivery page; not yet measured (quota ran out)." },
+    { "menu": true, "url": "https://www.mercerbarcelona.com/contenidos/downloads/restaurantes-cartas/es/2-35/mercer-restaurant-menu-degustacion-y-carta.pdf" },
+    { "menu": false, "url": "https://www.qrcarta.com/en/restaurant/tias", "note": "A list of restaurants in a town, not a menu." },
+    { "menu": false, "url": "https://barcelonasecreta.com/restaurantes-barcelona/" },
+    { "menu": false, "url": "https://www.ecured.cu/Men%C3%BAs" },
+    { "menu": false, "url": "https://qamarero.com/blog/como-hacer-una-carta-de-restaurante-guia-y-pasos/" },
+    { "menu": false, "url": "https://apps.apple.com/es/app/tu-carta-qr/id1519954926" },
+    { "menu": false, "url": "https://es.wikipedia.org/wiki/Men%C3%BA_del_d%C3%ADa" },
+    { "menu": false, "url": "https://www.timeout.es/barcelona/es/restaurantes/pastan" },
+    { "menu": false, "url": "https://www.happycow.net/reviews/flax-and-kale-barcelona-53077" },
+    { "menu": false, "url": "https://www.gimmesomeoven.com/flax-kale-barcelona/" },
+    { "menu": false, "url": "https://qrcarta.com/en/pricing.php" },
+    { "menu": false, "url": "https://www.amazon.com/dp/B01MSSDEPK" }
+  ]
+}
