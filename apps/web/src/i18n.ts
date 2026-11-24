@@ -992,6 +992,7 @@ export const caPhrases = {
   "This is not a menu. Checking the link…": "No és una carta. Comprovant l'enllaç…",
   "This link is not a restaurant menu.": "Aquest enllaç no és la carta d'un restaurant.",
   "This is not a restaurant menu.": "No és la carta d'un restaurant.",
+  "We could not check whether the brand tests on animals right now.": "Ara mateix no hem pogut comprovar si la marca experimenta amb animals.",
   "Checking whether the brand tests on animals…": "Comprovant si la marca experimenta amb animals…",
   "The brand does not test on animals": "La marca no experimenta amb animals",
   "The brand tests on animals": "La marca experimenta amb animals",

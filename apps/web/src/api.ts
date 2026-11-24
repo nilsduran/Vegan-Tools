@@ -134,6 +134,8 @@ export async function analyzeScanUrl(url: string, language: "ca" | "en"): Promis
 export async function getBrandEthics(brand: string, language: "ca" | "en"): Promise<BrandEthics> {
   const response = await checkedFetch(
     `/v1/brands/cruelty-free?name=${encodeURIComponent(brand)}&language=${language}`,
+    // The API gives up after ~45 s; the verdict must never wait longer than this.
+    { signal: AbortSignal.timeout(60_000) },
   );
   return brandEthicsSchema.parse(await response.json());
 }

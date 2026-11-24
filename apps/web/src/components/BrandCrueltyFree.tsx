@@ -30,6 +30,13 @@ function useBrandEthics(brand: string | undefined) {
     enabled: Boolean(name),
     staleTime: 24 * 60 * 60 * 1000,
     retry: false,
+    // The verdict and the brand card read this query. By default a failed
+    // query is retried whenever a component that reads it mounts: the card
+    // mounted after the failure, the retry put the page back to "checking",
+    // the card unmounted, and so on forever (November 2026, quota exhausted).
+    retryOnMount: false,
+    refetchOnMount: false,
+    refetchOnWindowFocus: false,
   });
 }
 
@@ -73,7 +80,14 @@ export function BrandCrueltyFree({ brand }: { brand: string }) {
   const ethics = useBrandEthics(brand);
 
   // While loading, the verdict area already says the brand is being checked.
-  if (ethics.isPending || ethics.isError) return null;
+  if (ethics.isPending) return null;
+  if (ethics.isError) {
+    return (
+      <p className="brand-ethics brand-ethics--unknown muted">
+        <Rabbit aria-hidden="true" /> {tx("We could not check whether the brand tests on animals right now.")}
+      </p>
+    );
+  }
 
   const { status, summary, sources } = ethics.data;
   return (

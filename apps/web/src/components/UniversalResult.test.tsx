@@ -66,6 +66,18 @@ describe("UniversalResult for cosmetics", () => {
     expect(screen.getByText("Contains honey.")).toBeTruthy();
   });
 
+  it("gives the verdict once when the brand check fails, without asking again and again", async () => {
+    getBrandEthics.mockRejectedValue(new Error("Automatic recognition is busy right now. Try again in a minute."));
+    renderResult(cleanser);
+    expect(await screen.findByText("The ingredient list could not be checked.")).toBeTruthy();
+    expect(screen.getByText(/could not check whether the brand tests on animals/i)).toBeTruthy();
+    // A failed query used to be retried by every component that mounted, and
+    // the page swapped between "checking" and the verdict forever.
+    await new Promise((resolve) => setTimeout(resolve, 300));
+    expect(getBrandEthics).toHaveBeenCalledTimes(1);
+    expect(screen.queryByRole("status")).toBeNull();
+  });
+
   it("keeps the product's own verdict when the brand is cruelty-free", async () => {
     getBrandEthics.mockResolvedValue({
       brand: "SomeBrand",
