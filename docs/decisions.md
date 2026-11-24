@@ -12,6 +12,7 @@ Memòria del projecte entre sessions: **què es va decidir, per què i què es v
 
 ## 2026-11-24 — Codis d'Amazon i cosmètics mal classificats
 
+- **Cap icona d'«estrelles» (Sparkles) per a les respostes automàtiques.** A en Nils no li agrada; la nota «Reconeixement automàtic» va sense icona. **(ho ha demanat en Nils)**
 - **Adhesius d'Amazon.** `X00…` (FNSKU) és l'etiqueta de magatzem d'Amazon: identifica l'article al seu estoc, no el producte, i cap font pública no la tradueix. Ara l'escàner ho diu i demana el codi de barres de l'envàs o una foto. `B0…` (ASIN) sí que és el producte: es comprova la seva pàgina d'Amazon directament. **(ho va trobar en Nils amb un multivitamínic)**
 - **Cosmètics arxivats com a menjar a Open Food Facts.** Una crema solar Altruist hi era amb categories en neerlandès («Zonnebrand») i sortia com a menjar. Ara les categories i el nom (p. ex. «SPF 50») es reconeixen com a cosmètica en diversos idiomes. Sense llista d'ingredients continua sent «Desconegut» fins que la cerca web (Gemini) la trobi. **(ho va trobar en Nils)**
 - **La lectura amb la webcam del portàtil no té solució al programari:** 1280×720 i focus fix. De prop el codi surt borrós i de lluny té ~2 píxels per barra. Provat amb `scripts/read-frame.ts` sobre fotogrames reals: cap ajust ni tractament d'imatge no el llegeix. Al mòbil sí que el llegeix. **(diagnosticat amb en Nils)**
