@@ -7,10 +7,11 @@
 import { useQuery } from "@tanstack/react-query";
 import { ExternalLink, LoaderCircle } from "lucide-react";
 import { Link, useSearchParams } from "react-router-dom";
-import { classifyScannedCode } from "@vegan-tools/domain";
-import { discoverMenuByUrl, waitForMenuDraft } from "../api";
+import { classifyScannedCode, NOT_A_MENU_ERROR } from "@vegan-tools/domain";
+import { analyzeScanUrl, discoverMenuByUrl, waitForMenuDraft } from "../api";
 import { MenuView } from "../components/MenuView";
-import { tx } from "../i18n";
+import { UniversalResult } from "../components/UniversalResult";
+import { tx, useLanguage } from "../i18n";
 import { useDocumentHead } from "../utils/seo";
 
 function scannedMenuUrl(raw: string | null): string | undefined {
@@ -32,17 +33,31 @@ export function ScannedMenuPage() {
     retry: false,
   });
 
-  const failed = !url || menu.isError || (menu.data && menu.data.sections.length === 0);
+  // Not a menu after all (an article, a review, a shop page): check it as an
+  // ordinary link instead, unless that check also says "menu".
+  const notAMenu = menu.data?.error === NOT_A_MENU_ERROR;
+  const language = useLanguage();
+  const asLink = useQuery({
+    queryKey: ["scanned-link", url, language],
+    queryFn: () => analyzeScanUrl(url ?? "", language),
+    enabled: Boolean(url) && notAMenu,
+    staleTime: Infinity,
+    retry: false,
+  });
+  const linkResult = asLink.data && !asLink.data.menuUrl ? asLink.data : undefined;
+  const checkingLink = notAMenu && asLink.isPending;
+  const failed = !linkResult && !checkingLink && (!url || menu.isError || (menu.data && menu.data.sections.length === 0));
 
   return (
     <div className="page">
-      {url && menu.isPending && (
-        <div className="loading"><LoaderCircle className="spin" />{tx("Reading the menu…")}</div>
+      {url && (menu.isPending || checkingLink) && (
+        <div className="loading"><LoaderCircle className="spin" />{tx(checkingLink ? "This is not a menu. Checking the link…" : "Reading the menu…")}</div>
       )}
+      {linkResult && <UniversalResult result={linkResult} />}
       {failed && !menu.isPending && (
         <div className="scanner-external-result" role="alert">
-          <strong>{tx("This link does not look like a menu we can read.")}</strong>
-          {menu.data?.error && <p className="muted">{tx(menu.data.error)}</p>}
+          <strong>{tx(notAMenu ? "This link is not a restaurant menu." : "This link does not look like a menu we can read.")}</strong>
+          {menu.data?.error && !notAMenu && <p className="muted">{tx(menu.data.error)}</p>}
           <div className="not-found-actions">
             {url && (
               <a className="secondary-button" href={url} target="_blank" rel="noreferrer">

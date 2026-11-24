@@ -18,6 +18,7 @@ import type { MenuDiscoverer } from "../menu-discovery.js";
 import {
   type RestaurantWebsiteFinder,
   isPlausibleOfficialWebsite,
+  isSocialProfile,
 } from "../restaurant-website-finder.js";
 import type { RestaurantMenuCache } from "../restaurant-menu-cache.js";
 import { loadSourcesFromStore, type MenuSourceStore } from "../menu-source-store.js";
@@ -173,7 +174,7 @@ export async function menuRoutes(app: FastifyInstance, options: MenuRoutesOption
       });
     }
 
-    if (!isPlausibleOfficialWebsite(normalizedWebsite)) {
+    if (restaurant ? !isPlausibleOfficialWebsite(normalizedWebsite) : isSocialProfile(normalizedWebsite)) {
       return reply.code(422).send({
         code: "SOCIAL_MEDIA_NOT_CRAWLABLE",
         message: "This restaurant only has a social profile (such as Instagram). Enter a direct link to their menu or upload photos/PDF.",

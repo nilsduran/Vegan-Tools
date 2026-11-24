@@ -3,7 +3,7 @@ import type { BrandEthics, UniversalScanResult } from "@vegan-tools/domain";
 import { buildApp } from "../app.js";
 import { MemoryRepository } from "../store.js";
 import { finalizeScanAnswer, parseJsonObject, type UniversalAnalyzer } from "../universal-analyzer.js";
-import { pageSummary } from "./scan.js";
+import { addressWords, judgedFromAddressOnly, pageSummary } from "./scan.js";
 
 const horseRiding: UniversalScanResult = finalizeScanAnswer({
   subject: "activity",
@@ -26,6 +26,7 @@ function fakeAnalyzer(overrides: Partial<UniversalAnalyzer> = {}): UniversalAnal
       checkedAt: "2026-11-22T00:00:00.000Z",
     } satisfies BrandEthics),
     researchProduct: vi.fn().mockResolvedValue({ found: false, sources: [] }),
+    researchLink: vi.fn().mockRejectedValue(new Error("not used")),
     ...overrides,
   };
 }
@@ -39,6 +40,12 @@ describe("finalizeScanAnswer (quality rules)", () => {
     expect(horseRiding).toMatchObject({ verdict: "non_vegetarian", assurance: "unverified" });
   });
 
+  it("accepts a list sent as a single string (grounded searches have no schema)", () => {
+    const result = finalizeScanAnswer({ subject: "clothing", title: "Jumper", verdict: "non_vegetarian", reason: "Wool.", concerns: "merino wool" as unknown as string[] });
+    expect(result.concerns).toEqual(["merino wool"]);
+    expect(result.alternatives).toEqual([]);
+  });
+
   it("judges an ingredient label with the rule engine, not the model", () => {
     const result = finalizeScanAnswer({
       subject: "ingredient_label",
@@ -49,6 +56,30 @@ describe("finalizeScanAnswer (quality rules)", () => {
     });
     expect(result).toMatchObject({ verdict: "vegetarian", assurance: "label_based" });
     expect(result.reason).not.toBe("model opinion");
+  });
+
+  it("judges an ingredient list found on a product page with the rules, never above probably vegan", () => {
+    // The model called a milk spread non-vegetarian; the rules know milk is vegetarian.
+    const spread = finalizeScanAnswer({
+      subject: "food",
+      title: "Hazelnut spread",
+      verdict: "non_vegetarian",
+      reason: "model opinion",
+      ingredientsText: "Sugar, palm oil, hazelnuts 13%, skimmed milk powder 8.7%, cocoa",
+    });
+    expect(spread).toMatchObject({ verdict: "probably_vegetarian", assurance: "unverified" });
+    expect(spread.reason).not.toBe("model opinion");
+    const drink = finalizeScanAnswer({ subject: "food", title: "Soy drink", verdict: "vegan", ingredientsText: "Water, hulled soya beans 8%, sugar, calcium phosphate" });
+    expect(drink.verdict).toBe("probably_vegan");
+  });
+
+  it("keeps non-vegetarian for food only when the explanation names flesh", () => {
+    const dairy = finalizeScanAnswer({ subject: "food", title: "Milk chocolate coated biscuits", verdict: "non_vegetarian", reason: "Coated with milk chocolate, which contains dairy." });
+    expect(dairy.verdict).toBe("probably_vegetarian");
+    const gummies = finalizeScanAnswer({ subject: "food", title: "Fruit gummies", verdict: "non_vegetarian", reason: "Contains gelatine." });
+    expect(gummies.verdict).toBe("non_vegetarian");
+    const tuna = finalizeScanAnswer({ subject: "food", title: "Tuna salad", verdict: "non_vegetarian", reason: "Contains fish." });
+    expect(tuna.verdict).toBe("non_vegetarian");
   });
 
   it("drops unknown subjects, verdicts and invalid barcodes", () => {
@@ -121,6 +152,65 @@ describe("scan routes", () => {
     const res = await app.inject({ method: "GET", url: "/v1/products/3017620422003" });
     expect(res.json()).toMatchObject({ category: "other", verdict: "non_vegetarian", assurance: "unverified" });
     await app.close();
+  });
+});
+
+describe("links to pages that cannot be downloaded", () => {
+  it("identifies the product with a web search instead of failing", async () => {
+    const researched = finalizeScanAnswer(
+      { subject: "clothing", title: "Merino wool jumper", verdict: "non_vegetarian", reason: "Made of wool." },
+      { sources: [{ url: "https://example.org/jumper" }] },
+    );
+    const researchLink = vi.fn().mockResolvedValue(researched);
+    const app = await buildApp({ repo: new MemoryRepository(), universalAnalyzer: fakeAnalyzer({ researchLink }) });
+    // Shops often answer automated downloads with 403.
+    vi.stubGlobal("fetch", vi.fn().mockResolvedValue(new Response("Forbidden", { status: 403 })));
+    const res = await app.inject({
+      method: "POST",
+      url: "/v1/scan/url",
+      payload: { url: "https://93.184.216.34/p/merino-wool-jumper", language: "ca" },
+    });
+    expect(res.statusCode).toBe(200);
+    expect(researchLink).toHaveBeenCalledWith("https://93.184.216.34/p/merino-wool-jumper", "ca");
+    expect(res.json()).toMatchObject({ title: "Merino wool jumper", verdict: "non_vegetarian" });
+    await app.close();
+  });
+
+  it("treats a shop's robot check as a blocked page, not as the product", async () => {
+    const researchLink = vi.fn().mockResolvedValue(horseRiding);
+    const analyzeText = vi.fn().mockResolvedValue(horseRiding);
+    const app = await buildApp({ repo: new MemoryRepository(), universalAnalyzer: fakeAnalyzer({ researchLink, analyzeText }) });
+    const captcha = "<html><title>Amazon.es</title><p>Enter the characters you see below</p><form action='/errors/validateCaptcha'></form></html>";
+    vi.stubGlobal("fetch", vi.fn().mockResolvedValue(new Response(captcha, { status: 200, headers: { "content-type": "text/html" } })));
+    const res = await app.inject({ method: "POST", url: "/v1/scan/url", payload: { url: "https://93.184.216.34/dp/B08GCK4MYS" } });
+    expect(res.statusCode).toBe(200);
+    expect(researchLink).toHaveBeenCalled();
+    expect(analyzeText).not.toHaveBeenCalledWith(expect.objectContaining({ title: "Amazon.es" }), expect.anything());
+    await app.close();
+  });
+
+  it("says the link could not be checked when the search fails and the address says nothing", async () => {
+    const app = await buildApp({ repo: new MemoryRepository(), universalAnalyzer: fakeAnalyzer() });
+    vi.stubGlobal("fetch", vi.fn().mockResolvedValue(new Response("Forbidden", { status: 403 })));
+    const res = await app.inject({ method: "POST", url: "/v1/scan/url", payload: { url: "https://93.184.216.34/p/x" } });
+    expect(res.statusCode).toBe(503);
+    expect(res.json().message).toBe("This link could not be checked.");
+    await app.close();
+  });
+});
+
+describe("judging a product from its address alone", () => {
+  it("keeps the descriptive words of the address", () => {
+    expect(addressWords("https://www.carrefour.es/supermercado/galletas-con-chocolate-con-leche-oreo-246-g/R-590209211/p"))
+      .toBe("carrefour.es: galletas con chocolate con leche oreo");
+    expect(addressWords("https://shop.example/p/R-123")).toBe("");
+  });
+
+  it("can say not vegan, but never vegan, from a name", () => {
+    const wool = finalizeScanAnswer({ subject: "clothing", title: "Merino jumper", verdict: "non_vegetarian", reason: "Wool." });
+    expect(judgedFromAddressOnly(wool, "en").verdict).toBe("non_vegetarian");
+    const cookies = finalizeScanAnswer({ subject: "food", title: "Cookies", verdict: "vegan", reason: "Plant-based." });
+    expect(judgedFromAddressOnly(cookies, "ca")).toMatchObject({ verdict: "unknown" });
   });
 });
 

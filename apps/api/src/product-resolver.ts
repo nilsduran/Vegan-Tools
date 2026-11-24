@@ -32,6 +32,13 @@ export function normalizeCosmeticIngredients(text: string): string {
     .replace(/\bsnail\s+secretion\s+filtrate\b/gi, "snail mucin");
 }
 
+/** Name to show for a web source; search redirect links do not say which site they lead to. */
+function sourceLabel(source: { url: string; title?: string }): string {
+  if (source.title?.trim()) return source.title.trim();
+  const host = new URL(source.url).hostname;
+  return host.endsWith("vertexaisearch.cloud.google.com") ? "Web search" : host;
+}
+
 const SEVERITY: Record<ProductResult["verdict"], number> = {
   non_vegetarian: 5,
   vegetarian: 4,
@@ -58,9 +65,25 @@ export function pickPrimaryRecord(records: ProductResult[]): ProductResult | und
   return records.find((record) => record.verdict !== "unknown") ?? records[0];
 }
 
-/** Whether a web search can improve the answer. */
+/** Doubtful only because of dual-origin ingredients (glycerin, E471), with nothing clearly animal. */
+export function isDoubtfulOnly(product: ProductResult): boolean {
+  return (
+    product.verdict === "probably_vegetarian" &&
+    product.findings.length > 0 &&
+    product.findings.every((finding) => finding.status === "ambiguous" || finding.status === "vegan")
+  );
+}
+
+/**
+ * Whether a web search can improve the answer: no ingredients anywhere, a verdict
+ * that is doubtful only because of dual-origin ingredients (a manufacturer's vegan
+ * statement can settle it), or a non-food product without a brand (the brand is
+ * what the cruelty-free check needs).
+ */
 export function needsResearch(primary: ProductResult | undefined): boolean {
-  return !primary || !hasIngredientData(primary);
+  if (!primary || !hasIngredientData(primary)) return true;
+  if (isDoubtfulOnly(primary)) return true;
+  return primary.category !== undefined && primary.category !== "food" && !primary.brand?.trim();
 }
 
 function categoryOf(research: ProductResearch): ProductResult["category"] {
@@ -72,6 +95,7 @@ function categoryOf(research: ProductResearch): ProductResult["category"] {
 /** Combines what the databases knew with what the web search found. */
 export function applyResearch(gtin: string, base: ProductResult | undefined, research: ProductResearch): ProductResult | undefined {
   if (!research.found && !base) return undefined;
+  if (base && hasIngredientData(base)) return completeKnownProduct(base, research);
 
   const category = research.found ? categoryOf(research) : base?.category;
   const evidence: Evidence[] = [...(base?.evidence ?? [])];
@@ -110,7 +134,7 @@ export function applyResearch(gtin: string, base: ProductResult | undefined, res
     evidence.push({
       id: `web-${gtin}`,
       sourceType: "automated_extraction",
-      sourceName: webSource.title || new URL(webSource.url).hostname,
+      sourceName: sourceLabel(webSource),
       sourceUrl: webSource.url,
       capturedAt: new Date().toISOString(),
       market: "ES",
@@ -142,7 +166,7 @@ export function applyResearch(gtin: string, base: ProductResult | undefined, res
     evidence.push({
       id: `web-${gtin}`,
       sourceType: "automated_extraction",
-      sourceName: webSource.title || new URL(webSource.url).hostname,
+      sourceName: sourceLabel(webSource),
       sourceUrl: webSource.url,
       capturedAt: new Date().toISOString(),
       market: "ES",
@@ -161,6 +185,42 @@ export function applyResearch(gtin: string, base: ProductResult | undefined, res
     if (verdict !== "unknown") {
       return { ...product, verdict, reason: research.reason || product.reason, assurance: "unverified" };
     }
+  }
+  return product;
+}
+
+/**
+ * The database already has the ingredients: keep its list and verdict, and take from
+ * the web only what it lacks, the brand (for the cruelty-free check) and a
+ * manufacturer's vegan statement, which settles dual-origin doubts (still "probably").
+ */
+function completeKnownProduct(base: ProductResult, research: ProductResearch): ProductResult {
+  if (!research.found) return base;
+  const webSource = research.sources[0];
+  const product: ProductResult = {
+    ...base,
+    productName: base.productName || research.productName,
+    brand: base.brand?.trim() ? base.brand : research.brand,
+  };
+  if (research.manufacturerVeganClaim && webSource && isDoubtfulOnly(base)) {
+    const doubtful = base.findings.filter((finding) => finding.status === "ambiguous").map((finding) => finding.name).join(", ");
+    return {
+      ...product,
+      verdict: "probably_vegan",
+      reason: `The manufacturer describes the product as vegan, which settles the doubt about ${doubtful}.`,
+      evidence: [
+        ...base.evidence,
+        {
+          id: `web-${base.gtin}`,
+          sourceType: "automated_extraction",
+          sourceName: sourceLabel(webSource),
+          sourceUrl: webSource.url,
+          capturedAt: new Date().toISOString(),
+          market: "ES",
+          traces: [],
+        },
+      ],
+    };
   }
   return product;
 }

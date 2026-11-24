@@ -71,6 +71,8 @@ Sense data. No és una prohibició: es puja a «Després» quan tingui sentit.
 - 🟡 Llegir l'etiqueta de composició de la roba amb les regles deterministes (avui la roba es jutja per reconeixement automàtic).
 - 🟡 Desar a Supabase les consultes de marques cruelty free (avui, 24 h a la memòria de l'API).
 - 🔵 Historial d'escaneig sincronitzat i base de dades global de productes.
+- 🟡 Llegir els codis en un Web Worker, si en un iPhone real la previsualització de l'escàner va a batzegades (vegeu decisions, 2026-11-23).
+- 🔵 Pel·lícules, sèries i videojocs: si la producció ha fet servir animals i si mostra activitats no veganes (menjar animals, muntar a cavall…). Fora de la primera versió.
 
 **Mapa i restaurants**
 - 🟡 Filtre «plats adaptables» a la cerca (necessita cobertura de cartes significativa).

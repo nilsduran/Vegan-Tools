@@ -112,3 +112,14 @@ describe("website menu discovery", () => {
     expect(result.sourceUrl).toBe("https://elnoidalcoi.com/la-carta");
   });
 });
+
+describe("metaRefreshTarget", () => {
+  it("follows a page that only redirects with a meta refresh", async () => {
+    const { metaRefreshTarget } = await import("./menu-discovery.js");
+    const base = new URL("https://pos.do/ca/barcelona/restaurant/x");
+    const html = `<html><head><meta http-equiv="refresh" content="0;url='https://pos.do/ca/barcelona/restaurant/x?v=1'" /></head></html>`;
+    expect(metaRefreshTarget(html, base)?.href).toBe("https://pos.do/ca/barcelona/restaurant/x?v=1");
+    expect(metaRefreshTarget(`<meta http-equiv="refresh" content="30">`, base)).toBeUndefined();
+    expect(metaRefreshTarget(`<meta http-equiv="refresh" content="0;url=javascript:alert(1)">`, base)).toBeUndefined();
+  });
+});

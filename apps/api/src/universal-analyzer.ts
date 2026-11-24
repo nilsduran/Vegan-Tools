@@ -38,6 +38,8 @@ export interface ScanText {
   /** Page title, description and visible text, or a product name and brand. */
   text: string;
   url?: string;
+  /** Page title, shown as the source's name. */
+  title?: string;
   /** Extra context for the model, e.g. "identified by barcode in Open Products Facts". */
   hint?: string;
 }
@@ -62,6 +64,8 @@ export interface UniversalAnalyzer {
   analyzeText(input: ScanText, language: ScanLanguage): Promise<UniversalScanResult>;
   findBrandEthics(brand: string, language: ScanLanguage): Promise<BrandEthics>;
   researchProduct(input: { gtin: string; productName?: string; brand?: string }): Promise<ProductResearch>;
+  /** A product page that cannot be downloaded (shops often block it): identified by a web search. */
+  researchLink(url: string, language: ScanLanguage): Promise<UniversalScanResult>;
 }
 
 /** Models answer the category in free text ("Sunscreen / Face Fluid"): map it to ours. */
@@ -107,6 +111,9 @@ export interface RawScanAnswer {
   gtin?: string;
 }
 
+/** Older-generation model that stays available when the newer ones are overloaded. */
+export const BACKUP_MODEL = "gemini-2.5-flash";
+
 const VERDICTS: DietVerdict[] = [
   "vegan",
   "probably_vegan",
@@ -115,6 +122,15 @@ const VERDICTS: DietVerdict[] = [
   "non_vegetarian",
   "unknown",
 ];
+
+/**
+ * Grounded searches cannot use a response schema, so a model sometimes sends a
+ * list as one string ("concerns": "wool"). Accept both.
+ */
+function textList(value: unknown): string[] {
+  const items = Array.isArray(value) ? value : typeof value === "string" ? [value] : [];
+  return items.filter((item): item is string => typeof item === "string" && item.trim() !== "").map((item) => item.trim());
+}
 
 /** Applies the quality rules to a model answer. Pure, so it is unit-tested. */
 export function finalizeScanAnswer(
@@ -129,14 +145,29 @@ export function finalizeScanAnswer(
     subject,
     title: raw.title?.trim() || "",
     brand: raw.brand?.trim() || undefined,
-    concerns: (raw.concerns ?? []).filter(Boolean).slice(0, 6),
-    alternatives: (raw.alternatives ?? []).filter(Boolean).slice(0, 4),
+    concerns: textList(raw.concerns).slice(0, 6),
+    alternatives: textList(raw.alternatives).slice(0, 4),
     gtin,
     menuUrl: subject === "menu" && extras.url ? extras.url : undefined,
     sources: extras.sources ?? [],
   };
 
   const labelText = raw.ingredientsText?.trim();
+  // A list read from a page (shop, manufacturer) is judged by the rules too,
+  // never by the model's opinion; it is not the label in hand, so it stays
+  // an automated answer.
+  if ((subject === "food" || subject === "cosmetic") && labelText && labelText.split(/[,;]/).length >= 3) {
+    const analysis = classifyIngredients(labelText, { assurance: "unverified" });
+    return {
+      ...base,
+      verdict: capAutomatedVerdict(analysis.verdict),
+      reason: analysis.reason,
+      ingredientsText: labelText,
+      findings: analysis.findings,
+      traces: analysis.traces,
+      assurance: "unverified",
+    };
+  }
   if (subject === "ingredient_label" && labelText) {
     const analysis = classifyIngredients(labelText, { assurance: "label_based", fromPhoto: true });
     return {
@@ -150,7 +181,14 @@ export function finalizeScanAnswer(
     };
   }
 
-  const verdict = VERDICTS.includes(raw.verdict as DietVerdict) ? (raw.verdict as DietVerdict) : "unknown";
+  let verdict = VERDICTS.includes(raw.verdict as DietVerdict) ? (raw.verdict as DietVerdict) : "unknown";
+  // Models call dairy "non-vegetarian" despite the instructions. For food, that
+  // verdict stands only if the rules find flesh (meat, fish, gelatine...) in the
+  // model's own explanation; otherwise it is "probably vegetarian" (still not vegan).
+  if (subject === "food" && verdict === "non_vegetarian") {
+    const explanation = [raw.title, raw.reason, ...textList(raw.concerns)].filter(Boolean).join(", ");
+    if (classifyIngredients(explanation).verdict !== "non_vegetarian") verdict = "probably_vegetarian";
+  }
   return {
     ...base,
     verdict: capAutomatedVerdict(verdict),
@@ -166,26 +204,37 @@ function languageName(language: ScanLanguage) {
   return language === "ca" ? "Catalan" : "English";
 }
 
+/**
+ * Models tend to answer in the language of the page they read (a Spanish shop
+ * gave Spanish reasons in the Catalan interface): say it firmly, with the
+ * app's terminology.
+ */
+function writeIn(language: ScanLanguage, fields: string) {
+  const example = language === "ca" ? ' (e.g. "cuir", not "leather")' : "";
+  return `Write ${fields} in ${languageName(language)}, even when the page, label or sources are in another language; translate material and ingredient names too${example}.`;
+}
+
 const SCAN_RULES = `You help ethical vegans (antispeciesist: no animal use of any kind) decide about what they see.
 Decide what is shown, as "subject":
-- ingredient_label: a list of ingredients is readable. Transcribe it exactly in "ingredientsText" (including "may contain" statements); do not judge it, another system does.
+- ingredient_label: a photo where a list of ingredients is readable. Transcribe it exactly in "ingredientsText" (including "may contain" statements); do not judge it, another system does.
 - food: a food or drink product or dish without a readable ingredient list.
 - cosmetic: cosmetics, hygiene, cleaning or household chemicals.
 - clothing: clothes, shoes, bags, accessories, furniture or other material goods.
 - activity: an activity, show, excursion, sport or event (e.g. horse riding, zoo, aquarium, circus, bullfight, dolphin show, camel or elephant ride, fishing, hunting, rodeo, races).
 - place: a venue or business that is not a restaurant menu (shop, farm, sanctuary, museum...).
-- menu: a restaurant or bar menu.
+- menu: the menu of one restaurant, bar or café (its own list of dishes or drinks). Reviews, articles, guides or encyclopedia pages about restaurants, food or menus are not menus (use place or other).
 - other: anything else.
 "verdict" for the subject:
 - vegan: no animal products and no animal use. probably_vegan: likely, but something cannot be confirmed.
-- vegetarian / probably_vegetarian: food with dairy, egg or honey but no slaughter.
+- vegetarian / probably_vegetarian: food with dairy, egg or honey but no slaughter. Milk, egg or honey alone NEVER make a food non_vegetarian.
 - non_vegetarian: contains animal flesh, or (for non-food) uses animals or animal materials: leather, wool, silk, down, fur, animal testing, animals used for entertainment, riding, work or display.
 - unknown: not enough information.
 Be precise and conservative: never call something vegan when animal use is plausible and unconfirmed.
 Sanctuaries that rescue animals without breeding, riding or selling them are vegan places.
 "reason": one or two short sentences. "concerns": the specific animal-related issues (empty if none).
 "alternatives": up to three vegan alternatives when the verdict is not vegan (e.g. visiting an animal sanctuary instead of horse riding).
-"title": a short name of what is shown. "brand": brand if visible. "gtin": a barcode number only if clearly visible.`;
+"title": a short name of what is shown. "brand": brand if visible. "gtin": a barcode number only if clearly visible.
+For a food or cosmetic product page, copy its ingredient list exactly in "ingredientsText" when the page shows one (another system judges it).`;
 
 const SCAN_SCHEMA = {
   type: Type.OBJECT,
@@ -209,6 +258,16 @@ type GenerateResult = Awaited<ReturnType<GoogleGenAI["models"]["generateContent"
 function isRetryable(error: unknown) {
   const message = error instanceof Error ? error.message : String(error);
   return /429|503|resource_exhausted|unavailable|high demand|overload/i.test(message);
+}
+
+/** Total time for one answer, across models; the scanner should not hang. */
+const GENERATE_BUDGET_MS = 45_000;
+/** One model attempt: grounded searches take 10 to 20 s when healthy. */
+const ATTEMPT_TIMEOUT_MS = 25_000;
+
+function isTimeout(error: unknown) {
+  const name = error instanceof Error ? error.name : "";
+  return name === "TimeoutError" || name === "AbortError" || /aborted|timed? ?out/i.test(String(error));
 }
 
 function isModelMissing(error: unknown) {
@@ -293,20 +352,40 @@ export class GeminiUniversalAnalyzer implements UniversalAnalyzer {
     return new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
   }
 
-  private async generate(feature: string, params: Omit<GenerateParams, "model">, models: string[]): Promise<GenerateResult> {
+  /**
+   * Tries each model in turn within a time budget. An overloaded model can take
+   * 30 s or more just to answer "busy" (measured on 23 November 2026), so each
+   * attempt has its own limit and a slow failure moves on to the next model
+   * instead of retrying the same one.
+   */
+  private async generate(
+    feature: string,
+    params: Omit<GenerateParams, "model">,
+    models: string[],
+    budgetMs = GENERATE_BUDGET_MS,
+  ): Promise<GenerateResult> {
     const ai = this.client();
+    const deadline = Date.now() + budgetMs;
     let lastError: unknown;
     for (const model of [...new Set(models)]) {
       for (const delay of [0, 800]) {
         if (delay) await new Promise((resolve) => setTimeout(resolve, delay));
+        const remaining = deadline - Date.now();
+        if (remaining < 1_000) throw lastError ?? new Error("Automatic recognition is busy right now. Try again in a minute.");
+        const started = Date.now();
         try {
-          const response = await ai.models.generateContent({ ...params, model });
+          const response = await ai.models.generateContent({
+            ...params,
+            model,
+            config: { ...params.config, abortSignal: AbortSignal.timeout(Math.min(ATTEMPT_TIMEOUT_MS, remaining)) },
+          });
           recordGeminiCall(feature, response);
           return response;
         } catch (error) {
-          lastError = error;
-          if (isModelMissing(error)) break;
+          lastError = isTimeout(error) ? new Error("Automatic recognition is busy right now. Try again in a minute.") : error;
+          if (isModelMissing(error) || isTimeout(error)) break;
           if (!isRetryable(error)) throw error;
+          if (Date.now() - started > 5_000) break;
         }
       }
     }
@@ -314,7 +393,10 @@ export class GeminiUniversalAnalyzer implements UniversalAnalyzer {
   }
 
   private models() {
-    return [process.env.GEMINI_MODEL ?? "gemini-3.5-flash-lite", "gemini-3.1-flash-lite", "gemini-3.5-flash"];
+    // The last model is an older generation kept as a backup: on 23 November 2026
+    // the two newer backups answered 503 (overloaded) and 429 (quota) at once,
+    // so every photo failed whenever the first model was busy.
+    return [process.env.GEMINI_MODEL ?? "gemini-3.5-flash-lite", "gemini-3.1-flash-lite", "gemini-3.5-flash", BACKUP_MODEL];
   }
 
   async analyzeImage(image: ScanImage, language: ScanLanguage): Promise<UniversalScanResult> {
@@ -324,7 +406,7 @@ export class GeminiUniversalAnalyzer implements UniversalAnalyzer {
         contents: [{
           parts: [
             { inlineData: { mimeType: image.mimetype, data: image.buffer.toString("base64") } },
-            { text: `${SCAN_RULES}\nWrite "reason", "concerns" and "alternatives" in ${languageName(language)}. Keep "ingredientsText" in its original language.` },
+            { text: `${SCAN_RULES}\n${writeIn(language, '"reason", "concerns" and "alternatives"')} Keep "ingredientsText" in its original language.` },
           ],
         }],
         config: { responseMimeType: "application/json", responseSchema: SCAN_SCHEMA, temperature: 0 },
@@ -341,7 +423,7 @@ export class GeminiUniversalAnalyzer implements UniversalAnalyzer {
       "scan_text",
       {
         contents: [`${SCAN_RULES}
-Write "reason", "concerns" and "alternatives" in ${languageName(language)}.
+${writeIn(language, '"reason", "concerns" and "alternatives"')}
 ${input.hint ? `Context: ${input.hint}\n` : ""}${input.url ? `Address: ${input.url}\n` : ""}Content:
 """
 ${input.text.slice(0, 8_000)}
@@ -352,7 +434,29 @@ ${input.text.slice(0, 8_000)}
     );
     const raw = parseJsonObject(response.text) as RawScanAnswer | undefined;
     if (!raw) throw new Error("This content could not be recognised.");
-    return finalizeScanAnswer(raw, { url: input.url });
+    return finalizeScanAnswer(raw, {
+      url: input.url,
+      sources: input.url ? [{ url: input.url, title: input.title || undefined }] : [],
+    });
+  }
+
+  async researchLink(url: string, language: ScanLanguage): Promise<UniversalScanResult> {
+    const response = await this.generate(
+      "scan_link_search",
+      {
+        contents: [`${SCAN_RULES}
+${writeIn(language, '"reason", "concerns" and "alternatives"')}
+The page at this address cannot be downloaded: ${url}
+Use Google Search to find out which product or thing it is (the address often names it) and its ingredients or materials, from the manufacturer or shops.
+Copy an ingredient list in "ingredientsText" only exactly as published. If you cannot identify it, use verdict "unknown".
+Answer only with one JSON object with the keys: subject, title, brand, verdict, reason, concerns, alternatives, ingredientsText.`],
+        config: { tools: [{ googleSearch: {} }], temperature: 0 },
+      },
+      this.models(),
+    );
+    const raw = parseJsonObject(response.text) as RawScanAnswer | undefined;
+    if (!raw) throw new Error("This link could not be checked.");
+    return finalizeScanAnswer(raw, { url, sources: groundingSources(response) });
   }
 
   async researchProduct(input: { gtin: string; productName?: string; brand?: string }): Promise<ProductResearch> {
@@ -376,7 +480,7 @@ Answer ONLY with JSON:
 Never guess or reconstruct an ingredient list. If neither the barcode nor the given name can be matched to a specific product, answer {"found": false}.`],
         config: { tools: [{ googleSearch: {} }], temperature: 0 },
       },
-      [process.env.GEMINI_WEBSITE_MODEL ?? "gemini-3.1-flash-lite", "gemini-3.5-flash"]
+      [process.env.GEMINI_WEBSITE_MODEL ?? "gemini-3.1-flash-lite", "gemini-3.5-flash", BACKUP_MODEL]
     ];
     // Search-grounded answers are sometimes empty: one more try before giving up.
     let response = await this.generate(...params);
@@ -419,10 +523,11 @@ Never guess or reconstruct an ingredient list. If neither the barcode nor the gi
       "brand",
       {
         contents: [`Use Google Search to find out whether the cosmetics or household brand "${brand}" tests on animals.
-Look for current certifications (Leaping Bunny, PETA Beauty Without Bunnies, Cruelty Free International), sales where animal testing is required by law, and whether its parent company tests on animals.
-Answer ONLY with JSON: {"status": "cruelty_free" | "tests_on_animals" | "unknown", "parentCompany": string or null, "summary": string}.
-Use "cruelty_free" only if a recognised certification or an explicit, current no-testing policy covering the brand is found; otherwise "unknown".
-Write "summary" in ${languageName(language)}, at most two sentences, naming the certification or source.`],
+Judge the brand itself, worldwide (mainland China included), not its parent company or sister brands.
+Look for current certifications (Leaping Bunny, PETA Beauty Without Bunnies, Cruelty Free International) and for whether the brand tests, has its products or ingredients tested, or sells where the law requires animal testing of its products.
+Answer ONLY with JSON: {"status": "cruelty_free" | "tests_on_animals" | "unknown", "summary": string}.
+Use "cruelty_free" only if a recognised certification or an explicit, current no-testing policy covering the brand everywhere is found; otherwise "unknown". Do not mention the parent company.
+${writeIn(language, '"summary"')} At most two sentences, naming the certification or source.`],
         config: { tools: [{ googleSearch: {} }], temperature: 0 },
       },
       [process.env.GEMINI_WEBSITE_MODEL ?? "gemini-3.1-flash-lite", "gemini-3.5-flash"],
@@ -435,7 +540,6 @@ Write "summary" in ${languageName(language)}, at most two sentences, naming the 
       brand,
       // A "cruelty free" answer without any search source is not trusted.
       status: status === "cruelty_free" && sources.length === 0 ? "unknown" : status,
-      parentCompany: typeof parsed?.parentCompany === "string" && parsed.parentCompany ? parsed.parentCompany : undefined,
       summary: typeof parsed?.summary === "string" ? parsed.summary : "",
       sources: sources.slice(0, 5),
       checkedAt: new Date().toISOString(),

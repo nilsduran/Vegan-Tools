@@ -23,6 +23,12 @@ function normalizedText(value: string) {
     .trim();
 }
 
+/**
+ * The menu reader's answer when what it was given is not a menu (an article, a
+ * review, an app page...). The scanner then checks the link as an ordinary one.
+ */
+export const NOT_A_MENU_ERROR = "This is not a restaurant menu.";
+
 export function visibleMenuDescription(item: MenuExplanationInput) {
   const description = item.description?.trim() ?? "";
   if (!description) return "";

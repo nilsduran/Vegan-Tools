@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { CLASSIFIER_VERSION, type ProductResult } from "@vegan-tools/domain";
-import { applyResearch, needsResearch, pickPrimaryRecord } from "./product-resolver.js";
+import { applyResearch, isDoubtfulOnly, needsResearch, pickPrimaryRecord } from "./product-resolver.js";
 import { finalizeProductResearch, listAppearsInText, productCategoryOf } from "./universal-analyzer.js";
 
 function record(overrides: Partial<ProductResult>): ProductResult {
@@ -98,5 +98,40 @@ describe("citation check", () => {
     expect(productCategoryOf("Sunscreen / Face Fluid")).toBe("cosmetic");
     expect(productCategoryOf("Leather boots")).toBe("clothing");
     expect(productCategoryOf("Breakfast cereal")).toBe("other");
+  });
+});
+
+describe("products whose database record has ingredients", () => {
+  const glycerinOnly = record({
+    productName: "moisturiser",
+    category: "beauty",
+    brand: "",
+    verdict: "probably_vegetarian",
+    findings: [{ id: "glycerol", name: "Glycerol", matchedAlias: "glycerin", status: "ambiguous", reason: "", substitutions: [] }],
+    evidence: [{ id: "obf", sourceType: "open_beauty_facts", sourceName: "Open Beauty Facts", capturedAt: "", market: "ES", traces: [], ingredientsText: "aqua, glycerin" }],
+  });
+  const sources = [{ url: "https://brand.example/moisturiser" }];
+
+  it("still searches when the only doubt is a dual-origin ingredient, or the brand is missing", () => {
+    expect(isDoubtfulOnly(glycerinOnly)).toBe(true);
+    expect(needsResearch(glycerinOnly)).toBe(true);
+    expect(needsResearch({ ...glycerinOnly, verdict: "probably_vegan", findings: [] })).toBe(true); // no brand
+    expect(needsResearch({ ...glycerinOnly, verdict: "probably_vegan", findings: [], brand: "Brand" })).toBe(false);
+    expect(needsResearch({ ...glycerinOnly, verdict: "vegetarian", brand: "Brand", findings: [{ id: "milk", name: "Milk", matchedAlias: "milk", status: "vegetarian", reason: "", substitutions: [] }] })).toBe(false);
+  });
+
+  it("keeps the database list, adds the brand and lets a manufacturer vegan statement settle the doubt", () => {
+    const result = applyResearch("5060144640024", glycerinOnly, finalizeProductResearch(
+      { found: true, productName: "Bulldog Original Moisturiser", brand: "Bulldog", category: "cosmetic", manufacturerVeganClaim: true },
+      sources,
+    ));
+    expect(result).toMatchObject({ brand: "Bulldog", verdict: "probably_vegan", productName: "moisturiser" });
+    expect(result?.findings).toEqual(glycerinOnly.findings);
+  });
+
+  it("never settles a clearly animal ingredient with a vegan statement", () => {
+    const withBeeswax = { ...glycerinOnly, verdict: "vegetarian" as const, findings: [{ id: "beeswax", name: "Beeswax", matchedAlias: "cera alba", status: "vegetarian" as const, reason: "", substitutions: [] }] };
+    const result = applyResearch("1", withBeeswax, finalizeProductResearch({ found: true, brand: "X", manufacturerVeganClaim: true }, sources));
+    expect(result?.verdict).toBe("vegetarian");
   });
 });

@@ -9,6 +9,14 @@
       "expect": "vegan",
       "picked": "real scan by Nils, 22-11-2026",
       "note": "Brand states vegan and cruelty free. In Open Food Facts as food, without brand or ingredients."
+    },
+    {
+      "gtin": "5060144640024",
+      "name": "Bulldog moisturiser",
+      "category": "cosmetic",
+      "expect": "vegan",
+      "picked": "real scan by Nils, 22-11-2026",
+      "note": "Vegan and cruelty-free brand. Open Beauty Facts has the ingredients (glycerin) but no brand or labels."
     }
   ],
   "barcodes_about": "Biased sample: these products were picked from Open Food Facts searches, so they are all in the database. Use `coverage` to measure coverage.",

@@ -41,7 +41,7 @@ test("explains how to enable a denied camera and still allows typing ingredients
   await expect(page.getByText(/Camera access is unavailable/)).toBeVisible();
   await expect(page.getByRole("button", { name: /How to enable camera/ })).toBeVisible();
 
-  await page.getByRole("tab", { name: /Camera/ }).click();
+  await page.locator("summary", { hasText: /Or type the ingredients|O escriu els ingredients/ }).click();
   await page.locator("#ingredients-text").fill("Ingredients: wheat flour, cod, olive oil, salt");
   await page.getByRole("button", { name: /Check ingredients/ }).click();
   await expect(page.locator(".verdict-non_vegetarian").first()).toBeVisible();
@@ -78,9 +78,9 @@ test("a restaurant menu QR code leads to the dishes I can order", async ({ page 
   });
 
   await page.goto("/scanner");
+  // A pasted link is checked straight away, with no "code detected" step.
   await page.locator("#barcode").fill("https://bar-e2e.example/carta");
   await page.locator("#barcode").press("Enter");
-  await page.getByRole("button", { name: /See what I can order|Mira què puc demanar/ }).click();
 
   await expect(page).toHaveURL(/\/scan\/menu\?url=/);
   await expect(page.getByText("Amanida de cigrons")).toBeVisible();
@@ -118,8 +118,7 @@ test("the camera recognises an activity from a photo", async ({ page }) => {
   });
 
   await page.goto("/scanner");
-  await page.getByRole("tab", { name: /Camera|Càmera/ }).click();
-  await page.locator('input[type="file"]').setInputFiles({
+  await page.getByTestId("scan-photo-input").setInputFiles({
     name: "horse.jpg",
     mimeType: "image/jpeg",
     buffer: Buffer.from([0xff, 0xd8, 0xff, 0xd9]),
@@ -151,7 +150,6 @@ test("an unknown link can be checked and its page is classified", async ({ page 
   await page.goto("/scanner");
   await page.locator("#barcode").fill("https://hipica.example/");
   await page.locator("#barcode").press("Enter");
-  await page.getByRole("button", { name: /Check this link|Comprova aquest enllaç/ }).click();
   await expect(page.getByRole("heading", { name: "Rutes a cavall" })).toBeVisible();
 });
 
@@ -162,10 +160,52 @@ test("a photo of the barcode works when the live camera does not", async ({ page
   });
   await mockJson(page, new RegExp(`/v1/products/${SCANNED_GTIN}$`), product);
   await page.goto("/scanner");
-  await page.getByTestId("barcode-photo-input").setInputFiles({
+  await page.getByTestId("scan-photo-input").setInputFiles({
     name: "barcode.png",
     mimeType: "image/png",
     buffer: barcodePng(SCANNED_GTIN),
   });
   await expect(page.getByRole("heading", { name: "E2E oat drink" })).toBeVisible({ timeout: 15_000 });
+});
+
+test("the shutter photographs something without a code and recognises it", async ({ page }) => {
+  // A camera that films something with no code in it (an animated canvas), so
+  // the live reader finds nothing and the photo is what gets checked.
+  await page.addInitScript(() => {
+    navigator.mediaDevices.getUserMedia = async () => {
+      const canvas = document.createElement("canvas");
+      canvas.width = 1280;
+      canvas.height = 720;
+      const context = canvas.getContext("2d")!;
+      let tick = 0;
+      const draw = () => {
+        tick += 1;
+        context.fillStyle = "#c8b48a";
+        context.fillRect(0, 0, canvas.width, canvas.height);
+        context.fillStyle = "#5a3d1e";
+        context.font = "120px sans-serif";
+        context.fillText("Horse riding", 200 + (tick % 20), 380);
+      };
+      draw();
+      window.setInterval(draw, 100);
+      return canvas.captureStream(10);
+    };
+  });
+  await mockJson(page, /\/v1\/scan\/photo/, {
+    subject: "activity",
+    title: "Horse riding",
+    verdict: "non_vegetarian",
+    reason: "Horses are used for riding.",
+    concerns: ["Animals used for entertainment"],
+    alternatives: ["Visit an animal sanctuary"],
+    findings: [],
+    traces: [],
+    assurance: "unverified",
+    sources: [],
+  });
+
+  await page.goto("/scanner");
+  await page.getByRole("button", { name: /Take a photo|Fes una foto/ }).click();
+  await expect(page.getByRole("heading", { name: "Horse riding" })).toBeVisible({ timeout: 15_000 });
+  await expect(page.getByText("Visit an animal sanctuary")).toBeVisible();
 });

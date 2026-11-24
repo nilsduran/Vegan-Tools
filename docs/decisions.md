@@ -10,6 +10,43 @@ Memòria del projecte entre sessions: **què es va decidir, per què i què es v
 
 ---
 
+## 2026-11-23 — Càmera negra a Firefox i neteja de l'escàner
+
+- **Cruelty-free: compta només la marca, a tot el món (Xina inclosa), no l'empresa mare.** Substitueix el criteri d'abans, que també castigava la marca per l'empresa mare (CeraVe per L'Oréal). Si la marca en si no experimenta amb animals, n'hi ha prou. L'empresa mare ja no es demana ni es mostra. **(ho ha decidit en Nils)**
+- **La previsualització de la càmera no s'inverteix (sense efecte mirall).** Es va provar d'invertir la webcam com en una videotrucada, però en Nils la vol com a les altres branques: la imatge tal com arriba de la càmera. **(ho ha decidit en Nils)**
+- **Una sola càmera a l'escàner.** Fora les pestanyes «Codi de barres» i «Càmera»: la càmera llegeix codis sola i té un obturador per fotografiar el que no en té (etiqueta, roba, activitat). Cada foto, feta o pujada, busca primer un codi al mòbil (gratis i exacte) i només si no n'hi ha cap va a la IA. Un sol botó «Puja una imatge» substitueix «Foto del codi de barres» i l'antic «Puja una imatge». Escriure ingredients queda plegat a sota. **(ho ha demanat en Nils)**
+- **Formats de codi, mesurats** (`scripts/bench-barcode-formats.ts`): amb els 13 formats, ZXing tardava ~0,7 s per fotograma Full HD (la pàgina es congelava a cada intent a l'iPhone, Firefox i Chrome d'escriptori); amb EAN/UPC + QR + Code 128, ~0,15 s, amb les mateixes lectures i cap lectura falsa en cap dels dos casos. Data Matrix sol triplica el temps, així que només es busca a les fotos (un sol intent). **(deduït, mesurat)**
+- **Zoom 1,5× on la càmera ho permet** (mòbils), perquè no s'acosti tant el codi que quedi borrós. No mesurat: és un canvi petit i les webcams no tenen zoom. **(acordat amb en Nils)**
+- **Web Worker per a la lectura: ajornat.** Era la segona millora proposada, però amb els formats reduïts el bloqueig passa de ~0,7 s a ~0,15 s per intent a l'escriptori. Només val la pena si en un iPhone real la previsualització va a batzegades. **(deduït)**
+- **El lector de cartes pot respondre «no és una carta».** Amb 22 enllaços (12 cartes reals i 10 que no ho són), 6 de cada 9 no-cartes vives es llegien com a cartes: d'un article de la Viquipèdia o d'una ressenya en treia «plats». Ara la IA decideix primer si és la carta d'un local; si no ho és, l'escàner comprova l'enllaç com un enllaç normal. Després del canvi, les 10 no-cartes surten bé. Les adreces amb «carta» o «menu» continuen anant directes al lector (és el cas habitual i estalvia una crida), perquè la xarxa de seguretat ja n'atura els errors. **(ho ha demanat en Nils; criteri deduït de la prova)**
+- **Pàgines de repartiment (Glovo…) acceptades com a cartes quan s'escanegen o s'enganxen**; només es rebutgen els perfils de xarxes socials. Des del mapa, la regla anterior no canvia. PDF de cartes fins a 20 MB (els que porten fotos en fan més de 10). **(deduït)**
+- **Els enllaços d'Amazon fallaven per culpa nostra, no d'Amazon.** El límit de 2 MB rebutjava la pàgina real (≈2,3 MB, amb ingredients); ara són 5 MB. Si Amazon respon amb una pàgina antirobots (captcha, estat 200), es tracta com a bloquejada en lloc de jutjar-la. I la cerca web fallava sovint perquè el model enviava `concerns` com a text en lloc de llista: ara s'accepten totes dues formes. Era la causa dels bolquers «Desconegut». **(deduït, provat amb Amazon, Decathlon i Carrefour)**
+- **Pel·lícules i videojocs (producció amb animals, escenes no veganes) queden fora de la primera versió.** Aparcat al roadmap. **(ho ha decidit en Nils)**
+- **Cosmètics: un sol veredicte, després de comprovar la marca.** Abans sortia «Desconegut» i, uns segons després, la comprovació de la marca deia que l'empresa mare experimenta amb animals. Ara el veredicte espera la marca, tret que els ingredients ja diguin «no vegà». Si la marca experimenta amb animals, el veredicte és «No vegà» amb una frase fixa (no generada): el mateix cas sempre es llegeix igual. **(ho ha demanat en Nils)**
+- **«Empresa mare», mai «empresa matriu».** **(ho ha demanat en Nils)**
+- **Les respostes de la IA van en l'idioma de la interfície**, encara que la pàgina estigui en un altre idioma. **(ho ha demanat en Nils)**
+- **Temps màxim de 45 s per resposta de Gemini**, amb 25 s per model. Un model saturat pot trigar més de 30 s a respondre «ocupat». Per a enllaços bloquejats, la cerca i les paraules de l'adreça van en paral·lel. **(deduït de les proves)**
+- **Productes sense res d'origen animal plausible** (videojocs, electrònica): «Probablement vegà». **Productes on és plausible** (cosmètica, bolquers amb loció, roba) i sense informació: «Desconegut», pel principi de màxima precaució. **(proposat, pendent que en Nils ho confirmi)**
+- **Enllaços de botigues provats amb 8 productes triats abans de mirar el resultat** (Amazon, Decathlon, Lush, Carrefour). Decathlon, Carrefour i, a vegades, Lush bloquegen la descàrrega (403). Ara: pàgina → cerca web amb fonts → paraules de l'adreça. **Des de l'adreça sola es pot dir «no vegà» (llana, xocolata amb llet), però mai «vegà»**: un veredicte positiu es torna «desconegut». **(deduït, principi de màxima precaució)**
+- **La llista d'ingredients d'una pàgina la jutgen les regles, no el model.** I en menjar sense llista, «no vegetarià» només es manté si les regles troben carn, peix o gelatina a l'explicació del model: Gemini deia que la Nutella i les galetes amb xocolata amb llet eren «no vegetarianes». **(deduït de les proves)**
+- **La cerca web per a pàgines bloquejades depèn de la quota de Google Search grounding**, que avui donava 429. És la mateixa decisió de quota/facturació pendent d'en Nils. **(pendent)**
+- **La imatge negra era la càmera ocupada per una altra pestanya**, no la resolució. Firefox l'obria però no enviava cap fotograma. Ara, si en 3,5 s no arriba cap fotograma, l'escàner la reobre sense demanar mida i, si continua sense imatge, mostra un missatge clar en lloc d'un requadre negre. També es demana 1280 d'amplada en lloc de Full HD. **(diagnosticat amb en Nils)**
+- **Fora el mode de diagnòstic `?camera-debug` i el text d'ajuda sobre la imatge.** El diagnòstic ja havia fet la seva feina, i el text tapava la imatge. **(ho ha demanat en Nils)**
+- **El camp manual accepta enllaços i els comprova de seguida**, sense el pas «codi detectat» que té un escaneig. La foto del codi de barres va sota el camp manual. **(ho ha demanat en Nils)**
+- **El nom de la pestanya continua sent «Escàner».** «És vegà?» es va considerar, però és més llarg i encaixa pitjor amb la icona a la barra del mòbil. **(en Nils ho deixa així de moment)**
+
+## 2026-11-22 — Webcams de baixa qualitat i cosmètica dubtosa
+- **Lector** **(deduït, mesurat)**:
+  - Amb `scripts/bench-barcode-reader.ts` (fotogrames sintètics de webcam de 640×480), la lectura depèn de tenir unes 3 píxels per barra i poc desenfocament; cap opció del lector ho canvia gaire.
+  - El retall del centre empitjorava la lectura i s'ha tret.
+  - S'accepta la primera lectura vàlida (ZXing no va donar mai cap codi erroni), cosa que redueix a la meitat l'espera quan només alguns fotogrames es llegeixen.
+  - Enfocar la imatge per programa es va descartar: +3 lectures de 72 al triple de CPU.
+  - Per a una webcam d'escriptori, el límit és físic (resolució i enfocament fix): la foto del codi és la sortida.
+- **Cosmètica** **(Nils va trobar el cas: Bulldog, vegana i cruelty free, sortia «dubtosa»)**:
+  - La cerca web ara també es fa si el dubte només ve d'ingredients d'origen incert, o si un producte que no és menjar no té marca.
+  - Es manté la llista de la base de dades; la web hi afegeix la marca i la declaració vegana del fabricant.
+  - S'ha tret l'avís «sense certificació cruelty-free a les bases de dades obertes», que donava a entendre el contrari del que volia dir.
+
 ## 2026-11-22 — Segona revisió dels plats vegans, errors d'OCR i dos fluxos més amb E2E
 - **Plats vegans** (`menu-verification.ts`) **(deduït)**:
   - Les regles passen pel nom i la descripció dels plats «vegans».

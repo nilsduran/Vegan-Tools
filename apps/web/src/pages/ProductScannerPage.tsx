@@ -26,11 +26,10 @@ import {
   extractProductIngredientText,
   getProduct,
 } from "../api";
-import { BrandCrueltyFree } from "../components/BrandCrueltyFree";
+import { BrandCrueltyFree, BrandVerdictPending, useCosmeticVerdict } from "../components/BrandCrueltyFree";
 import { UniversalResult } from "../components/UniversalResult";
-import { BarcodeCamera } from "../components/BarcodeCamera";
+import { BarcodeCamera, readCodeFromPhoto } from "../components/BarcodeCamera";
 import { IngredientFindings } from "../components/IngredientFindings";
-import { IngredientCamera } from "../components/IngredientCamera";
 import { VerdictBadge } from "../components/VerdictBadge";
 import { t, tx, useLanguage } from "../i18n";
 import { useDocumentHead } from "../utils/seo";
@@ -42,7 +41,6 @@ import {
 import { classifyScannedCode, type IngredientFinding, type ProductResult } from "@vegan-tools/domain";
 import { EvidenceNote } from "../components/EvidenceNote";
 
-type CheckerMode = "barcode" | "camera";
 
 function productCategory(product: ProductResult): "food" | "beauty" | "other" {
   return product.category ?? (product.isBeautyProduct ? "beauty" : "food");
@@ -142,7 +140,6 @@ export function ProductScannerPage() {
   const language = useLanguage();
   const navigate = useNavigate();
   const { gtin: routeGtin } = useParams();
-  const [mode, setMode] = useState<CheckerMode>("barcode");
   const [code, setCode] = useState("");
   const [ingredientsText, setIngredientsText] = useState("");
   const [ingredientPhoto, setIngredientPhoto] = useState<File>();
@@ -159,6 +156,9 @@ export function ProductScannerPage() {
     queryFn: () => getProduct(routeGtin ?? ""),
     enabled: Boolean(routeGtin),
   });
+  // Cosmetics: the verdict waits for the brand check, so it is given once.
+  const cosmeticBrand = lookup.data && productCategory(lookup.data) === "beauty" ? lookup.data.brand : undefined;
+  const productVerdict = useCosmeticVerdict(lookup.data?.verdict ?? "unknown", lookup.data?.reason ?? "", cosmeticBrand);
 
   useDocumentHead({
     title: routeGtin && lookup.data ? `${lookup.data.productName || routeGtin} · ${t("scanner")}` : t("scanner"),
@@ -257,6 +257,31 @@ export function ProductScannerPage() {
     });
   };
 
+  // Every photo, taken or uploaded: a code in it wins (read on the device, free
+  // and exact); otherwise the photo is recognised automatically.
+  const handlePhoto = async (file: File) => {
+    linkScan.reset();
+    photoScan.reset();
+    ingredientAnalysis.reset();
+    setRemotePhotoUrl("");
+    setIngredientPhoto(file);
+    const found = await readCodeFromPhoto(file);
+    if (found) {
+      setIngredientPhoto(undefined);
+      runLookup(found);
+      return;
+    }
+    scanPhoto(file);
+  };
+
+  const clearPhoto = () => {
+    setIngredientPhoto(undefined);
+    setRemotePhotoUrl("");
+    photoScan.reset();
+    productPhotoExtraction.reset();
+    ingredientAnalysis.reset();
+  };
+
   const checkLink = (url: string) => {
     linkScan.mutate(url, {
       onSuccess: (result) => {
@@ -266,493 +291,446 @@ export function ProductScannerPage() {
     });
   };
 
-  const selectMode = (nextMode: CheckerMode) => {
-    setMode(nextMode);
-    ingredientAnalysis.reset();
-    photoScan.reset();
-    productPhotoExtraction.reset();
-  };
-
   return (
     <div className="page narrow-page">
-      <header className="page-heading">
+      <header className="page-heading page-heading--compact">
         <h1>{t("scanner")}</h1>
-        <p>{tx("Scan any barcode or QR code, or take a photo of what you want to check.")}</p>
-        <p className="checker-disclaimer">
-          {tx("Product recipes can change. Check the current package when the result matters.")}
-        </p>
+        <p>{tx("Scan any product or paste any link, and we'll tell you whether it's vegan.")}</p>
       </header>
 
-      {!routeGtin && <div className="mode-tabs" role="tablist" aria-label={tx("Product check method")}>
-        <button
-          type="button"
-          role="tab"
-          aria-selected={mode === "barcode"}
-          className={mode === "barcode" ? "active" : ""}
-          onClick={() => selectMode("barcode")}
-        >
-          <ScanBarcode />{tx("Barcode")}
-        </button>
-        <button
-          type="button"
-          role="tab"
-          aria-selected={mode === "camera"}
-          className={mode === "camera" ? "active" : ""}
-          onClick={() => selectMode("camera")}
-        >
-          <Camera />{tx("Camera")}
-        </button>
-      </div>}
+      <section className="checker-panel" aria-label={tx("Scanner")}>
+        {!routeGtin && (photoUrl ? (
+          <div className="ingredient-photo-preview">
+            <img src={photoUrl} alt={tx("Your photo")} />
+            <button type="button" className="secondary-button" onClick={clearPhoto}>
+              <Camera />{tx("Retake photo")}
+            </button>
+          </div>
+        ) : (
+          <BarcodeCamera onDetected={runLookup} onPhoto={(file) => void handlePhoto(file)} />
+        ))}
 
-      {mode === "barcode" && (
-        <section className="checker-panel" aria-label={tx("Barcode checker")}>
-          {!routeGtin && <BarcodeCamera onDetected={runLookup} />}
+        {codeError && <div className="error-banner" role="alert">{codeError}</div>}
 
-          {codeError && <div className="error-banner" role="alert">{codeError}</div>}
-
-          {scannedText && (
-            <div className="scanner-external-result" role="status">
-              <strong>{tx("Code detected")}</strong>
-              <p className="muted scanned-text">{scannedText}</p>
-              <div className="not-found-actions">
-                <button type="button" className="secondary-button" onClick={() => setScannedText("")}>
-                  <RotateCcw aria-hidden="true" />
-                  <span>{tx("Scan another")}</span>
-                </button>
-              </div>
-            </div>
-          )}
-
-          {scannedUrl && (
-            <div className="scanner-external-result" role="status">
-              <strong>{scannedIsMenu ? tx("Restaurant menu detected") : tx("Code detected")}</strong>
-              <p className="muted">{scannedUrl}</p>
-              <div className="not-found-actions">
-                {scannedIsMenu && (
-                  <button
-                    type="button"
-                    className="primary-button"
-                    onClick={() => void navigate(`/scan/menu?url=${encodeURIComponent(scannedUrl)}`)}
-                  >
-                    <UtensilsCrossed aria-hidden="true" />
-                    <span>{tx("See what I can order")}</span>
-                  </button>
-                )}
-                {!scannedIsMenu && (
-                  <button
-                    type="button"
-                    className="primary-button"
-                    onClick={() => checkLink(scannedUrl)}
-                    disabled={linkScan.isPending}
-                  >
-                    {linkScan.isPending ? <LoaderCircle className="spin" aria-hidden="true" /> : <SearchCheck aria-hidden="true" />}
-                    <span>{tx("Check this link")}</span>
-                  </button>
-                )}
-                <button
-                  type="button"
-                  className="secondary-button"
-                  onClick={() => window.open(scannedUrl, "_blank", "noopener,noreferrer")}
-                >
-                  <ExternalLink aria-hidden="true" />
-                  <span>{tx("Open scanned link")}</span>
-                </button>
-                <button type="button" className="secondary-button" onClick={() => setScannedUrl("")}>
-                  <RotateCcw aria-hidden="true" />
-                  <span>{tx("Scan another")}</span>
-                </button>
-              </div>
-            </div>
-          )}
-
-          {linkScan.error && <div className="error-banner" role="alert">{linkScan.error.message}</div>}
-          {linkScan.data && !linkScan.data.menuUrl && !linkScan.data.gtin && <UniversalResult result={linkScan.data} />}
-
-          {!routeGtin && <form
-            className="barcode-form"
-            onSubmit={(event) => {
-              event.preventDefault();
-              if (code.trim()) runLookup(code.trim());
-            }}
-          >
-            <label htmlFor="barcode">{t("manualCode")}</label>
-            <div>
-              <input
-                id="barcode"
-                type="text"
-                inputMode="text"
-                autoComplete="off"
-                value={code}
-                onChange={(event) => setCode(event.target.value)}
-                placeholder="3017620422003"
-              />
-              <button className="primary-button" disabled={!code.trim()}>{t("lookUp")}</button>
-            </div>
-          </form>}
-
-          {routeGtin && lookup.isPending && (
-            <div className="loading">
-              <LoaderCircle className="spin" />
-              {slowLookup ? tx("No database has this product's ingredients: searching the web…") : tx("Checking product…")}
-            </div>
-          )}
-          
-          {routeGtin && lookup.error && (
-            <div className="product-not-found-card">
-              <div className="error-banner">{lookup.error.message || tx("Product not found in Open Food Facts database.")}</div>
-              <p className="muted">
-                {language === "ca"
-                  ? "Pots fer una foto a l'etiqueta d'ingredients del paquet per comprovar-lo ara mateix:"
-                  : "You can take a photo of the ingredients list on the packaging to check it directly:"}
-              </p>
-              <div className="not-found-actions">
-                <button
-                  type="button"
-                  className="primary-button fallback-ocr-btn"
-                  onClick={() => {
-                    selectMode("camera");
-                    void navigate("/scanner");
-                  }}
-                >
-                  <Camera aria-hidden="true" />
-                  <span>{tx("Take photo of ingredient label")}</span>
-                </button>
-                <button
-                  type="button"
-                  className="secondary-button"
-                  onClick={() => void navigate("/scanner")}
-                >
-                  <RotateCcw aria-hidden="true" />
-                  <span>{tx("Scan another")}</span>
-                </button>
-              </div>
-            </div>
-          )}
-
-          {lookup.data && (
-            <article className="product-result">
-              {lookup.data.imageUrl && (
-                <div
-                  className={`product-result-media ${
-                    lookup.data.verdict === "non_vegetarian" && !revealedImages[lookup.data.gtin]
-                      ? "is-sensitive-blurred"
-                      : ""
-                  }`}
-                >
-                  <img src={lookup.data.imageUrl} alt="" referrerPolicy="no-referrer" />
-                  {lookup.data.verdict === "non_vegetarian" && !revealedImages[lookup.data.gtin] && (
-                    <button
-                      type="button"
-                      className="sensitive-overlay-btn"
-                      onClick={() => {
-                        if (lookup.data?.gtin) {
-                          const gtin = lookup.data.gtin;
-                          setRevealedImages((prev) => ({ ...prev, [gtin]: true }));
-                        }
-                      }}
-                      title={tx("Sensitive content: tap to reveal")}
-                    >
-                      <EyeOff aria-hidden="true" size={15} />
-                      <span>{tx("Sensitive content: tap to reveal")}</span>
-                    </button>
-                  )}
-                </div>
-              )}
-              <div className="product-result-body">
-                <div style={{ display: "flex", flexWrap: "wrap", alignItems: "center", gap: "0.5rem", marginBottom: "0.4rem" }}>
-                  <VerdictBadge verdict={lookup.data.verdict} context={productCategory(lookup.data) === "food" ? "diet" : "general"} />
-                  <span className="product-category-chip">
-                    {{ food: tx("Food"), beauty: tx("Cosmetics & Care"), other: tx("Other product") }[productCategory(lookup.data)]}
-                  </span>
-                  {lookup.data.crueltyFree && (
-                    <span
-                      style={{
-                        fontSize: "0.78rem",
-                        fontWeight: 700,
-                        padding: "0.2rem 0.6rem",
-                        borderRadius: "999px",
-                        background: "#ecfdf5",
-                        border: "1px solid #10b981",
-                        color: "#065f46",
-                        display: "inline-flex",
-                        alignItems: "center",
-                        gap: "0.3rem",
-                      }}
-                    >
-                      🐰 {tx("Cruelty-Free")}
-                    </span>
-                  )}
-                </div>
-                <h2>{lookup.data.productName ?? `Product ${lookup.data.gtin}`}</h2>
-                {cleanBrand(lookup.data.brand, lookup.data.productName) && (
-                  <p className="muted">
-                    {cleanBrand(lookup.data.brand, lookup.data.productName)}
-                  </p>
-                )}
-                {lookup.data.crueltyFreeCertifications && lookup.data.crueltyFreeCertifications.length > 0 && (
-                  <div style={{ display: "flex", flexWrap: "wrap", gap: "0.35rem", margin: "0.35rem 0" }}>
-                    {lookup.data.crueltyFreeCertifications.map((cert) => (
-                      <span
-                        key={cert}
-                        style={{
-                          fontSize: "0.72rem",
-                          fontWeight: 600,
-                          padding: "0.15rem 0.45rem",
-                          borderRadius: "6px",
-                          background: "var(--green-light)",
-                          color: "var(--green-dark)",
-                          border: "1px solid var(--green-border)",
-                        }}
-                      >
-                        ✓ {cert}
-                      </span>
-                    ))}
-                  </div>
-                )}
-                {lookup.data.isBeautyProduct && !lookup.data.crueltyFree && (
-                  <div style={{ margin: "0.35rem 0" }}>
-                    <span
-                      style={{
-                        fontSize: "0.74rem",
-                        fontWeight: 500,
-                        padding: "0.2rem 0.5rem",
-                        borderRadius: "6px",
-                        background: "rgba(245, 158, 11, 0.1)",
-                        color: "#b45309",
-                        border: "1px solid rgba(245, 158, 11, 0.3)",
-                        display: "inline-block",
-                      }}
-                    >
-                      ⚠️ {tx("No cruelty-free certification registered in open databases")}
-                    </span>
-                  </div>
-                )}
-                <p className="result-reason">{localizeGeneratedText(lookup.data.reason, language)}</p>
-                <FlaggedIngredientChips findings={lookup.data.findings} language={language} />
-                {productCategory(lookup.data) === "beauty" && lookup.data.brand && (
-                  <BrandCrueltyFree brand={lookup.data.brand} />
-                )}
-                <EvidenceNote
-                  assurance={lookup.data.assurance}
-                  evidence={lookup.data.evidence}
-                  automatic={lookup.data.evidence.some((item) => item.sourceType === "automated_extraction")}
-                />
-                {lookup.data.traces.length > 0 && (
-                  <p className="trace-note">
-                    {tx("Allergen trace warning")}: {lookup.data.traces.join(", ")}
-                  </p>
-                )}
-                {lookup.data.evidence.filter((item) => item.sourceUrl).length > 0 && (
-                  <p className="source-links">
-                    {tx("Sources")}:{" "}
-                    {lookup.data.evidence.filter((item) => item.sourceUrl).slice(0, 3).map((item) => (
-                      <a key={item.id} className="source-link" href={item.sourceUrl} target="_blank" rel="noreferrer">
-                        {item.sourceName} <ExternalLink />
-                      </a>
-                    ))}
-                  </p>
-                )}
-                <div className="result-actions">
-                  <button
-                    className="secondary-button"
-                    onClick={() => {
-                      void navigate("/scanner");
-                    }}
-                  >
-                    <RotateCcw />{tx("Scan another")}
-                  </button>
-                  <button
-                    className="secondary-button"
-                    onClick={() => {
-                      const label = lookup.data.evidence.find(
-                        (item) => item.ingredientsText,
-                      )?.ingredientsText;
-                      if (label) setIngredientsText(label);
-                      selectMode("camera");
-                      if (lookup.data.ingredientsImageUrl) {
-                        setRemotePhotoUrl(lookup.data.ingredientsImageUrl);
-                        productPhotoExtraction.mutate(lookup.data.gtin, {
-                          onSuccess: (text) => {
-                            setIngredientsText(text);
-                            if (text.trim()) {
-                              ingredientAnalysis.mutate(text);
-                            }
-                          },
-                        });
-                      } else if (label?.trim()) {
-                        ingredientAnalysis.mutate(label);
-                      }
-                    }}
-                  >
-                    <ClipboardCheck />
-                    {lookup.data.ingredientsImageUrl ? tx("Read ingredient label") : tx("Check label")}
-                  </button>
-                </div>
-              </div>
-            </article>
-          )}
-
-          {/* Recent Scans History in Supermarket session */}
-          {!routeGtin && recentScans.length > 0 && (
-            <section className="recent-scans-section" aria-label={tx("Recent products")}>
-              <div className="recent-scans-header">
-                <h3>{tx("Recent products")}</h3>
-                <button
-                  type="button"
-                  className="text-button clear-history-btn"
-                  onClick={() => {
-                    localStorage.removeItem(RECENT_SCANS_STORAGE_KEY);
-                    setRecentScans([]);
-                  }}
-                >
-                  {tx("Clear history")}
-                </button>
-              </div>
-              <div className="recent-scans-grid">
-                {recentScans.map((item) => (
-                  <button
-                    key={item.gtin}
-                    type="button"
-                    className="recent-scan-card"
-                    onClick={() => {
-                      void navigate(`/product/${item.gtin}`);
-                    }}
-                  >
-                    {item.imageUrl ? (
-                      <img src={item.imageUrl} alt="" className="recent-scan-img" referrerPolicy="no-referrer" />
-                    ) : (
-                      <div className="recent-scan-placeholder"><ScanBarcode aria-hidden="true" /></div>
-                    )}
-                    <div className="recent-scan-info">
-                      <strong>{item.productName}</strong>
-                      {item.brand && <small>{item.brand}</small>}
-                    </div>
-                    <VerdictBadge verdict={item.verdict as any} />
-                  </button>
-                ))}
-              </div>
-            </section>
-          )}
-        </section>
-      )}
-
-      {mode === "camera" && (
-        <section className="checker-panel" aria-label={tx("Camera checker")}>
-          <p className="checker-intro">
-            {tx("Take a photo of an ingredient label, a product without a barcode, clothing or an activity. Ingredient lists are checked with our rules; everything else is recognised automatically.")}
-          </p>
-
-          {(photoUrl || remotePhotoUrl) ? (
-            <div className="ingredient-photo-preview">
-              <img
-                src={photoUrl || remotePhotoUrl}
-                alt={tx("Photograph the ingredient label")}
-                referrerPolicy="no-referrer"
-              />
-              <button
-                className="secondary-button"
-                onClick={() => {
-                  setIngredientPhoto(undefined);
-                  setRemotePhotoUrl("");
-                  photoScan.reset();
-                  productPhotoExtraction.reset();
-                  ingredientAnalysis.reset();
-                }}
-              >
-                <Camera />{tx("Retake photo")}
+        {scannedText && (
+          <div className="scanner-external-result" role="status">
+            <strong>{tx("Code detected")}</strong>
+            <p className="muted scanned-text">{scannedText}</p>
+            <div className="not-found-actions">
+              <button type="button" className="secondary-button" onClick={() => setScannedText("")}>
+                <RotateCcw aria-hidden="true" />
+                <span>{tx("Scan another")}</span>
               </button>
             </div>
-          ) : (
-            <IngredientCamera onCapture={scanPhoto} />
-          )}
-
-          <div className="upload-alternative">
-            <span>{tx("or")}</span>
-            <label className="secondary-button">
-              <ImagePlus />{tx("Upload an image")}
-            <input
-              type="file"
-              accept="image/jpeg,image/png,image/webp"
-              onChange={(event) => {
-                const file = event.target.files?.[0];
-                if (!file) return;
-                scanPhoto(file);
-              }}
-            />
-            </label>
           </div>
+        )}
 
-          {photoScan.isPending && (
-            <div className="loading"><LoaderCircle className="spin" />{tx("Recognising the photo…")}</div>
-          )}
-          {productPhotoExtraction.isPending && (
-            <div className="loading"><LoaderCircle className="spin" />{tx("Reading label…")}</div>
-          )}
-          {(photoScan.error || productPhotoExtraction.error) && (
-            <div className="inline-note">
-              {(photoScan.error || productPhotoExtraction.error)?.message}
-            </div>
-          )}
-          {photoScan.data && !ingredientAnalysis.data && (
-            <>
-              <UniversalResult result={photoScan.data} />
-              {photoScan.data.gtin && (
+        {scannedUrl && (
+          <div className="scanner-external-result" role="status">
+            <strong>{scannedIsMenu ? tx("Restaurant menu detected") : tx("Code detected")}</strong>
+            <p className="muted">{scannedUrl}</p>
+            <div className="not-found-actions">
+              {scannedIsMenu && (
                 <button
                   type="button"
                   className="primary-button"
-                  onClick={() => void navigate(`/product/${encodeURIComponent(photoScan.data.gtin ?? "")}`)}
+                  onClick={() => void navigate(`/scan/menu?url=${encodeURIComponent(scannedUrl)}`)}
                 >
-                  <ScanBarcode aria-hidden="true" />
-                  <span>{tx("See the product")}</span>
+                  <UtensilsCrossed aria-hidden="true" />
+                  <span>{tx("See what I can order")}</span>
                 </button>
               )}
-            </>
-          )}
+              {!scannedIsMenu && (
+                <button
+                  type="button"
+                  className="primary-button"
+                  onClick={() => checkLink(scannedUrl)}
+                  disabled={linkScan.isPending}
+                >
+                  {linkScan.isPending ? <LoaderCircle className="spin" aria-hidden="true" /> : <SearchCheck aria-hidden="true" />}
+                  <span>{tx("Check this link")}</span>
+                </button>
+              )}
+              <button
+                type="button"
+                className="secondary-button"
+                onClick={() => window.open(scannedUrl, "_blank", "noopener,noreferrer")}
+              >
+                <ExternalLink aria-hidden="true" />
+                <span>{tx("Open scanned link")}</span>
+              </button>
+              <button type="button" className="secondary-button" onClick={() => setScannedUrl("")}>
+                <RotateCcw aria-hidden="true" />
+                <span>{tx("Scan another")}</span>
+              </button>
+            </div>
+          </div>
+        )}
 
-          <form
-            className="text-analysis-form"
-            onSubmit={(event) => {
-              event.preventDefault();
-              if (ingredientsText.trim()) ingredientAnalysis.mutate(ingredientsText);
-            }}
-          >
-            <label htmlFor="ingredients-text">{tx("Or type the ingredients")}</label>
-            <textarea
-              id="ingredients-text"
-              value={ingredientsText}
-              onChange={(event) => setIngredientsText(event.target.value)}
-              placeholder={tx("Ingredients: cocoa mass, sugar, cocoa butter… May contain milk.")}
-              rows={9}
+        {linkScan.error && <div className="error-banner" role="alert">{tx(linkScan.error.message)}</div>}
+        {linkScan.data && !linkScan.data.menuUrl && !linkScan.data.gtin && <UniversalResult result={linkScan.data} />}
+
+        {photoScan.isPending && (
+          <div className="loading"><LoaderCircle className="spin" />{tx("Recognising the photo…")}</div>
+        )}
+        {productPhotoExtraction.isPending && (
+          <div className="loading"><LoaderCircle className="spin" />{tx("Reading label…")}</div>
+        )}
+        {(photoScan.error || productPhotoExtraction.error) && (
+          <div className="inline-note">
+            {tx((photoScan.error || productPhotoExtraction.error)?.message ?? "")}
+          </div>
+        )}
+        {photoScan.data && !ingredientAnalysis.data && (
+          <>
+            <UniversalResult result={photoScan.data} />
+            {photoScan.data.gtin && (
+              <button
+                type="button"
+                className="primary-button"
+                onClick={() => void navigate(`/product/${encodeURIComponent(photoScan.data.gtin ?? "")}`)}
+              >
+                <ScanBarcode aria-hidden="true" />
+                <span>{tx("See the product")}</span>
+              </button>
+            )}
+          </>
+        )}
+
+
+        {!routeGtin && <form
+          className="barcode-form"
+          onSubmit={(event) => {
+            event.preventDefault();
+            const value = code.trim();
+            if (!value) return;
+            // A pasted link was chosen on purpose: check it straight away
+            // instead of showing the "code detected" step a scan gets.
+            const typed = classifyScannedCode(value);
+            if (typed.kind === "menu_url") {
+              void navigate(`/scan/menu?url=${encodeURIComponent(typed.url)}`);
+            } else if (typed.kind === "url") {
+              runLookup(value);
+              checkLink(typed.url);
+            } else {
+              runLookup(value);
+            }
+          }}
+        >
+          <label htmlFor="barcode">{t("manualCode")}</label>
+          <div>
+            <input
+              id="barcode"
+              type="text"
+              inputMode="text"
+              autoComplete="off"
+              value={code}
+              onChange={(event) => setCode(event.target.value)}
+              placeholder={tx("3017620422003 or https://…")}
             />
-            <button
-              className="primary-button"
-              disabled={!ingredientsText.trim() || ingredientAnalysis.isPending}
-            >
-              {ingredientAnalysis.isPending
-                ? <LoaderCircle className="spin" />
-                : <ClipboardCheck />}
-              {tx("Check ingredients")}
-            </button>
-          </form>
+            <button className="primary-button" disabled={!code.trim()}>{t("lookUp")}</button>
+          </div>
+        </form>}
 
-          {ingredientAnalysis.error && (
-            <div className="error-banner">{ingredientAnalysis.error.message}</div>
-          )}
-          {ingredientAnalysis.data && (
-            <article className="ingredient-result">
-              <VerdictBadge verdict={ingredientAnalysis.data.verdict} />
-              <h3>{localizeGeneratedText(ingredientAnalysis.data.reason, language)}</h3>
-              <IngredientFindings findings={ingredientAnalysis.data.findings} compact />
-              <EvidenceNote assurance={ingredientAnalysis.data.assurance} />
-              {ingredientAnalysis.data.traces.length > 0 && (
-                <p className="trace-note">
-                  {tx("Allergen trace warning")}: {ingredientAnalysis.data.traces.join(", ")}
+        {!routeGtin && (
+          <label className="secondary-button scan-upload-button">
+            <ImagePlus aria-hidden="true" />
+            <span>{tx("Upload an image")}</span>
+            <input
+              type="file"
+              accept="image/*"
+              data-testid="scan-photo-input"
+              onChange={(event) => {
+                const file = event.target.files?.[0];
+                event.target.value = "";
+                if (file) void handlePhoto(file);
+              }}
+            />
+          </label>
+        )}
+
+        {routeGtin && lookup.isPending && (
+          <div className="loading">
+            <LoaderCircle className="spin" />
+            {slowLookup ? tx("No database has this product's ingredients: searching the web…") : tx("Checking product…")}
+          </div>
+        )}
+        
+        {routeGtin && lookup.error && (
+          <div className="product-not-found-card">
+            <div className="error-banner">{lookup.error.message || tx("Product not found in Open Food Facts database.")}</div>
+            <p className="muted">
+              {language === "ca"
+                ? "Pots fer una foto a l'etiqueta d'ingredients del paquet per comprovar-lo ara mateix:"
+                : "You can take a photo of the ingredients list on the packaging to check it directly:"}
+            </p>
+            <div className="not-found-actions">
+              <button
+                type="button"
+                className="primary-button fallback-ocr-btn"
+                onClick={() => {
+                  void navigate("/scanner");
+                }}
+              >
+                <Camera aria-hidden="true" />
+                <span>{tx("Take photo of ingredient label")}</span>
+              </button>
+              <button
+                type="button"
+                className="secondary-button"
+                onClick={() => void navigate("/scanner")}
+              >
+                <RotateCcw aria-hidden="true" />
+                <span>{tx("Scan another")}</span>
+              </button>
+            </div>
+          </div>
+        )}
+
+        {lookup.data && (
+          <article className="product-result">
+            {lookup.data.imageUrl && (
+              <div
+                className={`product-result-media ${
+                  lookup.data.verdict === "non_vegetarian" && !revealedImages[lookup.data.gtin]
+                    ? "is-sensitive-blurred"
+                    : ""
+                }`}
+              >
+                <img src={lookup.data.imageUrl} alt="" referrerPolicy="no-referrer" />
+                {lookup.data.verdict === "non_vegetarian" && !revealedImages[lookup.data.gtin] && (
+                  <button
+                    type="button"
+                    className="sensitive-overlay-btn"
+                    onClick={() => {
+                      if (lookup.data?.gtin) {
+                        const gtin = lookup.data.gtin;
+                        setRevealedImages((prev) => ({ ...prev, [gtin]: true }));
+                      }
+                    }}
+                    title={tx("Sensitive content: tap to reveal")}
+                  >
+                    <EyeOff aria-hidden="true" size={15} />
+                    <span>{tx("Sensitive content: tap to reveal")}</span>
+                  </button>
+                )}
+              </div>
+            )}
+            <div className="product-result-body">
+              <div style={{ display: "flex", flexWrap: "wrap", alignItems: "center", gap: "0.5rem", marginBottom: "0.4rem" }}>
+                {!productVerdict.waiting && (
+                  <VerdictBadge verdict={productVerdict.verdict} context={productCategory(lookup.data) === "food" ? "diet" : "general"} />
+                )}
+                <span className="product-category-chip">
+                  {{ food: tx("Food"), beauty: tx("Cosmetics & Care"), other: tx("Other product") }[productCategory(lookup.data)]}
+                </span>
+                {lookup.data.crueltyFree && (
+                  <span
+                    style={{
+                      fontSize: "0.78rem",
+                      fontWeight: 700,
+                      padding: "0.2rem 0.6rem",
+                      borderRadius: "999px",
+                      background: "#ecfdf5",
+                      border: "1px solid #10b981",
+                      color: "#065f46",
+                      display: "inline-flex",
+                      alignItems: "center",
+                      gap: "0.3rem",
+                    }}
+                  >
+                    🐰 {tx("Cruelty-Free")}
+                  </span>
+                )}
+              </div>
+              <h2>{lookup.data.productName ?? `Product ${lookup.data.gtin}`}</h2>
+              {cleanBrand(lookup.data.brand, lookup.data.productName) && (
+                <p className="muted">
+                  {cleanBrand(lookup.data.brand, lookup.data.productName)}
                 </p>
               )}
-            </article>
-          )}
-        </section>
-      )}
+              {lookup.data.crueltyFreeCertifications && lookup.data.crueltyFreeCertifications.length > 0 && (
+                <div style={{ display: "flex", flexWrap: "wrap", gap: "0.35rem", margin: "0.35rem 0" }}>
+                  {lookup.data.crueltyFreeCertifications.map((cert) => (
+                    <span
+                      key={cert}
+                      style={{
+                        fontSize: "0.72rem",
+                        fontWeight: 600,
+                        padding: "0.15rem 0.45rem",
+                        borderRadius: "6px",
+                        background: "var(--green-light)",
+                        color: "var(--green-dark)",
+                        border: "1px solid var(--green-border)",
+                      }}
+                    >
+                      ✓ {cert}
+                    </span>
+                  ))}
+                </div>
+              )}
+              {productVerdict.waiting ? (
+                <BrandVerdictPending />
+              ) : (
+                <p className="result-reason">
+                  {productVerdict.testsOnAnimals ? productVerdict.reason : localizeGeneratedText(lookup.data.reason, language)}
+                </p>
+              )}
+              <FlaggedIngredientChips findings={lookup.data.findings} language={language} />
+              {cosmeticBrand && <BrandCrueltyFree brand={cosmeticBrand} />}
+              <EvidenceNote
+                assurance={lookup.data.assurance}
+                evidence={lookup.data.evidence}
+                automatic={lookup.data.evidence.some((item) => item.sourceType === "automated_extraction")}
+              />
+              {lookup.data.traces.length > 0 && (
+                <p className="trace-note">
+                  {tx("Allergen trace warning")}: {lookup.data.traces.join(", ")}
+                </p>
+              )}
+              {lookup.data.evidence.filter((item) => item.sourceUrl).length > 0 && (
+                <p className="source-links">
+                  {tx("Sources")}:{" "}
+                  {lookup.data.evidence.filter((item) => item.sourceUrl).slice(0, 3).map((item) => (
+                    <a key={item.id} className="source-link" href={item.sourceUrl} target="_blank" rel="noreferrer">
+                      {tx(item.sourceName)} <ExternalLink />
+                    </a>
+                  ))}
+                </p>
+              )}
+              <div className="result-actions">
+                <button
+                  className="secondary-button"
+                  onClick={() => {
+                    void navigate("/scanner");
+                  }}
+                >
+                  <RotateCcw />{tx("Scan another")}
+                </button>
+                <button
+                  className="secondary-button"
+                  onClick={() => {
+                    const label = lookup.data.evidence.find(
+                      (item) => item.ingredientsText,
+                    )?.ingredientsText;
+                    if (label) setIngredientsText(label);
+                    if (lookup.data.ingredientsImageUrl) {
+                      setRemotePhotoUrl(lookup.data.ingredientsImageUrl);
+                      productPhotoExtraction.mutate(lookup.data.gtin, {
+                        onSuccess: (text) => {
+                          setIngredientsText(text);
+                          if (text.trim()) {
+                            ingredientAnalysis.mutate(text);
+                          }
+                        },
+                      });
+                    } else if (label?.trim()) {
+                      ingredientAnalysis.mutate(label);
+                    }
+                  }}
+                >
+                  <ClipboardCheck />
+                  {lookup.data.ingredientsImageUrl ? tx("Read ingredient label") : tx("Check label")}
+                </button>
+              </div>
+            </div>
+          </article>
+        )}
+
+        {remotePhotoUrl && (
+          <div className="ingredient-photo-preview">
+            <img src={remotePhotoUrl} alt={tx("Photograph the ingredient label")} referrerPolicy="no-referrer" />
+          </div>
+        )}
+
+        <details className="typed-ingredients" open={Boolean(ingredientsText.trim()) || ingredientAnalysis.isSuccess}>
+          <summary>{tx("Or type the ingredients")}</summary>
+        <form
+          className="text-analysis-form"
+          onSubmit={(event) => {
+            event.preventDefault();
+            if (ingredientsText.trim()) ingredientAnalysis.mutate(ingredientsText);
+          }}
+        >
+          <label htmlFor="ingredients-text" className="sr-only">{tx("Or type the ingredients")}</label>
+          <textarea
+            id="ingredients-text"
+            value={ingredientsText}
+            onChange={(event) => setIngredientsText(event.target.value)}
+            placeholder={tx("Ingredients: cocoa mass, sugar, cocoa butter… May contain milk.")}
+            rows={9}
+          />
+          <button
+            className="primary-button"
+            disabled={!ingredientsText.trim() || ingredientAnalysis.isPending}
+          >
+            {ingredientAnalysis.isPending
+              ? <LoaderCircle className="spin" />
+              : <ClipboardCheck />}
+            {tx("Check ingredients")}
+          </button>
+        </form>
+
+        {ingredientAnalysis.error && (
+          <div className="error-banner">{ingredientAnalysis.error.message}</div>
+        )}
+        {ingredientAnalysis.data && (
+          <article className="ingredient-result">
+            <VerdictBadge verdict={ingredientAnalysis.data.verdict} />
+            <h3>{localizeGeneratedText(ingredientAnalysis.data.reason, language)}</h3>
+            <IngredientFindings findings={ingredientAnalysis.data.findings} compact />
+            <EvidenceNote assurance={ingredientAnalysis.data.assurance} />
+            {ingredientAnalysis.data.traces.length > 0 && (
+              <p className="trace-note">
+                {tx("Allergen trace warning")}: {ingredientAnalysis.data.traces.join(", ")}
+              </p>
+            )}
+          </article>
+        )}
+        </details>
+
+        {/* Recent Scans History in Supermarket session */}
+        {!routeGtin && recentScans.length > 0 && (
+          <section className="recent-scans-section" aria-label={tx("Recent products")}>
+            <div className="recent-scans-header">
+              <h3>{tx("Recent products")}</h3>
+              <button
+                type="button"
+                className="text-button clear-history-btn"
+                onClick={() => {
+                  localStorage.removeItem(RECENT_SCANS_STORAGE_KEY);
+                  setRecentScans([]);
+                }}
+              >
+                {tx("Clear history")}
+              </button>
+            </div>
+            <div className="recent-scans-grid">
+              {recentScans.map((item) => (
+                <button
+                  key={item.gtin}
+                  type="button"
+                  className="recent-scan-card"
+                  onClick={() => {
+                    void navigate(`/product/${item.gtin}`);
+                  }}
+                >
+                  {item.imageUrl ? (
+                    <img src={item.imageUrl} alt="" className="recent-scan-img" referrerPolicy="no-referrer" />
+                  ) : (
+                    <div className="recent-scan-placeholder"><ScanBarcode aria-hidden="true" /></div>
+                  )}
+                  <div className="recent-scan-info">
+                    <strong>{item.productName}</strong>
+                    {item.brand && <small>{item.brand}</small>}
+                  </div>
+                  <VerdictBadge verdict={item.verdict as any} />
+                </button>
+              ))}
+            </div>
+          </section>
+        )}
+      </section>
     </div>
   );
 }

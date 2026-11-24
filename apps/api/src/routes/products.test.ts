@@ -52,7 +52,7 @@ describe("GET /v1/products/:gtin across the Open Facts databases", () => {
     stubDatabases({ food: { product_name: "Face fluid" } });
     const repo = new MemoryRepository();
     const researchProduct = vi.fn().mockRejectedValue(new Error("quota"));
-    const analyzer = { analyzeImage: vi.fn(), analyzeText: vi.fn(), findBrandEthics: vi.fn(), researchProduct };
+    const analyzer = { analyzeImage: vi.fn(), analyzeText: vi.fn(), findBrandEthics: vi.fn(), researchProduct, researchLink: vi.fn() };
     const app = await buildApp({ repo, universalAnalyzer: analyzer });
     await app.inject({ method: "GET", url: `/v1/products/${GTIN}` });
     await app.inject({ method: "GET", url: `/v1/products/${GTIN}` });

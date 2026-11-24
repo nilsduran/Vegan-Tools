@@ -191,6 +191,20 @@ interface DownloadedPage {
   buffer: Buffer;
 }
 
+/** The target of a `<meta http-equiv="refresh" content="0;url=...">` page, if that is all it is. */
+export function metaRefreshTarget(html: string, base: URL): URL | undefined {
+  if (html.length > 4_000) return undefined;
+  const tag = html.match(/<meta[^>]+http-equiv=["']?refresh["']?[^>]*>/i)?.[0];
+  const target = tag?.match(/content=["']\s*\d+\s*;\s*url\s*=\s*['"]?([^'">\s]+)/i)?.[1];
+  if (!target) return undefined;
+  try {
+    const url = new URL(target, base);
+    return /^https?:$/.test(url.protocol) && url.href !== base.href ? url : undefined;
+  } catch {
+    return undefined;
+  }
+}
+
 export async function downloadPublicUrl(initialUrl: URL): Promise<DownloadedPage> {
   let url = initialUrl;
   for (let redirects = 0; redirects <= 3; redirects += 1) {
@@ -214,11 +228,18 @@ export async function downloadPublicUrl(initialUrl: URL): Promise<DownloadedPage
     }
     if (!response.ok) throw new Error(`The restaurant website returned ${response.status}.`);
     const mimetype = response.headers.get("content-type")?.split(";")[0]?.trim().toLowerCase() ?? "";
-    const maximum = mimetype === "application/pdf" ? 10 * 1024 * 1024 : 2 * 1024 * 1024;
+    // Shop product pages are heavy (an Amazon one is about 2.3 MB of HTML).
+    const maximum = mimetype === "application/pdf" ? 20 * 1024 * 1024 : 5 * 1024 * 1024;
     const declaredSize = Number(response.headers.get("content-length") ?? "0");
     if (declaredSize > maximum) throw new Error("The discovered menu is too large.");
     const buffer = Buffer.from(await response.arrayBuffer());
     if (buffer.byteLength > maximum) throw new Error("The discovered menu is too large.");
+    // Some sites redirect with a small page instead of an HTTP status (pos.do).
+    const refresh = mimetype.includes("html") ? metaRefreshTarget(buffer.toString("utf8"), url) : undefined;
+    if (refresh) {
+      url = refresh;
+      continue;
+    }
     return { url, mimetype, buffer };
   }
   throw new Error("The restaurant website redirected too many times.");

@@ -34,7 +34,7 @@ export const en = {
   source: "Source",
   why: "Why?",
   scanPrompt: "Point your camera at a barcode.",
-  manualCode: "Enter barcode",
+  manualCode: "Enter a barcode or paste a link",
   lookUp: "Look up",
   unknown: "Unknown",
   vegan: "Vegan",
@@ -73,7 +73,7 @@ export const ca: Record<keyof typeof en, string> = {
   source: "Font",
   why: "Per què?",
   scanPrompt: "Enfoca la càmera cap a un codi de barres.",
-  manualCode: "Introdueix el codi de barres",
+  manualCode: "Introdueix un codi de barres o enganxa un enllaç",
   lookUp: "Cerca",
   unknown: "Desconegut",
   vegan: "Vegà",
@@ -153,8 +153,6 @@ export const caPhrases = {
   "Is this vegan?": "Això és vegà?",
   "Scan a barcode or check the ingredient label directly.":
     "Escaneja un codi de barres o comprova directament l'etiqueta d'ingredients.",
-  "Product recipes can change. Check the current package when the result matters.":
-    "Les receptes dels productes poden canviar. Comprova l'envàs actual quan el resultat sigui important.",
   "Barcode": "Codi de barres",
   "Ingredients": "Ingredients",
   "Checking product…": "S'està comprovant el producte…",
@@ -162,6 +160,10 @@ export const caPhrases = {
   "Read ingredient label": "Llegeix l'etiqueta d'ingredients",
   "Check label": "Comprova l'etiqueta",
   "Retake photo": "Torna a fer la foto",
+  "Scanner": "Escàner",
+  "Take a photo": "Fes una foto",
+  "Your photo": "La teva foto",
+  "Codes are read by themselves. For anything else (a label, clothing…), take a photo.": "Els codis es llegeixen sols. Per a qualsevol altra cosa (una etiqueta, roba…), fes una foto.",
   "or": "o",
   "Upload an image": "Puja una imatge",
   "Reading label…": "S'està llegint l'etiqueta…",
@@ -171,16 +173,19 @@ export const caPhrases = {
   "Allergen trace warning": "Avís de traces d'al·lèrgens",
   "Photograph the ingredient label": "Fotografia l'etiqueta d'ingredients",
   "Keep the full list in focus and avoid glare.": "Mantén tota la llista enfocada i evita els reflexos.",
-  "Open camera": "Obre la càmera",
   "Capture label": "Captura l'etiqueta",
   "Camera access is unavailable. Enter the barcode below.":
     "No es pot accedir a la càmera. Introdueix el codi de barres a continuació.",
+  "Automatic recognition is busy right now. Try again in a minute.":
+    "El reconeixement automàtic està saturat ara mateix. Torna-ho a provar d'aquí a un minut.",
+  "This link could not be checked.": "No s'ha pogut comprovar aquest enllaç.",
+  "The photo could not be recognised.": "No s'ha pogut reconèixer la foto.",
+  "The camera opened but sends no picture. Close other apps using it and retry, or take a photo.":
+    "La càmera s'ha obert però no envia imatge. Tanca les altres aplicacions que la facin servir i torna-ho a provar, o fes una foto.",
   "The barcode reader could not start on this device. Enter the barcode below.":
     "El lector de codis no s'ha pogut iniciar en aquest dispositiu. Introdueix el codi de barres a continuació.",
   "Play video": "Reprodueix el vídeo",
   "Loads YouTube": "Es carrega des de YouTube",
-  "Camera access is unavailable. Upload an image below instead.":
-    "No es pot accedir a la càmera. Puja una imatge a continuació.",
   "Use your camera to scan a barcode.": "Utilitza la càmera per escanejar un codi de barres.",
   "Start camera": "Inicia la càmera",
   "Recipe Veganizer": "Veganitzador de receptes",
@@ -245,8 +250,6 @@ export const caPhrases = {
     "No s'ha trobat cap restaurant coincident. Prova d'afegir una ciutat o zona.",
   "Restaurant search failed.": "Ha fallat la cerca de restaurants.",
   "Analysis failed.": "Ha fallat l'anàlisi.",
-  "Product check method": "Mètode de comprovació del producte",
-  "Barcode checker": "Comprovador de codis de barres",
   "Ingredient checker": "Comprovador d'ingredients",
   "Ingredients checker": "Comprovador d'ingredients",
   "Ingredients: cocoa mass, sugar, cocoa butter… May contain milk.":
@@ -963,17 +966,11 @@ export const caPhrases = {
     "Plats classificats automàticament a partir d'una foto o PDF de la carta.",
   "Check with the staff when in doubt.": "Confirma-ho amb el personal si tens dubtes.",
   "Food": "Alimentació",
-  "Photo of the barcode": "Foto del codi de barres",
   "No code was found in the photo. Try a closer, sharper photo or type the number.":
     "No s'ha trobat cap codi a la foto. Prova una foto més propera i nítida, o escriu el número.",
   "Camera": "Càmera",
-  "Camera checker": "Comprovació amb càmera",
-  "Scan any barcode or QR code, or take a photo of what you want to check.":
-    "Escaneja qualsevol codi de barres o QR, o fes una foto del que vulguis comprovar.",
-  "Take a photo of an ingredient label, a product without a barcode, clothing or an activity. Ingredient lists are checked with our rules; everything else is recognised automatically.":
-    "Fes una foto d'una etiqueta d'ingredients, un producte sense codi, roba o una activitat. Les llistes d'ingredients es comproven amb les nostres regles; la resta es reconeix automàticament.",
-  "Take a photo of what you want to check": "Fes una foto del que vulguis comprovar",
-  "A label, a product, clothing, an activity…": "Una etiqueta, un producte, roba, una activitat…",
+  "Scan any product or paste any link, and we'll tell you whether it's vegan.":
+    "Escaneja qualsevol producte o enganxa qualsevol enllaç, i et direm si és vegà o no.",
   "Take photo": "Fes la foto",
   "Recognising the photo…": "Reconeixent la foto…",
   "See the product": "Mira el producte",
@@ -991,11 +988,16 @@ export const caPhrases = {
     "Trobat automàticament (foto, pàgina web o cerca web). No és una verificació: comprova l'etiqueta o pregunta quan sigui important.",
   "No database has this product's ingredients: searching the web…": "Cap base de dades té els ingredients d'aquest producte: buscant-los a la web…",
   "Sources": "Fonts",
+  "Web search": "Cerca web",
+  "This is not a menu. Checking the link…": "No és una carta. Comprovant l'enllaç…",
+  "This link is not a restaurant menu.": "Aquest enllaç no és la carta d'un restaurant.",
+  "This is not a restaurant menu.": "No és la carta d'un restaurant.",
+  "We could not check whether the brand tests on animals right now.": "Ara mateix no hem pogut comprovar si la marca experimenta amb animals.",
   "Checking whether the brand tests on animals…": "Comprovant si la marca experimenta amb animals…",
   "The brand does not test on animals": "La marca no experimenta amb animals",
-  "The brand or its parent company tests on animals": "La marca o la seva empresa matriu experimenta amb animals",
+  "The brand tests on animals": "La marca experimenta amb animals",
   "No reliable information about animal testing was found": "No s'ha trobat informació fiable sobre experimentació animal",
-  "Parent company": "Empresa matriu",
+  "Not cruelty-free: the brand tests on animals.": "No és cruelty-free: la marca experimenta amb animals.",
   "Automatic web search. Check the sources before relying on it.":
     "Cerca web automàtica. Consulta les fonts abans de fiar-te'n.",
   "This barcode number is not valid. Check the digits and try again.":
@@ -1007,6 +1009,7 @@ export const caPhrases = {
   "Scanned menu": "Carta escanejada",
   "Other product": "Altres productes",
   "Point at a barcode or QR code": "Apunta a un codi de barres o QR",
+  "3017620422003 or https://…": "3017620422003 o https://…",
   "Turn on the light": "Encén la llum",
   "Turn off the light": "Apaga la llum",
   "This menu may be out of date: restaurants change their dishes. Check with the staff before ordering.":
